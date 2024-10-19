@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Chat</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>AI Chat</h1>
+    <form action="/ask" method="POST">
+      <textarea name="query" rows="5" cols="40" placeholder="Ask me anything..."></textarea>
+      <br><br>
+      <button type="submit">Ask AI</button>
+    </form>
+
+    <% if (userQuery && aiReply) { %>
+    <div class="response">
+      <h2>Your Query:</h2>
+      <p><%= userQuery %></p>
+
+      <h2>AI Response:</h2>
+      <p><%= aiReply %></p>
+    </div>
+    <% } %>
+  </div>
+</body>
+</html>
