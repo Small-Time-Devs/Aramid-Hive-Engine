@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Interaction - Log Cabin</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Include marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.0.12/marked.min.js"></script>
+    <!-- Include Highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <!-- Include particles.js for animated canvas -->
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+</head>
+<body>
+    <!-- Floating particles for subtle animation -->
+    <div id="particles-js"></div>
+    <div class="main-container">
+        <!-- Avatar Container -->
+        <div id="avatar-container">
+            <img id="avatar" src="avatar2.png" alt="AI Avatar">
+        </div>
+        <div class="container">
+            <h1>Interact with the AI</h1>
+            <label for="prompt">Enter your prompt:</label>
+            <textarea id="prompt" rows="4" placeholder="Type your prompt..."></textarea><br>
+            <button onclick="generateText()">Generate</button>
+            <button id="continue-button" onclick="continueText()" style="display:none;">Continue</button>
+            <button id="train-button" onclick="trainAI()">Train</button>
+            <h2>Response:</h2>
+            <div id="response"></div>
+        </div>
+    </div>
+    <script>
+        async function generateText() {
+            const prompt = document.getElementById('prompt').value;
+            const responseDiv = document.getElementById('response');
+            responseDiv.innerText = "Generating...";
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ prompt: prompt }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                handleAIResponse(result);
+                document.getElementById('continue-button').style.display = 'inline-block';
+            } catch (error) {
+                console.error('Error:', error);
+                responseDiv.innerText = `An error occurred: ${error.message}`;
+            }
+        }
+
+        async function continueText() {
+            const responseDiv = document.getElementById('response');
+            const currentText = responseDiv.innerText;
+            responseDiv.innerText += "\n\nContinuing...";
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ prompt: currentText }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                handleAIResponse(result, true);
+            } catch (error) {
+                console.error('Error:', error);
+                responseDiv.innerText += `\n\nAn error occurred: ${error.message}`;
+            }
+        }
+
+        async function trainAI() {
+            const responseDiv = document.getElementById('response');
+            const prompt = "Build a crypto program in JavaScript and test the output to ensure there are no bugs and it works correctly.";
+            responseDiv.innerText = "Training...";
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ prompt: prompt }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                handleAIResponse(result);
+
+                // Start the loop to continue improving the program every minute
+                setInterval(() => {
+                    continueText();
+                }, 60000); // 60 seconds
+            } catch (error) {
+                console.error('Error:', error);
+                responseDiv.innerText = `An error occurred: ${error.message}`;
+            }
+        }
+
+        // Function to handle AI response
+        async function handleAIResponse(result, append = false) {
+            const responseDiv = document.getElementById('response');
+            try {
+                if (result.choices && result.choices[0].text) {
+                    const parsedMarkdown = marked.parse(result.choices[0].text);
+                    if (append) {
+                        responseDiv.innerHTML += parsedMarkdown;
+                    } else {
+                        responseDiv.innerHTML = parsedMarkdown;
+                    }
+                    // Highlight code blocks after inserting them
+                    hljs.highlightAll();
+                    animateAvatar();
+                } else if (result.text) {
+                    const parsedMarkdown = marked.parse(result.text);
+                    if (append) {
+                        responseDiv.innerHTML += parsedMarkdown;
+                    } else {
+                        responseDiv.innerHTML = parsedMarkdown;
+                    }
+                    hljs.highlightAll();
+                    animateAvatar();
+                } else {
+                    responseDiv.innerText = 'No response from model or unexpected format.';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                responseDiv.innerText = `An error occurred: ${error.message}`;
+            }
+        }
+
+        // Initialize particles.js
+        particlesJS('particles-js', {
+            "particles": {
+                "number": {
+                    "value": 200,
+                    "density": {
+                        "enable": true,
+                        "value_area": 800
+                    }
+                },
+                "color": {
+                    "value": "#ffffff"
+                },
+                "shape": {
+                    "type": "circle",
+                    "stroke": {
+                        "width": 0,
+                        "color": "#000000"
+                    },
+                    "polygon": {
+                        "nb_sides": 5
+                    },
+                    "image": {
+                        "src": "img/github.svg",
+                        "width": 100,
+                        "height": 100
+                    }
+                },
+                "opacity": {
+                    "value": 0.5,
+                    "random": true,
+                    "anim": {
+                        "enable": false,
+                        "speed": 1,
+                        "opacity_min": 0.1,
+                        "sync": false
+                    }
+                },
+                "size": {
+                    "value": 3,
+                    "random": true,
+                    "anim": {
+                        "enable": false,
+                        "speed": 40,
+                        "size_min": 0.1,
+                        "sync": false
+                    }
+                },
+                "line_linked": {
+                    "enable": false,
+                    "distance": 150,
+                    "color": "#ffffff",
+                    "opacity": 0.4,
+                    "width": 1
+                },
+                "move": {
+                    "enable": true,
+                    "speed": 2,
+                    "direction": "bottom",
+                    "random": false,
+                    "straight": false,
+                    "out_mode": "out",
+                    "bounce": false,
+                    "attract": {
+                        "enable": false,
+                        "rotateX": 600,
+                        "rotateY": 1200
+                    }
+                }
+            },
+            "interactivity": {
+                "detect_on": "canvas",
+                "events": {
+                    "onhover": {
+                        "enable": true,
+                        "mode": "repulse"
+                    },
+                    "onclick": {
+                        "enable": true,
+                        "mode": "push"
+                    },
+                    "resize": true
+                },
+                "modes": {
+                    "grab": {
+                        "distance": 400,
+                        "line_linked": {
+                            "opacity": 1
+                        }
+                    },
+                    "bubble": {
+                        "distance": 400,
+                        "size": 40,
+                        "duration": 2,
+                        "opacity": 8,
+                        "speed": 3
+                    },
+                    "repulse": {
+                        "distance": 200,
+                        "duration": 0.4
+                    },
+                    "push": {
+                        "particles_nb": 4
+                    },
+                    "remove": {
+                        "particles_nb": 2
+                    }
+                }
+            },
+            "retina_detect": true
+        });
+
+        function animateAvatar() {
+            const avatar = document.getElementById('avatar');
+            avatar.classList.add('animate-avatar');
+            setTimeout(() => avatar.classList.remove('animate-avatar'), 3000); // Stop animation after 3 seconds
+        }
+    </script>
+</body>
+</html>
