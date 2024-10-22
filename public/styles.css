@@ -33,9 +33,37 @@ body {
   height: 100%;
 }
 
+/* Sidebar for saved conversations */
+#sidebar {
+  width: 20%;
+  padding: 20px;
+  background-color: rgba(255, 255, 255, 0.85);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+}
+
+#saved-conversations {
+  list-style-type: none;
+  padding: 0;
+}
+
+.conversation-card {
+  background-color: #f8f9fa;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.conversation-card:hover {
+  background-color: #e9ecef;
+}
+
 /* Avatar Container */
 #avatar-container {
-  width: 50%;
+  width: 30%;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -121,6 +149,20 @@ button:hover {
 
 /* Response area */
 #response {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: rgba(255, 255, 255, 0.8); /* Slightly transparent background */
+  border-radius: 8px;
+  font-size: 16px;
+  color: #495057;
+  white-space: pre-wrap;
+  max-width: 800px; /* Limit the width for better readability */
+  max-height: 400px; /* Limit the height for better readability */
+  overflow-y: auto; /* Enable vertical scrolling */
+}
+
+/* Hugging Face response area */
+#huggingface-response {
   margin-top: 20px;
   padding: 15px;
   background-color: rgba(255, 255, 255, 0.8); /* Slightly transparent background */

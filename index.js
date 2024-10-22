@@ -1,9 +1,16 @@
 const express = require('express');
+const { HfInference } = require('@huggingface/inference'); // Hugging Face Inference API
+const dotenv = require('dotenv');
 const axios = require('axios');
 const path = require('path');
 
+dotenv.config();
+
 const app = express();
 const PORT = 5000;
+
+// Hugging Face API key (you need to sign up for one on Hugging Face and replace 'your-huggingface-api-key' with your actual API key)
+const hf = new HfInference(process.env.HUGGING_FACE_API_KEY);
 
 // Middleware to parse JSON requests
 app.use(express.json());
@@ -31,6 +38,28 @@ app.post('/generate', async (req, res) => {
             console.error('Status code:', error.response.status);
         }
         res.status(500).json({ error: 'Error processing the request on the server.' });
+    }
+});
+
+// New endpoint for AI-to-AI conversation
+app.post('/huggingface', async (req, res) => {
+    const { prompt } = req.body;
+
+    try {
+        // Use Hugging Face Inference API to get model response
+        const modelResponse = await hf.textGeneration({
+            model: 'meta-llama/Llama-3.2-3B-Instruct', // You can use any model available on Hugging Face (e.g., 'gpt2', 'gpt-neo', etc.)
+            inputs: prompt,
+        });
+
+        // Extract generated text from the API response
+        const aiReply = modelResponse.generated_text;
+
+        // Send the AI response back to the client
+        res.json({ aiReply });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Error processing your request.');
     }
 });
 

@@ -17,9 +17,14 @@
     <!-- Floating particles for subtle animation -->
     <div id="particles-js"></div>
     <div class="main-container">
+        <!-- Sidebar for saved conversations -->
+        <div id="sidebar">
+            <h2>Saved Conversations</h2>
+            <div id="saved-conversations"></div>
+        </div>
         <!-- Avatar Container -->
         <div id="avatar-container">
-            <img id="avatar" src="avatar2.png" alt="AI Avatar">
+            <img id="avatar" src="avatar.webp" alt="AI Avatar">
         </div>
         <div class="container">
             <h1>Interact with the AI</h1>
@@ -28,8 +33,12 @@
             <button onclick="generateText()">Generate</button>
             <button id="continue-button" onclick="continueText()" style="display:none;">Continue</button>
             <button id="train-button" onclick="trainAI()">Train</button>
+            <button id="talk-button" onclick="talkWithAnotherAI()">AI to AI Conversation</button>
             <h2>Response:</h2>
-            <div id="response"></div>
+            <div id="response-container">
+                <div id="response" class="response-box"></div>
+                <div id="huggingface-response" class="response-box" style="display:none;"></div>
+            </div>
         </div>
     </div>
     <script>
@@ -54,16 +63,18 @@
                 const result = await response.json();
                 handleAIResponse(result);
                 document.getElementById('continue-button').style.display = 'inline-block';
+                autoSaveConversation();
             } catch (error) {
                 console.error('Error:', error);
                 responseDiv.innerText = `An error occurred: ${error.message}`;
             }
         }
 
-        async function continueText() {
+        async function continueText(currentText) {
             const responseDiv = document.getElementById('response');
-            const currentText = responseDiv.innerText;
             responseDiv.innerText += "\n\nContinuing...";
+
+            const prompt = `${currentText}\n\nPlease elaborate more, make this better so I can make a profit using this, and explain how to use it at the end of each response.`;
 
             try {
                 const response = await fetch('/generate', {
@@ -71,7 +82,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ prompt: currentText }),
+                    body: JSON.stringify({ prompt: prompt }),
                 });
 
                 if (!response.ok) {
@@ -80,6 +91,7 @@
 
                 const result = await response.json();
                 handleAIResponse(result, true);
+                autoSaveConversation();
             } catch (error) {
                 console.error('Error:', error);
                 responseDiv.innerText += `\n\nAn error occurred: ${error.message}`;
@@ -88,7 +100,7 @@
 
         async function trainAI() {
             const responseDiv = document.getElementById('response');
-            const prompt = "Build a crypto program in JavaScript and test the output to ensure there are no bugs and it works correctly.";
+            const prompt = `Create a Solana-based arbitrage bot that monitors all Solana decentralized exchanges (Raydium, Serum, Orca, Jupiter) for the price of a specified token. The bot should: 1. Fetch the token price across all DEXs in real time. 2. Compare prices and identify the cheapest DEX to buy the token from and the highest-paying DEX to sell it on. 3. Execute a buy order on the DEX offering the lowest price. 4. Immediately execute a sell order on the DEX offering the highest price. 5. Calculate the potential profit by factoring in Solana transaction fees and slippage. Ensure that trades are only executed if the expected profit is positive. 6. Optimize for speed by simultaneously monitoring prices and sending transactions quickly. 7. Log all trades, profits, transaction hashes, and timestamps for future auditing. 8. Use Solana Web3.js and the APIs of the DEXs to implement these functions, and ensure the bot handles transactions securely and efficiently. Additional Considerations: - Error Handling: Ensure the bot handles failed transactions, fluctuating prices, or any liquidity issues. - Gas and Fee Optimization: The bot should prioritize optimizing transaction fees to ensure the profit margins aren't eroded by costs. Explain how to use it at the end of each response.`;
             responseDiv.innerText = "Training...";
 
             try {
@@ -106,15 +118,60 @@
 
                 const result = await response.json();
                 handleAIResponse(result);
+                autoSaveConversation();
 
                 // Start the loop to continue improving the program every minute
                 setInterval(() => {
-                    continueText();
+                    const currentText = responseDiv.innerText;
+                    continueText(currentText);
                 }, 60000); // 60 seconds
             } catch (error) {
                 console.error('Error:', error);
                 responseDiv.innerText = `An error occurred: ${error.message}`;
             }
+        }
+
+        async function talkWithAnotherAI() {
+            const responseDiv = document.getElementById('response');
+            const huggingfaceResponseDiv = document.getElementById('huggingface-response');
+            const prompt = document.getElementById('prompt').value;
+            responseDiv.innerText = "Starting AI-to-AI conversation...";
+            huggingfaceResponseDiv.style.display = 'block';
+
+            let conversation = `User: ${prompt}`;
+
+            async function aiConversation(prompt, isAramid = true) {
+                try {
+                    const response = await fetch(isAramid ? '/generate' : '/huggingface', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ prompt: prompt }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    const aiResponse = isAramid ? (result.choices && result.choices[0].text ? result.choices[0].text : result.text) : result.aiReply;
+                    conversation += `\n\n${isAramid ? 'Aramid' : 'Hugging Face AI'}: ${aiResponse}`;
+                    if (isAramid) {
+                        responseDiv.innerHTML = marked.parse(conversation);
+                    } else {
+                        huggingfaceResponseDiv.innerHTML = marked.parse(conversation);
+                    }
+
+                    // Continue the conversation
+                    setTimeout(() => aiConversation(aiResponse, !isAramid), 120000); // Wait 2 minutes before the next response
+                } catch (error) {
+                    console.error('Error:', error);
+                    responseDiv.innerText += `\n\nAn error occurred: ${error.message}`;
+                }
+            }
+
+            aiConversation(prompt);
         }
 
         // Function to handle AI response
@@ -146,6 +203,50 @@
             } catch (error) {
                 console.error('Error:', error);
                 responseDiv.innerText = `An error occurred: ${error.message}`;
+            }
+        }
+
+        // Function to auto-save the conversation
+        function autoSaveConversation() {
+            const responseDiv = document.getElementById('response');
+            const huggingfaceResponseDiv = document.getElementById('huggingface-response');
+            const conversation = {
+                response: responseDiv.innerHTML,
+                huggingfaceResponse: huggingfaceResponseDiv.innerHTML
+            };
+            const timestamp = new Date().toISOString();
+            localStorage.setItem(`conversation-${timestamp}`, JSON.stringify(conversation));
+            updateSavedConversations();
+        }
+
+        // Function to update the sidebar with saved conversations
+        function updateSavedConversations() {
+            const savedConversations = document.getElementById('saved-conversations');
+            savedConversations.innerHTML = '';
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('conversation-')) {
+                    const card = document.createElement('div');
+                    card.className = 'conversation-card';
+                    card.textContent = key;
+                    card.onclick = () => loadConversation(key);
+                    savedConversations.appendChild(card);
+                }
+            }
+        }
+
+        // Function to load the conversation
+        function loadConversation(key) {
+            const responseDiv = document.getElementById('response');
+            const huggingfaceResponseDiv = document.getElementById('huggingface-response');
+            const conversation = localStorage.getItem(key);
+            if (conversation) {
+                const parsedConversation = JSON.parse(conversation);
+                responseDiv.innerHTML = parsedConversation.response;
+                huggingfaceResponseDiv.innerHTML = parsedConversation.huggingfaceResponse;
+                alert('Conversation loaded!');
+            } else {
+                alert('No saved conversation found.');
             }
         }
 
@@ -266,6 +367,9 @@
             avatar.classList.add('animate-avatar');
             setTimeout(() => avatar.classList.remove('animate-avatar'), 3000); // Stop animation after 3 seconds
         }
+
+        // Update the sidebar with saved conversations on page load
+        window.onload = updateSavedConversations;
     </script>
 </body>
 </html>
