@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Interaction - Log Cabin</title>
+    <title>Small Time Devs - AI</title>
     <link rel="stylesheet" href="styles.css">
     <!-- Include marked.js for Markdown rendering -->
     <script src="https://cdn.jsdelivr.net/npm/marked@4.0.12/marked.min.js"></script>
@@ -12,6 +12,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
     <!-- Include particles.js for animated canvas -->
     <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <!-- Include Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Include fflate.min.js -->
+    <script src="https://cdn.jsdelivr.net/npm/fflate@0.6.9/umd/fflate.min.js"></script>
+    <!-- Include FBXLoader -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
 </head>
 <body>
     <!-- Floating particles for subtle animation -->
@@ -24,7 +30,7 @@
         </div>
         <!-- Avatar Container -->
         <div id="avatar-container">
-            <img id="avatar" src="avatar.webp" alt="AI Avatar">
+            <div id="avatar"></div>
         </div>
         <div class="container">
             <h1>Interact with the AI</h1>
@@ -42,6 +48,49 @@
         </div>
     </div>
     <script>
+        // Three.js setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('avatar').appendChild(renderer.domElement);
+
+        // Add ambient light
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        // Add directional light
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5, 5, 5).normalize();
+        scene.add(directionalLight);
+
+        // Add grid helper
+        const gridHelper = new THREE.GridHelper(10, 10);
+        scene.add(gridHelper);
+
+        // Add axes helper
+        const axesHelper = new THREE.AxesHelper(5);
+        scene.add(axesHelper);
+
+        const loader = new THREE.FBXLoader();
+        loader.load('./Aramid.fbx', function (object) {
+            object.scale.set(0.01, 0.01, 0.01); // Adjust the scale if necessary
+            object.position.set(0, -1, 0); // Adjust the position if necessary
+            scene.add(object);
+            console.log('Model loaded successfully');
+            animate();
+        }, undefined, function (error) {
+            console.error('Error loading model:', error);
+        });
+
+        camera.position.z = 2; // Adjust the camera position if necessary
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+
+        // Your existing JavaScript code for AI interaction
         async function generateText() {
             const prompt = document.getElementById('prompt').value;
             const responseDiv = document.getElementById('response');
@@ -74,7 +123,7 @@
             const responseDiv = document.getElementById('response');
             responseDiv.innerText += "\n\nContinuing...";
 
-            const prompt = `${currentText}\n\nPlease elaborate more, make this better so I can make a profit using this, and explain how to use it at the end of each response.`;
+            const prompt = `${currentText}\n\nPlease elaborate more and explain how to use it at the end of each response.`;
 
             try {
                 const response = await fetch('/generate', {
@@ -100,7 +149,7 @@
 
         async function trainAI() {
             const responseDiv = document.getElementById('response');
-            const prompt = `Create a Solana-based arbitrage bot that monitors all Solana decentralized exchanges (Raydium, Serum, Orca, Jupiter) for the price of a specified token. The bot should: 1. Fetch the token price across all DEXs in real time. 2. Compare prices and identify the cheapest DEX to buy the token from and the highest-paying DEX to sell it on. 3. Execute a buy order on the DEX offering the lowest price. 4. Immediately execute a sell order on the DEX offering the highest price. 5. Calculate the potential profit by factoring in Solana transaction fees and slippage. Ensure that trades are only executed if the expected profit is positive. 6. Optimize for speed by simultaneously monitoring prices and sending transactions quickly. 7. Log all trades, profits, transaction hashes, and timestamps for future auditing. 8. Use Solana Web3.js and the APIs of the DEXs to implement these functions, and ensure the bot handles transactions securely and efficiently. Additional Considerations: - Error Handling: Ensure the bot handles failed transactions, fluctuating prices, or any liquidity issues. - Gas and Fee Optimization: The bot should prioritize optimizing transaction fees to ensure the profit margins aren't eroded by costs. Explain how to use it at the end of each response.`;
+            const prompt = document.getElementById('prompt').value;
             responseDiv.innerText = "Training...";
 
             try {
@@ -120,11 +169,31 @@
                 handleAIResponse(result);
                 autoSaveConversation();
 
-                // Start the loop to continue improving the program every minute
-                setInterval(() => {
+                // Start the loop to continue improving the program every 5 minutes
+                setInterval(async () => {
                     const currentText = responseDiv.innerText;
-                    continueText(currentText);
-                }, 60000); // 60 seconds
+                    const followUpPrompt = `${currentText}\n\nPlease elaborate more, make this better so I can make a profit using this, and explain how to use it at the end of each response.`;
+                    try {
+                        const followUpResponse = await fetch('/generate', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ prompt: followUpPrompt }),
+                        });
+
+                        if (!followUpResponse.ok) {
+                            throw new Error(`HTTP error! status: ${followUpResponse.status}`);
+                        }
+
+                        const followUpResult = await followUpResponse.json();
+                        handleAIResponse(followUpResult, true);
+                        autoSaveConversation();
+                    } catch (error) {
+                        console.error('Error:', error);
+                        responseDiv.innerText += `\n\nAn error occurred: ${error.message}`;
+                    }
+                }, 300000); // 5 minutes in milliseconds
             } catch (error) {
                 console.error('Error:', error);
                 responseDiv.innerText = `An error occurred: ${error.message}`;
@@ -156,7 +225,7 @@
 
                     const result = await response.json();
                     const aiResponse = isAramid ? (result.choices && result.choices[0].text ? result.choices[0].text : result.text) : result.aiReply;
-                    conversation += `\n\n${isAramid ? 'Aramid' : 'Hugging Face AI'}: ${aiResponse}`;
+                    conversation += `\n\n<strong style="display: block; text-align: center;">${isAramid ? 'Aramid' : 'Hugging Face AI'}:</strong> ${aiResponse}`;
                     if (isAramid) {
                         responseDiv.innerHTML = marked.parse(conversation);
                     } else {

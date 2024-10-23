@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Interaction - Log Cabin</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Include marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.0.12/marked.min.js"></script>
+    <!-- Include Highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <!-- Include particles.js for animated canvas -->
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+</head>
+<body>
+    <!-- Floating particles for subtle animation -->
+    <div id="particles-js"></div>
+    <div class="main-container">
+        <!-- Sidebar for saved conversations -->
+        <div id="sidebar">
+            <h2>Saved Conversations</h2>
+            <div id="saved-conversations"></div>
+        </div>
+        <!-- Avatar Container -->
+        <div id="avatar-container">
+            <img id="avatar" src="Aramid.png" alt="AI Avatar">
+        </div>
+        <div class="container">
+            <h1>Interact with the AI</h1>
+            <label for="prompt">Enter your prompt:</label>
+            <textarea id="prompt" rows="4" placeholder="Type your prompt..."></textarea><br>
+            <button onclick="generateText()">Generate</button>
+            <button id="continue-button" onclick="continueText()" style="display:none;">Continue</button>
+            <button id="train-button" onclick="trainAI()">Train</button>
+            <button id="talk-button" onclick="talkWithAnotherAI()">AI to AI Conversation</button>
+            <h2>Response:</h2>
+            <div id="response-container">
+                <div id="response" class="response-box"></div>
+                <div id="huggingface-response" class="response-box" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        async function generateText() {
+            const prompt = document.getElementById('prompt').value;
+            const responseDiv = document.getElementById('response');
+            responseDiv.innerText = "Generating...";
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ prompt: prompt }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                handleAIResponse(result);
+                document.getElementById('continue-button').style.display = 'inline-block';
+                autoSaveConversation();
+            } catch (error) {
+                console.error('Error:', error);
+                responseDiv.innerText = `An error occurred: ${error.message}`;
+            }
+        }
+
+        async function continueText(currentText) {
+            const responseDiv = document.getElementById('response');
+            responseDiv.innerText += "\n\nContinuing...";
+
+            const prompt = `${currentText}\n\nPlease elaborate more, make this better so I can make a profit using this, and explain how to use it at the end of each response.`;
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ prompt: prompt }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                handleAIResponse(result, true);
+                autoSaveConversation();
+            } catch (error) {
+                console.error('Error:', error);
+                responseDiv.innerText += `\n\nAn error occurred: ${error.message}`;
+            }
+        }
+
+        async function trainAI() {
+            const responseDiv = document.getElementById('response');
+            const prompt = document.getElementById('prompt').value;
+            responseDiv.innerText = "Training...";
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ prompt: prompt }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                handleAIResponse(result);
+                autoSaveConversation();
+
+                // Start the loop to continue improving the program every 5 minutes
+                setInterval(async () => {
+                    const currentText = responseDiv.innerText;
+                    const followUpPrompt = `${currentText}\n\nPlease elaborate more, make this better so I can make a profit using this, and explain how to use it at the end of each response.`;
+                    try {
+                        const followUpResponse = await fetch('/generate', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ prompt: followUpPrompt }),
+                        });
+
+                        if (!followUpResponse.ok) {
+                            throw new Error(`HTTP error! status: ${followUpResponse.status}`);
+                        }
+
+                        const followUpResult = await followUpResponse.json();
+                        handleAIResponse(followUpResult, true);
+                        autoSaveConversation();
+                    } catch (error) {
+                        console.error('Error:', error);
+                        responseDiv.innerText += `\n\nAn error occurred: ${error.message}`;
+                    }
+                }, 300000); // 5 minutes in milliseconds
+            } catch (error) {
+                console.error('Error:', error);
+                responseDiv.innerText = `An error occurred: ${error.message}`;
+            }
+        }
+
+        async function talkWithAnotherAI() {
+            const responseDiv = document.getElementById('response');
+            const huggingfaceResponseDiv = document.getElementById('huggingface-response');
+            const prompt = document.getElementById('prompt').value;
+            responseDiv.innerText = "Starting AI-to-AI conversation...";
+            huggingfaceResponseDiv.style.display = 'block';
+
+            let conversation = `User: ${prompt}`;
+
+            async function aiConversation(prompt, isAramid = true) {
+                try {
+                    const response = await fetch(isAramid ? '/generate' : '/huggingface', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ prompt: prompt }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    const aiResponse = isAramid ? (result.choices && result.choices[0].text ? result.choices[0].text : result.text) : result.aiReply;
+                    conversation += `\n\n<strong style="display: block; text-align: center;">${isAramid ? 'Aramid' : 'Hugging Face AI'}:</strong> ${aiResponse}`;
+                    if (isAramid) {
+                        responseDiv.innerHTML = marked.parse(conversation);
+                    } else {
+                        huggingfaceResponseDiv.innerHTML = marked.parse(conversation);
+                    }
+
+                    // Continue the conversation
+                    setTimeout(() => aiConversation(aiResponse, !isAramid), 120000); // Wait 2 minutes before the next response
+                } catch (error) {
+                    console.error('Error:', error);
+                    responseDiv.innerText += `\n\nAn error occurred: ${error.message}`;
+                }
+            }
+
+            aiConversation(prompt);
+        }
+
+        // Function to handle AI response
+        async function handleAIResponse(result, append = false) {
+            const responseDiv = document.getElementById('response');
+            try {
+                if (result.choices && result.choices[0].text) {
+                    const parsedMarkdown = marked.parse(result.choices[0].text);
+                    if (append) {
+                        responseDiv.innerHTML += parsedMarkdown;
+                    } else {
+                        responseDiv.innerHTML = parsedMarkdown;
+                    }
+                    // Highlight code blocks after inserting them
+                    hljs.highlightAll();
+                    animateAvatar();
+                } else if (result.text) {
+                    const parsedMarkdown = marked.parse(result.text);
+                    if (append) {
+                        responseDiv.innerHTML += parsedMarkdown;
+                    } else {
+                        responseDiv.innerHTML = parsedMarkdown;
+                    }
+                    hljs.highlightAll();
+                    animateAvatar();
+                } else {
+                    responseDiv.innerText = 'No response from model or unexpected format.';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                responseDiv.innerText = `An error occurred: ${error.message}`;
+            }
+        }
+
+        // Function to auto-save the conversation
+        function autoSaveConversation() {
+            const responseDiv = document.getElementById('response');
+            const huggingfaceResponseDiv = document.getElementById('huggingface-response');
+            const conversation = {
+                response: responseDiv.innerHTML,
+                huggingfaceResponse: huggingfaceResponseDiv.innerHTML
+            };
+            const timestamp = new Date().toISOString();
+            localStorage.setItem(`conversation-${timestamp}`, JSON.stringify(conversation));
+            updateSavedConversations();
+        }
+
+        // Function to update the sidebar with saved conversations
+        function updateSavedConversations() {
+            const savedConversations = document.getElementById('saved-conversations');
+            savedConversations.innerHTML = '';
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('conversation-')) {
+                    const card = document.createElement('div');
+                    card.className = 'conversation-card';
+                    card.textContent = key;
+                    card.onclick = () => loadConversation(key);
+                    savedConversations.appendChild(card);
+                }
+            }
+        }
+
+        // Function to load the conversation
+        function loadConversation(key) {
+            const responseDiv = document.getElementById('response');
+            const huggingfaceResponseDiv = document.getElementById('huggingface-response');
+            const conversation = localStorage.getItem(key);
+            if (conversation) {
+                const parsedConversation = JSON.parse(conversation);
+                responseDiv.innerHTML = parsedConversation.response;
+                huggingfaceResponseDiv.innerHTML = parsedConversation.huggingfaceResponse;
+                alert('Conversation loaded!');
+            } else {
+                alert('No saved conversation found.');
+            }
+        }
+
+        // Initialize particles.js
+        particlesJS('particles-js', {
+            "particles": {
+                "number": {
+                    "value": 200,
+                    "density": {
+                        "enable": true,
+                        "value_area": 800
+                    }
+                },
+                "color": {
+                    "value": "#ffffff"
+                },
+                "shape": {
+                    "type": "circle",
+                    "stroke": {
+                        "width": 0,
+                        "color": "#000000"
+                    },
+                    "polygon": {
+                        "nb_sides": 5
+                    },
+                    "image": {
+                        "src": "img/github.svg",
+                        "width": 100,
+                        "height": 100
+                    }
+                },
+                "opacity": {
+                    "value": 0.5,
+                    "random": true,
+                    "anim": {
+                        "enable": false,
+                        "speed": 1,
+                        "opacity_min": 0.1,
+                        "sync": false
+                    }
+                },
+                "size": {
+                    "value": 3,
+                    "random": true,
+                    "anim": {
+                        "enable": false,
+                        "speed": 40,
+                        "size_min": 0.1,
+                        "sync": false
+                    }
+                },
+                "line_linked": {
+                    "enable": false,
+                    "distance": 150,
+                    "color": "#ffffff",
+                    "opacity": 0.4,
+                    "width": 1
+                },
+                "move": {
+                    "enable": true,
+                    "speed": 2,
+                    "direction": "bottom",
+                    "random": false,
+                    "straight": false,
+                    "out_mode": "out",
+                    "bounce": false,
+                    "attract": {
+                        "enable": false,
+                        "rotateX": 600,
+                        "rotateY": 1200
+                    }
+                }
+            },
+            "interactivity": {
+                "detect_on": "canvas",
+                "events": {
+                    "onhover": {
+                        "enable": true,
+                        "mode": "repulse"
+                    },
+                    "onclick": {
+                        "enable": true,
+                        "mode": "push"
+                    },
+                    "resize": true
+                },
+                "modes": {
+                    "grab": {
+                        "distance": 400,
+                        "line_linked": {
+                            "opacity": 1
+                        }
+                    },
+                    "bubble": {
+                        "distance": 400,
+                        "size": 40,
+                        "duration": 2,
+                        "opacity": 8,
+                        "speed": 3
+                    },
+                    "repulse": {
+                        "distance": 200,
+                        "duration": 0.4
+                    },
+                    "push": {
+                        "particles_nb": 4
+                    },
+                    "remove": {
+                        "particles_nb": 2
+                    }
+                }
+            },
+            "retina_detect": true
+        });
+
+        function animateAvatar() {
+            const avatar = document.getElementById('avatar');
+            avatar.classList.add('animate-avatar');
+            setTimeout(() => avatar.classList.remove('animate-avatar'), 3000); // Stop animation after 3 seconds
+        }
+
+        // Update the sidebar with saved conversations on page load
+        window.onload = updateSavedConversations;
+    </script>
+</body>
+</html>

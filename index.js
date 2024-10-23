@@ -3,13 +3,15 @@ const { HfInference } = require('@huggingface/inference'); // Hugging Face Infer
 const dotenv = require('dotenv');
 const axios = require('axios');
 const path = require('path');
+const fs = require('fs');
+const { exec } = require('child_process');
 
 dotenv.config();
 
 const app = express();
 const PORT = 5000;
 
-// Hugging Face API key (you need to sign up for one on Hugging Face and replace 'your-huggingface-api-key' with your actual API key)
+// Hugging Face API key (you need to sign up for one on Hugging Face and replace 'your-huggingface-api' with your actual API key)
 const hf = new HfInference(process.env.HUGGING_FACE_API_KEY);
 
 // Middleware to parse JSON requests
@@ -61,6 +63,43 @@ app.post('/huggingface', async (req, res) => {
         console.error(err);
         res.status(500).send('Error processing your request.');
     }
+});
+
+// New endpoint to trigger fine-tuning
+app.post('/fine-tune', (req, res) => {
+    const { trainFile, testFile } = req.body;
+
+    // Command to run the fine-tuning script
+    const command = `python fine_tune.py --train_file ${trainFile} --test_file ${testFile}`;
+
+    // Execute the command
+    exec(command, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error during fine-tuning: ${error.message}`);
+            return res.status(500).send('Error during fine-tuning.');
+        }
+        if (stderr) {
+            console.error(`stderr: ${stderr}`);
+        }
+        console.log(`stdout: ${stdout}`);
+        res.send('Fine-tuning started.');
+    });
+});
+
+// Endpoint to save conversation
+app.post('/save-conversation', (req, res) => {
+    const { conversation } = req.body;
+    const timestamp = new Date().toISOString();
+    const filename = `conversation-${timestamp}.json`;
+    const filepath = path.join(__dirname, 'conversations', filename);
+
+    fs.writeFile(filepath, JSON.stringify(conversation, null, 2), (err) => {
+        if (err) {
+            console.error('Error saving conversation:', err);
+            return res.status(500).send('Error saving conversation.');
+        }
+        res.send('Conversation saved successfully.');
+    });
 });
 
 // Start the server

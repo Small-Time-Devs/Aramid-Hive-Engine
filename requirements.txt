@@ -1,0 +1,7 @@
+requests==2.31.0
+tqdm==4.66.1
+datasets==3.0.2
+dill==0.3.8
+multiprocess==0.70.16
+pyarrow==17.0.0
+xxhash==3.5.0
