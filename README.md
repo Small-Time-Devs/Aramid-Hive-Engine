@@ -21,8 +21,8 @@ This project is a web-based AI interaction platform that allows users to interac
 
 1. **Clone the Repository**:
     ```sh
-    git clone https://github.com/MotoAcidic/AI-Chat.git
-    cd AI-Chat
+    git clone https://github.com/MotoAcidic/Small-Time-Devs-AI-WebUI.git
+    cd Small-Time-Devs-AI-WebUI
     ```
 
 2. **Install Dependencies**:
