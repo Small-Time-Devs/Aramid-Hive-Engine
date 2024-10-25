@@ -1,246 +1,224 @@
-// Ensure all code runs after the DOM is fully loaded
+// Ensure code runs after the DOM is fully loaded
 window.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM fully loaded and parsed');  // Log to confirm script loading
+    console.log('DOM fully loaded and parsed');
 
-    // Function to generate AI text
-    async function generateText() {
-        const prompt = document.getElementById('prompt').value;
-        const responseDiv = document.getElementById('response');
-        responseDiv.innerText = "Generating...";
-    
+    loadBackgroundOptions();
+    loadConversations();
+});
+
+// Load background options from skybox.json and populate the dropdown
+async function loadBackgroundOptions() {
+    const backgroundSelect = document.getElementById('background-select');
+    const iframe = document.getElementById('background-iframe');
+
+    try {
+        const response = await fetch('/skyboxBackgrounds/skybox.json');
+        if (!response.ok) {
+            throw new Error(`Failed to fetch backgrounds: ${response.statusText} (${response.status})`);
+        }
+
+        const backgrounds = await response.json();
+        console.log('Background options loaded:', backgrounds);
+
+        // Populate dropdown with background options
+        backgrounds.forEach((background, index) => {
+            const option = document.createElement('option');
+            option.value = background.url;
+            option.textContent = background.name;
+            backgroundSelect.appendChild(option);
+
+            // Set the first background as default
+            if (index === 0) {
+                backgroundSelect.value = background.url;
+                iframe.src = background.url;
+            }
+        });
+    } catch (error) {
+        console.error('Error loading backgrounds:', error.message || error);
+    }
+}
+
+// Update iframe with the selected background
+function updateBackground() {
+    const backgroundSelect = document.getElementById('background-select');
+    const iframe = document.getElementById('background-iframe');
+    const selectedUrl = backgroundSelect.value;
+
+    if (selectedUrl) {
+        iframe.src = selectedUrl;
+    }
+}
+
+// Save generated conversation to localStorage with a timestamp
+function saveConversation(content) {
+    const timestamp = new Date().toISOString();
+    localStorage.setItem(`conversation-${timestamp}`, content);
+    loadConversations(); // Refresh conversation dropdown after saving
+}
+
+// Load saved conversations from localStorage into the dropdown
+function loadConversations() {
+    const conversationSelect = document.getElementById('conversation-select');
+    conversationSelect.innerHTML = '<option value="">Select a conversation</option>'; // Reset dropdown
+
+    // Loop through localStorage keys to find saved conversations
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('conversation-')) {
+            const content = localStorage.getItem(key);
+            const option = document.createElement('option');
+            option.value = content;
+            option.textContent = key.replace('conversation-', ''); // Display timestamp
+            conversationSelect.appendChild(option);
+        }
+    }
+}
+
+// Display the selected conversation in the response box
+function loadConversation() {
+    const conversationSelect = document.getElementById('conversation-select');
+    const responseDiv = document.getElementById('response');
+
+    const selectedContent = conversationSelect.value;
+    if (selectedContent) {
+        responseDiv.innerText = selectedContent;
+    }
+}
+
+// Generate AI text and save it as a conversation
+async function generateText() {
+    const prompt = document.getElementById('prompt').value;
+    const responseDiv = document.getElementById('response');
+    responseDiv.innerText = "Generating...";
+
+    try {
+        const response = await fetch('/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ prompt: prompt }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        const generatedText = result.text || 'No response from model.';
+        responseDiv.innerText = generatedText;
+
+        // Save the generated conversation to localStorage
+        saveConversation(generatedText);
+    } catch (error) {
+        console.error('Error:', error);
+        responseDiv.innerText = `An error occurred: ${error.message}`;
+    }
+}
+
+// Continue AI text generation based on existing response
+async function continueText() {
+    const responseDiv = document.getElementById('response');
+    const currentText = responseDiv.innerText;
+    responseDiv.innerText += "\n\nContinuing...";
+
+    const prompt = `${currentText}\n\nPlease elaborate further and provide additional insights.`;
+
+    try {
+        const response = await fetch('/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ prompt: prompt }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        responseDiv.innerText = result.text || 'No further response from model.';
+    } catch (error) {
+        console.error('Error:', error);
+        responseDiv.innerText += `\n\nAn error occurred: ${error.message}`;
+    }
+}
+
+// Train AI with the input from the prompt box
+async function trainAI() {
+    const prompt = document.getElementById('prompt').value;
+    const responseDiv = document.getElementById('response');
+    responseDiv.innerText = "Training...";
+
+    try {
+        const response = await fetch('/train', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ prompt: prompt }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        responseDiv.innerText = result.message || 'Training initiated successfully.';
+    } catch (error) {
+        console.error('Error during training:', error);
+        responseDiv.innerText = `Training error: ${error.message}`;
+    }
+}
+
+// Initiate an AI-to-AI conversation
+async function talkWithAnotherAI() {
+    const responseDiv = document.getElementById('response');
+    const huggingfaceResponseDiv = document.getElementById('huggingface-response');
+    const prompt = document.getElementById('prompt').value;
+    responseDiv.innerText = "Starting AI-to-AI conversation...";
+    huggingfaceResponseDiv.style.display = 'block';
+
+    let conversation = `User: ${prompt}`;
+
+    async function aiConversation(prompt, isPrimaryAI = true) {
         try {
-            const response = await fetch('/generate', {
+            const response = await fetch(isPrimaryAI ? '/generate' : '/huggingface', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ prompt: prompt }),
             });
-    
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-    
+
             const result = await response.json();
-            console.log(result); // Debugging log to see the backend response
-    
-            responseDiv.innerText = result.text || 'No response from model.';
-        } catch (error) {
-            console.error('Error:', error);
-            responseDiv.innerText = `An error occurred: ${error.message}`;
-        }
-    }
-
-    // Function to continue AI text generation
-    async function continueText() {
-        const responseDiv = document.getElementById('response');
-        const currentText = responseDiv.innerText;
-        responseDiv.innerText += "\n\nContinuing...";
-
-        const prompt = `${currentText}\n\nPlease elaborate more, make this better so I can make a profit using this, and explain how to use it at the end of each response.`;
-
-        try {
-            const response = await fetch('/generate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ prompt: prompt }),  // Send the prompt to the backend
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            const aiResponse = isPrimaryAI ? result.text : result.aiReply;
+            conversation += `\n\n<strong>${isPrimaryAI ? 'Primary AI' : 'Secondary AI'}:</strong> ${aiResponse}`;
+            if (isPrimaryAI) {
+                responseDiv.innerHTML = conversation;
+            } else {
+                huggingfaceResponseDiv.innerHTML = conversation;
             }
 
-            const result = await response.json();  // Expect a JSON response
-            responseDiv.innerText = result.text || 'No response from model.';
+            setTimeout(() => aiConversation(aiResponse, !isPrimaryAI), 120000);
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error in AI-to-AI conversation:', error);
             responseDiv.innerText += `\n\nAn error occurred: ${error.message}`;
         }
     }
 
-    // Function to train the AI
-    async function trainAI() {
-        const responseDiv = document.getElementById('response');
-        const prompt = document.getElementById('prompt').value;
-        responseDiv.innerText = "Training...";
+    aiConversation(prompt);
+}
 
-        try {
-            const response = await fetch('/generate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ prompt: prompt }),  // Send the prompt to the backend
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();  // Expect a JSON response
-            responseDiv.innerText = result.text || 'No response from model.';
-            autoSaveConversation();
-
-            // Start the loop to continue improving the program every 5 minutes
-            setInterval(async () => {
-                const currentText = responseDiv.innerText;
-                const followUpPrompt = `${currentText}\n\nPlease elaborate more, make this better so I can make a profit using this, and explain how to use it at the end of each response.`;
-                try {
-                    const followUpResponse = await fetch('/generate', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ prompt: followUpPrompt }),  // Send the prompt to the backend
-                    });
-
-                    if (!followUpResponse.ok) {
-                        throw new Error(`HTTP error! status: ${followUpResponse.status}`);
-                    }
-
-                    const followUpResult = await followUpResponse.json();  // Expect a JSON response
-                    responseDiv.innerText = followUpResult.text || 'No response from model.';
-                } catch (error) {
-                    console.error('Error:', error);
-                    responseDiv.innerText += `\n\nAn error occurred: ${error.message}`;
-                }
-            }, 300000);  // 5 minutes interval
-        } catch (error) {
-            console.error('Error:', error);
-            responseDiv.innerText = `An error occurred: ${error.message}`;
-        }
-    }
-
-    // Function to handle AI-to-AI conversation
-    async function talkWithAnotherAI() {
-        const responseDiv = document.getElementById('response');
-        const huggingfaceResponseDiv = document.getElementById('huggingface-response');
-        const prompt = document.getElementById('prompt').value;
-        responseDiv.innerText = "Starting AI-to-AI conversation...";
-        huggingfaceResponseDiv.style.display = 'block';
-
-        let conversation = `User: ${prompt}`;
-
-        async function aiConversation(prompt, isAramid = true) {
-            try {
-                const response = await fetch(isAramid ? '/generate' : '/huggingface', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ prompt: prompt }),  // Send the prompt to the backend
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const result = await response.json();  // Expect a JSON response
-                const aiResponse = isAramid ? result.text : result.aiReply;
-                conversation += `\n\n<strong>${isAramid ? 'Aramid' : 'Hugging Face AI'}:</strong> ${aiResponse}`;
-                if (isAramid) {
-                    responseDiv.innerHTML = marked.parse(conversation);
-                } else {
-                    huggingfaceResponseDiv.innerHTML = marked.parse(conversation);
-                }
-
-                // Continue the conversation
-                setTimeout(() => aiConversation(aiResponse, !isAramid), 120000);  // Wait 2 minutes before the next response
-            } catch (error) {
-                console.error('Error:', error);
-                responseDiv.innerText += `\n\nAn error occurred: ${error.message}`;
-            }
-        }
-
-        aiConversation(prompt);
-    }
-
-    // Function to handle AI response display and parsing
-    async function handleAIResponse(result, append = false) {
-        const responseDiv = document.getElementById('response');
-        try {
-            if (result.choices && result.choices[0].text) {
-                const parsedMarkdown = marked.parse(result.choices[0].text);
-                if (append) {
-                    responseDiv.innerHTML += parsedMarkdown;
-                } else {
-                    responseDiv.innerHTML = parsedMarkdown;
-                }
-                hljs.highlightAll();  // Highlight code blocks if any
-                animateAvatar();
-            } else if (result.text) {
-                const parsedMarkdown = marked.parse(result.text);
-                if (append) {
-                    responseDiv.innerHTML += parsedMarkdown;
-                } else {
-                    responseDiv.innerHTML = parsedMarkdown;
-                }
-                hljs.highlightAll();  // Highlight code blocks if any
-                animateAvatar();
-            } else {
-                responseDiv.innerText = 'No response from model or unexpected format.';
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            responseDiv.innerText = `An error occurred: ${error.message}`;
-        }
-    }
-
-    // Function to auto-save the conversation
-    function autoSaveConversation() {
-        const responseDiv = document.getElementById('response');
-        const huggingfaceResponseDiv = document.getElementById('huggingface-response');
-        const conversation = {
-            response: responseDiv.innerHTML,
-            huggingfaceResponse: huggingfaceResponseDiv.innerHTML
-        };
-        const timestamp = new Date().toISOString();
-        localStorage.setItem(`conversation-${timestamp}`, JSON.stringify(conversation));
-        updateSavedConversations();
-    }
-
-    // Function to update the sidebar with saved conversations
-    function updateSavedConversations() {
-        const savedConversations = document.getElementById('saved-conversations');
-        savedConversations.innerHTML = '';
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key.startsWith('conversation-')) {
-                const card = document.createElement('div');
-                card.className = 'conversation-card';
-                card.textContent = key;
-                card.onclick = () => loadConversation(key);
-                savedConversations.appendChild(card);
-            }
-        }
-    }
-
-    // Function to load a saved conversation
-    function loadConversation(key) {
-        const responseDiv = document.getElementById('response');
-        const huggingfaceResponseDiv = document.getElementById('huggingface-response');
-        const conversation = localStorage.getItem(key);
-        if (conversation) {
-            const parsedConversation = JSON.parse(conversation);
-            responseDiv.innerHTML = parsedConversation.response;
-            huggingfaceResponseDiv.innerHTML = parsedConversation.huggingfaceResponse;
-            alert('Conversation loaded!');
-        } else {
-            alert('No saved conversation found.');
-        }
-    }
-
-    // Attach all functions to the global window object so they can be called from HTML
-    window.generateText = generateText;
-    window.continueText = continueText;
-    window.trainAI = trainAI;
-    window.talkWithAnotherAI = talkWithAnotherAI;
-    window.autoSaveConversation = autoSaveConversation;
-    window.updateSavedConversations = updateSavedConversations;
-    window.loadConversation = loadConversation;
-
-    // Run updateSavedConversations on page load to populate the sidebar
-    updateSavedConversations();
-});
+// Attach functions to the window object for HTML access
+window.updateBackground = updateBackground;
+window.loadConversation = loadConversation;
+window.generateText = generateText;
+window.continueText = continueText;
+window.trainAI = trainAI;
+window.talkWithAnotherAI = talkWithAnotherAI;

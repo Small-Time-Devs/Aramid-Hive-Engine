@@ -1,0 +1,37 @@
+[
+    {
+        "id": "SpaceHanger",
+        "name": "Skybox - Space Hanger",
+        "url": "https://skybox.blockadelabs.com/e/dd643e8b9ae40ca0e2fb36e2aac8d3dd"
+    },
+    {
+        "id": "CoastalCity",
+        "name": "Skybox - Coastal City",
+        "url": "https://skybox.blockadelabs.com/e/96da61861fe52b6c5a7b05603ce87b39"
+    },
+    {
+        "id": "Cave",
+        "name": "Skybox - Cave",
+        "url": "https://skybox.blockadelabs.com/e/b83873f387958ca09df4f5bf3229a550"
+    },
+    {
+        "id": "DystopianHanger",
+        "name": "Skybox - Dystopian Hanger",
+        "url": "https://skybox.blockadelabs.com/e/bf00f44c62ff13d0c4dd531ad178f9e7"
+    },
+    {
+        "id": "Warehouse",
+        "name": "Skybox - Warehouse",
+        "url": "https://skybox.blockadelabs.com/e/e96091a94cb5073f3846ef7e62b91b93"
+    },
+    {
+        "id": "CartoonForest",
+        "name": "Skybox - Cartoon Forest",
+        "url": "https://skybox.blockadelabs.com/e/c5d843597c1cd9c8744ead3171896927"
+    },
+    {
+        "id": "RealisticForest",
+        "name": "Skybox - Realistic Forest",
+        "url": "https://skybox.blockadelabs.com/e/604c9a46329fd4f22b48b8e62046cfcd"
+    }
+]
