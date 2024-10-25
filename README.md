@@ -1,4 +1,4 @@
-# AI Interaction - Log Cabin
+# Small Time Devs - AI
 
 This project is a web-based AI interaction platform that allows users to interact with an AI model. The platform supports generating text responses, training the AI model, and conducting AI-to-AI conversations. Additionally, it features a 3D avatar rendered using Three.js and an `.fbx` model.
 
