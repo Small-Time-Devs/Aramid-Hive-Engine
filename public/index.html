@@ -6,8 +6,25 @@
     <title>Small Time Devs - AI</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/marked@4.0.12/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>
+        // Initialize Highlight.js for code block highlighting
+        document.addEventListener("DOMContentLoaded", () => {
+            hljs.highlightAll();
+        });
+        
+        // Helper function to render Markdown with syntax highlighting
+        function renderMarkdown(text) {
+            const html = marked.parse(text, { 
+                highlight: (code, lang) => {
+                    return hljs.highlightAuto(code, [lang]).value;
+                }
+            });
+            return html;
+        }
+    </script>
 </head>
 <body>
     <!-- Background Selection Dropdown -->
@@ -16,6 +33,7 @@
         <select id="background-select" onchange="updateBackground()">
             <option value="">Select a background</option>
         </select>
+
     </div>
 
     <!-- Saved Conversations Dropdown -->
@@ -25,7 +43,6 @@
             <option value="">Select a conversation</option>
         </select>
     </div>
-    
 
     <!-- Iframe for selected background -->
     <div class="background-iframe">
@@ -43,18 +60,41 @@
             <!-- Chat Interface -->
             <section class="container chat-container">
                 <h1>Talk With Aramid</h1>
+                
+                <!-- Prompt Text Area -->
                 <textarea id="prompt" rows="5" placeholder="Type your prompt..."></textarea>
+                
+                <!-- Button Group for Generating Text and other actions -->
                 <div class="button-group">
                     <button onclick="generateText()">Generate</button>
                     <button id="continue-button" onclick="continueText()" style="display:none;">Continue</button>
                     <button id="train-button" onclick="trainAI()">Train</button>
                     <button id="talk-button" onclick="talkWithAnotherAI()">AI to AI Conversation</button>
-                    <button id="execute-command-button" onclick="executeCommand()">Execute Command</button>
+                    <button id="research-button" onclick="researchAndSummarize()">Research</button>
+                    <button id="crypto-search-button" onclick="fetchCryptoInfo()">Search Crypto Info</button>
                 </div>
+
+                <!-- Crypto Token Input Field for Crypto Search -->
+                <div class="crypto-search-section">
+                    <label for="token-input">Crypto Token:</label>
+                    <input type="text" id="token-input" placeholder="Enter token name or symbol (e.g., SOL)" />
+                </div>
+
+                <!-- Execute Command Section -->
+                <div class="command-section">
+                    <label for="command-input">Execute Command:</label>
+                    <input type="text" id="command-input" placeholder="Enter command (e.g., start notepad write me a letter)" />
+                    <button onclick="executeCommand()">Execute</button>
+                </div>
+                
                 <h2>Response:</h2>
                 <div id="response-container">
+                    <!-- Primary response container with Markdown rendering and code highlighting -->
                     <div id="response" class="response-box"></div>
                 </div>
+                
+                <!-- Add huggingface-response div for AI-to-AI conversation with Markdown support -->
+                <div id="huggingface-response" class="response-box" style="display: none;"></div>
             </section>
         </div>
     </div>
