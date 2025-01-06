@@ -272,6 +272,39 @@ async function agentChat() {
     }
 }
 
+// Function to initiate LLM to LLM conversation
+async function initiateLLMConversation() {
+    const prompt = document.getElementById('prompt').value;
+    const responseDiv = document.getElementById('response');
+    const selectedAgent = document.getElementById('agents-select').value;
+
+    if (!prompt || !selectedAgent) {
+        responseDiv.innerText = "Please enter a prompt and select an agent.";
+        return;
+    }
+
+    responseDiv.innerText = "Initiating LLM to LLM conversation...";
+
+    try {
+        const response = await fetch('/llm-conversation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: prompt, agent: selectedAgent }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        responseDiv.innerHTML = renderMarkdown(result.conversation); // Ensure Markdown is rendered correctly
+        hljs.highlightAll();  // Apply syntax highlighting
+    } catch (error) {
+        console.error('Error:', error);
+        responseDiv.innerText = `An error occurred: ${error.message}`;
+    }
+}
+
 // Attach functions to the window object for HTML access
 window.updateBackground = updateBackground;
 window.loadConversation = loadConversation;
@@ -280,4 +313,5 @@ window.generateText = generateText;
 window.continueText = continueText;
 window.talkWithAnotherAI = talkWithAnotherAI;
 window.agentChat = agentChat;
+window.initiateLLMConversation = initiateLLMConversation;
 document.getElementById('research-button').onclick = researchAndSummarize;

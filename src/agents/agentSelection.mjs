@@ -31,19 +31,16 @@ async function selectXrayTechPrompt(query) {
 }
 
 async function selectCryptoAnalystPrompt(query) {
-    if (
-        query.includes('crypto') || 
-        query.includes('cryptocurrency') || 
-        query.includes('bitcoin') || 
-        query.includes('ethereum') || 
-        query.includes('blockchain') || 
-        query.includes('altcoin') || 
-        query.includes('crypto analysis') || 
-        query.includes('crypto trends') || 
-        query.includes('digital currency') || 
-        query.includes('token')
-    ) {
-        return { prompt: await cryptoAnalystPrompts.CRYPTO_ANALYST_PROMPT(), role: 'Crypto Analyst' };
+    if (query.includes('crypto') || query.includes('cryptocurrency') || query.includes('bitcoin') || query.includes('ethereum') || query.includes('blockchain') || query.includes('altcoin') || query.includes('crypto analysis') || query.includes('crypto trends') || query.includes('digital currency') || query.includes('token')) {
+        if (query.includes('market analysis')) {
+            return { prompt: await cryptoAnalystPrompts.CRYPTO_MARKET_ANALYSIS_PROMPT(), role: 'Crypto Market Analyst' };
+        } else if (query.includes('technical analysis')) {
+            return { prompt: await cryptoAnalystPrompts.CRYPTO_TECHNICAL_ANALYSIS_PROMPT(), role: 'Crypto Technical Analyst' };
+        } else if (query.includes('investment strategies')) {
+            return { prompt: await cryptoAnalystPrompts.CRYPTO_INVESTMENT_STRATEGIES_PROMPT(), role: 'Crypto Investment Strategist' };
+        } else {
+            return { prompt: await cryptoAnalystPrompts.CRYPTO_MARKET_ANALYSIS_PROMPT(), role: 'Crypto Analyst' };
+        }
     } else {
         return null;
     }

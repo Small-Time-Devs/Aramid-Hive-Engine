@@ -258,6 +258,38 @@ app.post('/agent-chat', async (req, res) => {
     }
 });
 
+// Route to handle LLM to LLM conversation
+app.post('/llm-conversation', async (req, res) => {
+    const { prompt, agent } = req.body;
+    if (!prompt || !agent) return res.status(400).json({ error: 'Prompt and agent are required' });
+
+    const { prompt: agentPrompt, role } = await selectPrompt(agent);
+    const payload = { prompt: `${agentPrompt}\n\nUser Query: ${prompt}`, max_tokens: 5000 };
+
+    try {
+        const response1 = await axios.post(process.env.LOCAL_MODEL_API_URL, payload);
+        let conversation = response1.data.text || response1.data.choices[0].text;
+
+        // Initialize second LLM instance
+        const response2 = await axios.post(process.env.LOCAL_MODEL_API_URL, { prompt: conversation, max_tokens: 5000 });
+        conversation += `\n\n${response2.data.text || response2.data.choices[0].text}`;
+
+        // Limit the conversation to a specified number of exchanges
+        for (let i = 0; i < 3; i++) {
+            const response1 = await axios.post(process.env.LOCAL_MODEL_API_URL, { prompt: conversation, max_tokens: 5000 });
+            conversation += `\n\n${response1.data.text || response1.data.choices[0].text}`;
+
+            const response2 = await axios.post(process.env.LOCAL_MODEL_API_URL, { prompt: conversation, max_tokens: 5000 });
+            conversation += `\n\n${response2.data.text || response2.data.choices[0].text}`;
+        }
+
+        res.json({ conversation });
+    } catch (error) {
+        console.error('Error with LLM conversation:', error.message);
+        res.status(500).json({ error: 'Error processing the LLM conversation request.' });
+    }
+});
+
 // Helper to perform internet research using Google Custom Search API
 async function internetResearch(query) {
     try {
