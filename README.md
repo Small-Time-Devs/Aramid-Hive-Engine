@@ -21,7 +21,7 @@ This project is a web-based AI interaction platform that allows users to interac
 
 1. **Clone the Repository**:
     ```sh
-    git clone https://github.com/MotoAcidic/AI-Chat.git
+    git clone https://github.com/MotoAcidic/Aramid-Hive-Engine.git
     cd AI-Chat
     ```
 
