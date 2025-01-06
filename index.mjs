@@ -1,17 +1,22 @@
-const express = require('express');
-const { HfInference } = require('@huggingface/inference');
-const dotenv = require('dotenv');
-const axios = require('axios');
-const path = require('path');
-const fs = require('fs');
-const { exec } = require('child_process');
-const robot = require('robotjs');
-const { selectPrompt } = require('./src/agents/agentSelection.mjs');
+import express from 'express';
+import { HfInference } from '@huggingface/inference';
+import dotenv from 'dotenv';
+import axios from 'axios';
+import path from 'path';
+import fs from 'fs';
+import { exec } from 'child_process';
+import robot from 'robotjs';
+import { fileURLToPath } from 'url';
+import { selectPrompt } from './src/agents/agentSelection.mjs';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Derive __dirname from import.meta.url
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Initialize Hugging Face Inference API
 const hf = new HfInference(process.env.HUGGING_FACE_API_KEY);
@@ -223,23 +228,28 @@ app.post('/train/follow-up', async (req, res) => {
     }
 });
 
+// Helper function to format the response with the agent's role as a header
+function formatAgentResponse(agentRole, responseText) {
+    return `### ${agentRole}\n\n${responseText}`;
+}
+
 // Route to handle agent-based chat
 app.post('/agent-chat', async (req, res) => {
     const { query, sessionId } = req.body;
     if (!query || !sessionId) return res.status(400).json({ error: 'Query and sessionId are required' });
 
-    const prompt = await selectPrompt(query);
-    const payload = { prompt: `${prompt}\n\nUser Query: ${query}`, max_tokens: 5000 };
+    const { prompt, role } = await selectPrompt(query);
+    const payload = { prompt: `${prompt}`, max_tokens: 5000 };
 
     try {
         const response = await axios.post(process.env.LOCAL_MODEL_API_URL, payload);
         const generatedText = response.data.text || response.data.choices[0].text;
-        
-        // Log user interaction
-        console.log(`Session ${sessionId}: ${query} -> ${generatedText}`);
 
-        // Ensure the response text is formatted correctly
-        const formattedText = generatedText.replace(/\n/g, '\n\n');
+        // Format the response with the agent's role as a header
+        const formattedText = formatAgentResponse(role, generatedText);
+
+        // Log user interaction
+        console.log(`Session ${sessionId}: ${query} -> ${formattedText}`);
 
         res.json({ text: formattedText });
     } catch (error) {

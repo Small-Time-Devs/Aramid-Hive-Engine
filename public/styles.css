@@ -219,3 +219,55 @@ h2::after, h3::after {
     left: 5%;
   }
 }
+
+.agents-selector {
+  position: absolute;
+  top: 170px;
+  right: 10px;
+  z-index: 10;
+  background-color: rgba(255, 255, 255, 0.5);
+  padding: 10px;
+  border-radius: 8px;
+  font-family: 'Arial', sans-serif;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(8px);
+  margin-right: 10px;
+}
+
+.agents-selector label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.agents-selector select {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+/* ...existing styles... */
+
+.background-selector,
+.conversation-selector,
+.agents-selector {
+    margin-bottom: 10px;
+}
+
+.background-selector label,
+.conversation-selector label,
+.agents-selector label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.background-selector select,
+.conversation-selector select,
+.agents-selector select {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}

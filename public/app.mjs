@@ -142,58 +142,6 @@ async function continueText() {
     }
 }
 
-// Train AI with the input from the prompt box
-async function trainAI() {
-    const prompt = document.getElementById('prompt').value;
-    const responseDiv = document.getElementById('response');
-    responseDiv.innerText = "Training...";
-
-    try {
-        // Initial training request to `/train`
-        const initialResponse = await fetch('/train', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: prompt }),
-        });
-
-        if (!initialResponse.ok) {
-            throw new Error(`HTTP error! status: ${initialResponse.status}`);
-        }
-
-        const initialResult = await initialResponse.json();
-        const initialText = initialResult.message || 'Initial training response received.';
-        responseDiv.innerHTML = `<div><strong>Initial Response:</strong><br>${marked.parse(initialText)}</div>`;
-        hljs.highlightAll();  // Apply syntax highlighting
-
-        // Wait 10 seconds, then send follow-up request to `/train/follow-up`
-        setTimeout(async () => {
-            try {
-                const followUpResponse = await fetch('/train/follow-up', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ initialText: initialText }),
-                });
-
-                if (!followUpResponse.ok) {
-                    throw new Error(`HTTP error! status: ${followUpResponse.status}`);
-                }
-
-                const followUpResult = await followUpResponse.json();
-                const refinedText = followUpResult.message || 'Follow-up response completed.';
-
-                responseDiv.innerHTML += `<div style="margin-top: 10px;"><strong>Refined Response:</strong><br>${marked.parse(refinedText)}</div>`;
-                hljs.highlightAll();  // Apply syntax highlighting
-            } catch (error) {
-                console.error('Error in follow-up training:', error);
-                responseDiv.innerHTML += `<p style="color:red;"><strong>Follow-up training error:</strong> ${error.message}</p>`;
-            }
-        }, 10000); // 10-second delay
-    } catch (error) {
-        console.error('Error during initial training:', error);
-        responseDiv.innerHTML = `<p style="color:red;"><strong>Training error:</strong> ${error.message}</p>`;
-    }
-}
-
 // Execute command on server and send text to Notepad if required
 async function executeCommand() {
     const commandInput = document.getElementById('command-input').value;
@@ -330,8 +278,6 @@ window.loadConversation = loadConversation;
 window.executeCommand = executeCommand;
 window.generateText = generateText;
 window.continueText = continueText;
-window.trainAI = trainAI;
-window.executeCommand = executeCommand;
 window.talkWithAnotherAI = talkWithAnotherAI;
 window.agentChat = agentChat;
 document.getElementById('research-button').onclick = researchAndSummarize;
