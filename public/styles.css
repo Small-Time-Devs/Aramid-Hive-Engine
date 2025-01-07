@@ -58,7 +58,8 @@ a {
   transition: all 0.3s;
 }
 
-.sidebar nav a.active, .sidebar nav a:hover {
+.sidebar nav a.active,
+.sidebar nav a:hover {
   color: #ff3b3b;
 }
 
@@ -78,7 +79,10 @@ a {
   padding: 20px;
   display: flex;
   flex-direction: column;
+  gap: 20px; /* Add spacing between sections */
   height: 100vh;
+  overflow-y: auto; /* Allow vertical scrolling for long content */
+  box-sizing: border-box;
 }
 
 /* Top Navigation Bar */
@@ -106,15 +110,7 @@ a {
   text-decoration: underline;
 }
 
-/* Content Area */
-.content {
-  display: grid;
-  grid-template-columns: 1fr 2fr; /* Task Description (1fr) and Analysis Results (2fr) */
-  gap: 20px;
-  flex-grow: 1;
-}
-
-/* Card Component */
+/* Task Description and Analysis Results Section */
 .card {
   background-color: #1e1e1e;
   border: 1px solid #ff3b3b;
@@ -122,13 +118,26 @@ a {
   padding: 20px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* Space between elements inside the card */
+}
+
+.task {
+  flex: 0 0 auto; /* Ensure task card does not grow or shrink */
+}
+
+.results {
+  flex: 1 1 auto; /* Allow the results card to take up remaining space */
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
 /* Textarea Styling */
 textarea {
-  width: calc(100% - 20px); /* Adjust to leave room for padding */
-  height: 80px; /* Keep textarea height constant */
+  width: 100%;
+  height: 100px; /* Adjusted height */
   background-color: #2a2a2a;
   border: 1px solid #444;
   color: #fff;
@@ -146,7 +155,6 @@ textarea:focus {
 .button-group {
   display: flex;
   gap: 10px;
-  margin-top: 15px;
 }
 
 .button-group button {
@@ -172,6 +180,11 @@ textarea:focus {
   font-family: 'Courier New', Courier, monospace; /* Use monospace font for text output */
   white-space: pre-wrap; /* Preserve formatting and wrap long lines */
   overflow-y: auto; /* Allow scrolling if content overflows */
-  height: calc(100% - 40px); /* Stretch to fill the remaining height of the card */
-  box-sizing: flex;
+  height: 100%; /* Stretch to fill the results card */
+  box-sizing: border-box;
+}
+
+/* Ensure Spacing Between Sections */
+.card + .card {
+  margin-top: 20px; /* Add spacing between cards */
 }

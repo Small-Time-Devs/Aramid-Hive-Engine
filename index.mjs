@@ -1,24 +1,19 @@
 import express from 'express';
-import { HfInference } from '@huggingface/inference';
 import dotenv from 'dotenv';
 import axios from 'axios';
 import path from 'path';
 import fs from 'fs';
-import { exec } from 'child_process';
 import { fileURLToPath } from 'url';
-import { selectPrompt } from './src/agents/agentSelection.mjs';
+import { orchestrate } from './src/agents/orchestrator.mjs';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5051;
 
 // Derive __dirname from import.meta.url
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Initialize Hugging Face Inference API
-const hf = new HfInference(process.env.HUGGING_FACE_API_KEY);
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -53,51 +48,6 @@ app.post('/generate', async (req, res) => {
     }
 });
 
-// Hugging Face API for AI-to-AI conversation
-app.post('/huggingface', async (req, res) => {
-    const { prompt } = req.body;
-    if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
-
-    try {
-        const modelResponse = await hf.textGeneration({
-            model: 'meta-llama/Llama-3.2-3B-Instruct',
-            inputs: prompt,
-        });
-
-        // Ensure we get the correct response field
-        const aiReply = modelResponse?.generated_text || modelResponse?.choices?.[0]?.text || 'No response generated.';
-        
-        // Log for debugging purposes
-        console.log('AI Reply from Hugging Face:', aiReply);
-
-        res.json({ text: aiReply });
-    } catch (err) {
-        console.error('Error with Hugging Face API:', err.message);
-        res.status(500).json({ error: 'Error processing request with Hugging Face API.' });
-    }
-});
-
-// Route for fine-tuning models
-app.post('/fine-tune', (req, res) => {
-    const { trainFile, testFile } = req.body;
-    if (!trainFile || !testFile) {
-        return res.status(400).json({ error: 'trainFile and testFile are required' });
-    }
-
-    const command = `python fine_tune.py --train_file ${trainFile} --test_file ${testFile}`;
-    exec(command, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Fine-tuning error: ${error.message}`);
-            return res.status(500).json({ error: 'Error during fine-tuning process.' });
-        }
-        if (stderr) {
-            console.error(`stderr: ${stderr}`);
-        }
-        console.log(`stdout: ${stdout}`);
-        res.json({ message: 'Fine-tuning started successfully.', output: stdout });
-    });
-});
-
 // Research and Summarize function
 app.post('/research-and-summarize', async (req, res) => {
     const { query } = req.body;
@@ -120,28 +70,20 @@ function formatAgentResponse(agentRole, responseText) {
     return `### ${agentRole}\n\n${responseText}`;
 }
 
-// Route to handle agent-based chat
 app.post('/agent-chat', async (req, res) => {
     const { query, sessionId } = req.body;
-    if (!query || !sessionId) return res.status(400).json({ error: 'Query and sessionId are required' });
 
-    const { prompt, role } = await selectPrompt(query);
-    const payload = { prompt: `${prompt}`, max_tokens: 5000 };
+    if (!query || !sessionId) {
+        return res.status(400).json({ error: "Both 'query' and 'sessionId' are required." });
+    }
 
+    // Proceed with orchestrating the response
     try {
-        const response = await axios.post(process.env.LOCAL_MODEL_API_URL, payload);
-        const generatedText = response.data.text || response.data.choices[0].text;
-
-        // Format the response with the agent's role as a header
-        const formattedText = formatAgentResponse(role, generatedText);
-
-        // Log user interaction
-        console.log(`Session ${sessionId}: ${query} -> ${formattedText}`);
-
-        res.json({ text: formattedText });
+        const response = await orchestrate(query);
+        res.json({ text: response });
     } catch (error) {
-        console.error('Error with local model API:', error.message);
-        res.status(500).json({ error: 'Error processing the request on the server.' });
+        console.error('Agent Chat Error:', error);
+        res.status(500).json({ error: "An error occurred while processing your request." });
     }
 });
 
