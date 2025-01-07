@@ -8,15 +8,10 @@ window.addEventListener('DOMContentLoaded', () => {
 function renderMarkdown(text) {
     if (typeof marked === 'undefined') {
         console.error("Marked.js library is not loaded.");
-        return text; // Fallback to plain text if marked is unavailable
+        return text; // Fallback to plain text if Marked is unavailable
     }
 
-    const html = marked.parse(text, {
-        highlight: (code, lang) => {
-            return hljs ? hljs.highlightAuto(code, [lang]).value : code;
-        },
-    });
-
+    const html = marked.parse(text);
     return html;
 }
 
@@ -94,7 +89,12 @@ async function generateText() {
         const result = await response.json();
         const generatedText = result.text || 'No response from model.';
         responseDiv.innerHTML = renderMarkdown(generatedText);
-        hljs?.highlightAll(); // Apply syntax highlighting if hljs is available
+
+        if (typeof hljs !== 'undefined') {
+            hljs.highlightAll(); // Apply syntax highlighting if hljs is available
+        } else {
+            console.error("Highlight.js library is not loaded.");
+        }
 
         // Save the generated conversation to localStorage
         saveConversation(generatedText);
@@ -103,119 +103,3 @@ async function generateText() {
         responseDiv.innerText = `An error occurred: ${error.message}`;
     }
 }
-
-// Continue AI text generation based on existing response
-async function continueText() {
-    const responseDiv = document.getElementById('response');
-    const currentText = responseDiv.innerText;
-    responseDiv.innerText += "\n\nContinuing...";
-
-    const prompt = `${currentText}\n\nPlease elaborate further and provide additional insights.`;
-
-    try {
-        const response = await fetch('/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt }),
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        responseDiv.innerHTML = renderMarkdown(result.text || 'No further response from model.');
-        hljs?.highlightAll(); // Apply syntax highlighting
-    } catch (error) {
-        console.error('Error:', error);
-        responseDiv.innerText += `\n\nAn error occurred: ${error.message}`;
-    }
-}
-
-// Execute command on server and send text to Notepad if required
-async function executeCommand() {
-    const commandInput = document.getElementById('command-input').value;
-    const responseDiv = document.getElementById('response');
-    responseDiv.innerText = "Executing command...";
-
-    try {
-        const response = await fetch('/execute-command', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ command: commandInput }),
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        responseDiv.innerHTML = renderMarkdown(result.output || 'Command executed successfully.');
-        hljs?.highlightAll(); // Apply syntax highlighting
-    } catch (error) {
-        console.error('Error executing command:', error);
-        responseDiv.innerText = `An error occurred: ${error.message}`;
-    }
-}
-
-// Research and Summarize function
-async function researchAndSummarize() {
-    const query = document.getElementById('prompt').value;
-    const responseDiv = document.getElementById('response');
-    responseDiv.innerText = "Researching and summarizing...";
-
-    try {
-        const response = await fetch('/research-and-summarize', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query }),
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        responseDiv.innerHTML = renderMarkdown(result.summary || 'No summary generated from the research.');
-        hljs?.highlightAll(); // Apply syntax highlighting
-    } catch (error) {
-        console.error('Error in research and summarize:', error);
-        responseDiv.innerText = `An error occurred: ${error.message}`;
-    }
-}
-
-// Handle agent-based chat
-async function agentChat() {
-    const prompt = document.getElementById('prompt').value;
-    const responseDiv = document.getElementById('response');
-    const sessionId = localStorage.getItem('sessionId') || Date.now().toString();
-    localStorage.setItem('sessionId', sessionId);
-
-    responseDiv.innerText = "Processing...";
-
-    try {
-        const response = await fetch('/agent-chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: prompt, sessionId }),
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        responseDiv.innerHTML = renderMarkdown(result.text || 'No response from the agent.');
-        hljs?.highlightAll(); // Apply syntax highlighting
-    } catch (error) {
-        console.error('Error:', error);
-        responseDiv.innerText = `An error occurred: ${error.message}`;
-    }
-}
-
-// Attach functions to the window object for HTML access
-window.updateBackground = updateBackground;
-window.generateText = generateText;
-window.continueText = continueText;
-window.agentChat = agentChat;
-document.getElementById('research-button')?.addEventListener('click', researchAndSummarize);
