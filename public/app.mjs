@@ -6,11 +6,17 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // Helper function to render Markdown with syntax highlighting
 function renderMarkdown(text) {
+    if (typeof marked === 'undefined') {
+        console.error("Marked.js library is not loaded.");
+        return text; // Fallback to plain text if marked is unavailable
+    }
+
     const html = marked.parse(text, {
         highlight: (code, lang) => {
-            return hljs.highlightAuto(code, [lang]).value;
+            return hljs ? hljs.highlightAuto(code, [lang]).value : code;
         },
     });
+
     return html;
 }
 
@@ -18,6 +24,11 @@ function renderMarkdown(text) {
 async function loadBackgroundOptions() {
     const backgroundSelect = document.getElementById('background-select');
     const iframe = document.getElementById('background-iframe');
+
+    if (!backgroundSelect || !iframe) {
+        console.warn("Background options elements not found in the DOM.");
+        return;
+    }
 
     try {
         const response = await fetch('/skyboxBackgrounds/skybox.json');
@@ -50,6 +61,12 @@ async function loadBackgroundOptions() {
 function updateBackground() {
     const backgroundSelect = document.getElementById('background-select');
     const iframe = document.getElementById('background-iframe');
+
+    if (!backgroundSelect || !iframe) {
+        console.warn("Background update elements not found in the DOM.");
+        return;
+    }
+
     const selectedUrl = backgroundSelect.value;
 
     if (selectedUrl) {
@@ -67,7 +84,7 @@ async function generateText() {
         const response = await fetch('/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: prompt }),
+            body: JSON.stringify({ prompt }),
         });
 
         if (!response.ok) {
@@ -77,7 +94,7 @@ async function generateText() {
         const result = await response.json();
         const generatedText = result.text || 'No response from model.';
         responseDiv.innerHTML = renderMarkdown(generatedText);
-        hljs.highlightAll(); // Apply syntax highlighting
+        hljs?.highlightAll(); // Apply syntax highlighting if hljs is available
 
         // Save the generated conversation to localStorage
         saveConversation(generatedText);
@@ -99,7 +116,7 @@ async function continueText() {
         const response = await fetch('/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: prompt }),
+            body: JSON.stringify({ prompt }),
         });
 
         if (!response.ok) {
@@ -108,7 +125,7 @@ async function continueText() {
 
         const result = await response.json();
         responseDiv.innerHTML = renderMarkdown(result.text || 'No further response from model.');
-        hljs.highlightAll(); // Apply syntax highlighting
+        hljs?.highlightAll(); // Apply syntax highlighting
     } catch (error) {
         console.error('Error:', error);
         responseDiv.innerText += `\n\nAn error occurred: ${error.message}`;
@@ -134,7 +151,7 @@ async function executeCommand() {
 
         const result = await response.json();
         responseDiv.innerHTML = renderMarkdown(result.output || 'Command executed successfully.');
-        hljs.highlightAll(); // Apply syntax highlighting
+        hljs?.highlightAll(); // Apply syntax highlighting
     } catch (error) {
         console.error('Error executing command:', error);
         responseDiv.innerText = `An error occurred: ${error.message}`;
@@ -151,7 +168,7 @@ async function researchAndSummarize() {
         const response = await fetch('/research-and-summarize', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: query }),
+            body: JSON.stringify({ query }),
         });
 
         if (!response.ok) {
@@ -160,7 +177,7 @@ async function researchAndSummarize() {
 
         const result = await response.json();
         responseDiv.innerHTML = renderMarkdown(result.summary || 'No summary generated from the research.');
-        hljs.highlightAll(); // Apply syntax highlighting
+        hljs?.highlightAll(); // Apply syntax highlighting
     } catch (error) {
         console.error('Error in research and summarize:', error);
         responseDiv.innerText = `An error occurred: ${error.message}`;
@@ -180,7 +197,7 @@ async function agentChat() {
         const response = await fetch('/agent-chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: prompt, sessionId: sessionId }),
+            body: JSON.stringify({ query: prompt, sessionId }),
         });
 
         if (!response.ok) {
@@ -189,7 +206,7 @@ async function agentChat() {
 
         const result = await response.json();
         responseDiv.innerHTML = renderMarkdown(result.text || 'No response from the agent.');
-        hljs.highlightAll(); // Apply syntax highlighting
+        hljs?.highlightAll(); // Apply syntax highlighting
     } catch (error) {
         console.error('Error:', error);
         responseDiv.innerText = `An error occurred: ${error.message}`;
@@ -201,4 +218,4 @@ window.updateBackground = updateBackground;
 window.generateText = generateText;
 window.continueText = continueText;
 window.agentChat = agentChat;
-document.getElementById('research-button').onclick = researchAndSummarize;
+document.getElementById('research-button')?.addEventListener('click', researchAndSummarize);

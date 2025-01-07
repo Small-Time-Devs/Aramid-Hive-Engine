@@ -3,53 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aramid Hive Platform</title>
+    <title>Agent Platform</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/marked@4.0.12/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", () => hljs.highlightAll());
-    </script>
+    <script src="app.mjs" defer></script>
 </head>
 <body>
-    <!-- Top Navigation Bar -->
-    <nav class="top-bar">
-        <div class="left">
-            <h1>Aramid Hive Platform</h1>
-            <p>Aramid Hive Engine v1.0</p>
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="logo">
+            <img src="/path/to/logo.png" alt="Logo" />
         </div>
-        <div class="right">
-            <a href="https://www.smalltimedevs.com" title="Website"><i class="icon">🌐</i></a>
-            <a href="#" title="Twitter"><i class="icon">🐦</i></a>
-            <a href="#" title="Contact"><i class="icon">📩</i></a>
-        </div>
-    </nav>
+        <nav>
+            <a href="#" class="active">🏠</a>
+            <a href="#">📂</a>
+            <a href="#">🔒</a>
+            <a href="#">⚙️</a>
+        </nav>
+    </aside>
 
     <!-- Main Content -->
     <div class="main-container">
+        <!-- Top Navigation Bar -->
+        <header class="top-bar">
+            <h1>Agent Platform</h1>
+            <div class="actions">
+                <a href="#">Pricing</a>
+                <a href="#">Get demo</a>
+                <a href="#">Docs</a>
+            </div>
+        </header>
+
         <!-- Task Description Section -->
-        <div class="left-column">
+        <div class="card task">
             <h2>Task Description</h2>
-            <textarea id="prompt" placeholder="Enter your task or question for the hive of agents..."></textarea>
+            <textarea id="prompt" placeholder="Enter your task or question..."></textarea>
             <div class="button-group">
                 <button onclick="generateText()">Generate</button>
-                <button id="continue-button" onclick="continueText()">Continue</button>
-                <button id="research-button" onclick="researchAndSummarize()">Research</button>
+                <button onclick="continueText()">Continue</button>
+                <button onclick="researchAndSummarize()">Research</button>
                 <button onclick="agentChat()">Agent Chat</button>
             </div>
         </div>
 
         <!-- Analysis Results Section -->
-        <div class="right-column">
+        <div class="card results">
             <h2>Analysis Results</h2>
             <div id="response" class="response-box">
-                <p>Hive of agents output will appear here...</p>
+                <p>Analysis results will appear here...</p>
             </div>
         </div>
     </div>
-
-    <script src="app.mjs"></script>
 </body>
 </html>
