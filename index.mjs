@@ -5,7 +5,6 @@ import axios from 'axios';
 import path from 'path';
 import fs from 'fs';
 import { exec } from 'child_process';
-import robot from 'robotjs';
 import { fileURLToPath } from 'url';
 import { selectPrompt } from './src/agents/agentSelection.mjs';
 
@@ -99,73 +98,6 @@ app.post('/fine-tune', (req, res) => {
     });
 });
 
-// Route to save conversation logs
-app.post('/save-conversation', (req, res) => {
-    const { conversation } = req.body;
-    if (!conversation) return res.status(400).json({ error: 'Conversation data is required' });
-
-    const timestamp = new Date().toISOString();
-    const filename = `conversation-${timestamp}.json`;
-    const filepath = path.join(conversationsDir, filename);
-
-    fs.writeFile(filepath, JSON.stringify(conversation, null, 2), (err) => {
-        if (err) {
-            console.error('Error saving conversation:', err.message);
-            return res.status(500).json({ error: 'Error saving conversation to disk.' });
-        }
-        res.json({ message: 'Conversation saved successfully.', filename });
-    });
-});
-
-// Route to load all saved conversations
-app.get('/load-conversations', (req, res) => {
-    fs.readdir(conversationsDir, (err, files) => {
-        if (err) {
-            console.error('Error reading conversations directory:', err.message);
-            return res.status(500).json({ error: 'Error loading conversations.' });
-        }
-
-        const conversations = files.map(file => {
-            const content = fs.readFileSync(path.join(conversationsDir, file), 'utf-8');
-            return { filename: file, content: JSON.parse(content) };
-        });
-
-        res.json({ conversations });
-    });
-});
-
-// Helper function to execute and type in Notepad or other applications
-async function executeCommandWithRobot(command, textToType) {
-    if (command === 'start notepad') {
-        exec('notepad.exe', (error) => {
-            if (error) {
-                console.error(`Failed to open Notepad: ${error.message}`);
-                return;
-            }
-            // Allow time for Notepad to open, then type text
-            setTimeout(() => {
-                robot.typeString(textToType);
-            }, 1000);
-        });
-    } else {
-        console.log("Command not recognized for automated typing.");
-    }
-}
-
-app.post('/execute-command', async (req, res) => {
-    const { command, text } = req.body;
-
-    // Ensure a valid command and, optionally, text input
-    if (!command) return res.status(400).json({ error: 'Command is required' });
-
-    if (command.startsWith('start notepad')) {
-        await executeCommandWithRobot(command, text || '');
-        res.json({ output: `Executed: ${command} with text: "${text}"` });
-    } else {
-        res.status(400).json({ error: `Command "${command}" not recognized for automated typing.` });
-    }
-});
-
 // Research and Summarize function
 app.post('/research-and-summarize', async (req, res) => {
     const { query } = req.body;
@@ -180,51 +112,6 @@ app.post('/research-and-summarize', async (req, res) => {
     } catch (error) {
         console.error('Error in research and summarization:', error.message);
         res.status(500).json({ error: 'Error processing research and summarization request.' });
-    }
-});
-
-// Initial Train AI endpoint that returns the first response only
-app.post('/train', async (req, res) => {
-    const prompt = req.body.prompt || '';
-
-    try {
-        // Step 1: Send the initial prompt to the model
-        const initialResponse = await axios.post(process.env.LOCAL_MODEL_API_URL, {
-            prompt: prompt,
-            max_tokens: 5000,
-        });
-
-        const initialText = initialResponse.data.text || initialResponse.data.choices[0].text;
-
-        // Send the initial response back to the client immediately
-        res.json({ message: initialText || 'Training initiated with initial response.' });
-    } catch (error) {
-        console.error('Error in initial training response:', error.message);
-        res.status(500).json({ error: 'Error during initial training process.' });
-    }
-});
-
-// Second Train AI refinement endpoint that performs the follow-up
-app.post('/train/follow-up', async (req, res) => {
-    const initialText = req.body.initialText || '';
-
-    try {
-        // Step 2: Prepare follow-up debug prompt to refine the response
-        const debugPrompt = `${initialText}\n\nPlease improve this response by debugging and making it more concise and informative.`;
-        
-        // Step 3: Send follow-up debug prompt to the model
-        const debugResponse = await axios.post(process.env.LOCAL_MODEL_API_URL, {
-            prompt: debugPrompt,
-            max_tokens: 5000,
-        });
-
-        const refinedText = debugResponse.data.text || debugResponse.data.choices[0].text;
-
-        // Send the refined response back to the client
-        res.json({ message: refinedText || 'Training completed with improved response.' });
-    } catch (error) {
-        console.error('Error in follow-up training process:', error.message);
-        res.status(500).json({ error: 'Error during follow-up training process.' });
     }
 });
 
@@ -258,38 +145,6 @@ app.post('/agent-chat', async (req, res) => {
     }
 });
 
-// Route to handle LLM to LLM conversation
-app.post('/llm-conversation', async (req, res) => {
-    const { prompt, agent } = req.body;
-    if (!prompt || !agent) return res.status(400).json({ error: 'Prompt and agent are required' });
-
-    const { prompt: agentPrompt, role } = await selectPrompt(agent);
-    const payload = { prompt: `${agentPrompt}\n\nUser Query: ${prompt}`, max_tokens: 5000 };
-
-    try {
-        const response1 = await axios.post(process.env.LOCAL_MODEL_API_URL, payload);
-        let conversation = response1.data.text || response1.data.choices[0].text;
-
-        // Initialize second LLM instance
-        const response2 = await axios.post(process.env.LOCAL_MODEL_API_URL, { prompt: conversation, max_tokens: 5000 });
-        conversation += `\n\n${response2.data.text || response2.data.choices[0].text}`;
-
-        // Limit the conversation to a specified number of exchanges
-        for (let i = 0; i < 3; i++) {
-            const response1 = await axios.post(process.env.LOCAL_MODEL_API_URL, { prompt: conversation, max_tokens: 5000 });
-            conversation += `\n\n${response1.data.text || response1.data.choices[0].text}`;
-
-            const response2 = await axios.post(process.env.LOCAL_MODEL_API_URL, { prompt: conversation, max_tokens: 5000 });
-            conversation += `\n\n${response2.data.text || response2.data.choices[0].text}`;
-        }
-
-        res.json({ conversation });
-    } catch (error) {
-        console.error('Error with LLM conversation:', error.message);
-        res.status(500).json({ error: 'Error processing the LLM conversation request.' });
-    }
-});
-
 // Helper to perform internet research using Google Custom Search API
 async function internetResearch(query) {
     try {
@@ -302,19 +157,5 @@ async function internetResearch(query) {
         throw new Error('Failed to retrieve search results.');
     }
 }
-
-// Fetch information about any crypto token using Dexscreener API
-app.get('/crypto-info', async (req, res) => {
-    const tokenQuery = req.query.token;
-    if (!tokenQuery) return res.status(400).json({ error: 'Token query is required' });
-
-    try {
-        const response = await axios.get(`https://api.dexscreener.com/latest/dex/search/`, { params: { q: tokenQuery } });
-        res.json(response.data);
-    } catch (error) {
-        console.error('Error fetching token information:', error.message);
-        res.status(500).json({ error: 'Failed to retrieve token information.' });
-    }
-});
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

@@ -30,15 +30,12 @@ export async function ONBOARDING_AGENT_PROMPT() {
 
         Your Objective:
         Deliver an informative, tailored, and reassuring onboarding experience that builds trust, highlights the value of our services, and establishes the foundation for a lasting business relationship.
-
-        Note: Please provide your response in plain text and avoid using any programming code.
     `;
 }
 
 export async function DOC_ANALYZER_AGENT_PROMPT() {
     return `
         ### Financial Document Analysis Agent
-
         Your role as a Financial Document Analysis Agent is to extract and interpret critical data from financial transaction documents with precision and reliability. Your task is to transform visual and textual information into actionable insights for informed decision-making.
 
         Identify Document Structure:
@@ -58,8 +55,6 @@ export async function DOC_ANALYZER_AGENT_PROMPT() {
 
         Objective:
         Efficiently process financial transaction documents to provide clear, actionable insights, enabling users to make informed financial decisions.
-
-        Note: Please provide your response in plain text and avoid using any programming code.
     `;
 }
 
@@ -89,8 +84,6 @@ export async function SUMMARY_GENERATOR_AGENT_PROMPT() {
 
         Objective:
         Create summaries that transform complex financial data into actionable insights, providing a clear, comprehensive, and accessible overview of the company’s financial narrative.
-
-        Note: Please provide your response in plain text and avoid using any programming code.
     `;
 }
 
@@ -135,8 +128,6 @@ export async function FRAUD_DETECTION_AGENT_PROMPT() {
         Suggest areas requiring further investigation or immediate action to mitigate risks.
         Objective:
         Your primary goal is to safeguard the financial integrity of the entity by identifying potential fraud early and providing actionable insights. Through vigilance, accuracy, and a deep understanding of fraud tactics, you contribute to minimizing risks and ensuring transparency.
-
-        Note: Please provide your response in plain text and avoid using any programming code.
     `;
 }
 
@@ -175,8 +166,6 @@ export async function DECISION_MAKING_PROMPT() {
         Use simple language where needed to ensure accessibility for all decision-makers, regardless of their financial expertise.
         Objective:
         Your ultimate goal is to transform complex financial insights into practical, strategic guidance. By blending financial acumen, market awareness, and practical wisdom, you empower users to make well-informed decisions that align with their business objectives and long-term success.
-
-        Note: Please provide your response in plain text and avoid using any programming code.
     `;
 }
 

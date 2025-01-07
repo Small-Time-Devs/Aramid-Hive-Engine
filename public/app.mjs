@@ -2,8 +2,17 @@
 window.addEventListener('DOMContentLoaded', () => {
     console.log('DOM fully loaded and parsed');
     loadBackgroundOptions();
-    loadConversations();
 });
+
+// Helper function to render Markdown with syntax highlighting
+function renderMarkdown(text) {
+    const html = marked.parse(text, {
+        highlight: (code, lang) => {
+            return hljs.highlightAuto(code, [lang]).value;
+        },
+    });
+    return html;
+}
 
 // Load background options from skybox.json and populate the dropdown
 async function loadBackgroundOptions() {
@@ -48,42 +57,6 @@ function updateBackground() {
     }
 }
 
-// Save generated conversation to localStorage with a timestamp
-function saveConversation(content) {
-    const timestamp = new Date().toISOString();
-    localStorage.setItem(`conversation-${timestamp}`, content);
-    loadConversations(); // Refresh conversation dropdown after saving
-}
-
-// Load saved conversations from localStorage into the dropdown
-function loadConversations() {
-    const conversationSelect = document.getElementById('conversation-select');
-    conversationSelect.innerHTML = '<option value="">Select a conversation</option>'; // Reset dropdown
-
-    for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key.startsWith('conversation-')) {
-            const content = localStorage.getItem(key);
-            const option = document.createElement('option');
-            option.value = content;
-            option.textContent = key.replace('conversation-', ''); // Display timestamp
-            conversationSelect.appendChild(option);
-        }
-    }
-}
-
-// Display the selected conversation in the response box
-function loadConversation() {
-    const conversationSelect = document.getElementById('conversation-select');
-    const responseDiv = document.getElementById('response');
-
-    const selectedContent = conversationSelect.value;
-    if (selectedContent) {
-        responseDiv.innerHTML = marked.parse(selectedContent); // Render saved conversation as Markdown
-        hljs.highlightAll();  // Apply syntax highlighting for code blocks
-    }
-}
-
 // Generate AI text and save it as a conversation
 async function generateText() {
     const prompt = document.getElementById('prompt').value;
@@ -103,8 +76,8 @@ async function generateText() {
 
         const result = await response.json();
         const generatedText = result.text || 'No response from model.';
-        responseDiv.innerHTML = marked.parse(generatedText);
-        hljs.highlightAll();  // Apply syntax highlighting
+        responseDiv.innerHTML = renderMarkdown(generatedText);
+        hljs.highlightAll(); // Apply syntax highlighting
 
         // Save the generated conversation to localStorage
         saveConversation(generatedText);
@@ -134,8 +107,8 @@ async function continueText() {
         }
 
         const result = await response.json();
-        responseDiv.innerHTML = marked.parse(result.text || 'No further response from model.');
-        hljs.highlightAll();  // Apply syntax highlighting
+        responseDiv.innerHTML = renderMarkdown(result.text || 'No further response from model.');
+        hljs.highlightAll(); // Apply syntax highlighting
     } catch (error) {
         console.error('Error:', error);
         responseDiv.innerText += `\n\nAn error occurred: ${error.message}`;
@@ -160,8 +133,8 @@ async function executeCommand() {
         }
 
         const result = await response.json();
-        responseDiv.innerHTML = marked.parse(result.output || 'Command executed successfully.');
-        hljs.highlightAll();  // Apply syntax highlighting
+        responseDiv.innerHTML = renderMarkdown(result.output || 'Command executed successfully.');
+        hljs.highlightAll(); // Apply syntax highlighting
     } catch (error) {
         console.error('Error executing command:', error);
         responseDiv.innerText = `An error occurred: ${error.message}`;
@@ -178,7 +151,7 @@ async function researchAndSummarize() {
         const response = await fetch('/research-and-summarize', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: query })
+            body: JSON.stringify({ query: query }),
         });
 
         if (!response.ok) {
@@ -186,61 +159,12 @@ async function researchAndSummarize() {
         }
 
         const result = await response.json();
-        responseDiv.innerHTML = marked.parse(result.summary || 'No summary generated from the research.');
-        hljs.highlightAll();  // Apply syntax highlighting
+        responseDiv.innerHTML = renderMarkdown(result.summary || 'No summary generated from the research.');
+        hljs.highlightAll(); // Apply syntax highlighting
     } catch (error) {
         console.error('Error in research and summarize:', error);
         responseDiv.innerText = `An error occurred: ${error.message}`;
     }
-}
-
-// AI-to-AI conversation with Markdown rendering
-async function talkWithAnotherAI() {
-    const responseDiv = document.getElementById('response');
-    const huggingfaceResponseDiv = document.getElementById('huggingface-response');
-    const prompt = document.getElementById('prompt').value;
-
-    if (!responseDiv || !huggingfaceResponseDiv || !prompt) {
-        console.error("Required elements not found or prompt is empty.");
-        return;
-    }
-
-    // Initialize conversation in responseDiv for display
-    responseDiv.innerHTML = `<p><strong>User:</strong> ${marked.parse(prompt)}</p>`;
-    huggingfaceResponseDiv.style.display = 'block';
-
-    async function aiConversation(currentPrompt, isPrimaryAI = true) {
-        try {
-            const response = await fetch(isPrimaryAI ? '/generate' : '/huggingface', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: currentPrompt }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
-            const aiResponse = result.text || 'No response from model.';
-
-            const aiLabel = isPrimaryAI ? 'Primary AI' : 'Secondary AI';
-            const aiClass = isPrimaryAI ? 'primary-response' : 'secondary-response';
-            responseDiv.innerHTML += `
-                <div class="${aiClass}">
-                    <p><strong>${aiLabel}:</strong></p>
-                    <div>${marked.parse(aiResponse)}</div>
-                </div>
-            `;
-            hljs.highlightAll();  // Apply syntax highlighting
-            setTimeout(() => aiConversation(aiResponse, !isPrimaryAI), 10000);
-        } catch (error) {
-            console.error('Error in AI-to-AI conversation:', error);
-            responseDiv.innerHTML += `<p style="color:red;"><strong>Error:</strong> ${error.message}</p>`;
-        }
-    }
-
-    aiConversation(prompt);
 }
 
 // Handle agent-based chat
@@ -264,41 +188,8 @@ async function agentChat() {
         }
 
         const result = await response.json();
-        responseDiv.innerHTML = renderMarkdown(result.text); // Ensure Markdown is rendered correctly
-        hljs.highlightAll();  // Apply syntax highlighting
-    } catch (error) {
-        console.error('Error:', error);
-        responseDiv.innerText = `An error occurred: ${error.message}`;
-    }
-}
-
-// Function to initiate LLM to LLM conversation
-async function initiateLLMConversation() {
-    const prompt = document.getElementById('prompt').value;
-    const responseDiv = document.getElementById('response');
-    const selectedAgent = document.getElementById('agents-select').value;
-
-    if (!prompt || !selectedAgent) {
-        responseDiv.innerText = "Please enter a prompt and select an agent.";
-        return;
-    }
-
-    responseDiv.innerText = "Initiating LLM to LLM conversation...";
-
-    try {
-        const response = await fetch('/llm-conversation', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: prompt, agent: selectedAgent }),
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        responseDiv.innerHTML = renderMarkdown(result.conversation); // Ensure Markdown is rendered correctly
-        hljs.highlightAll();  // Apply syntax highlighting
+        responseDiv.innerHTML = renderMarkdown(result.text || 'No response from the agent.');
+        hljs.highlightAll(); // Apply syntax highlighting
     } catch (error) {
         console.error('Error:', error);
         responseDiv.innerText = `An error occurred: ${error.message}`;
@@ -307,11 +198,7 @@ async function initiateLLMConversation() {
 
 // Attach functions to the window object for HTML access
 window.updateBackground = updateBackground;
-window.loadConversation = loadConversation;
-window.executeCommand = executeCommand;
 window.generateText = generateText;
 window.continueText = continueText;
-window.talkWithAnotherAI = talkWithAnotherAI;
 window.agentChat = agentChat;
-window.initiateLLMConversation = initiateLLMConversation;
 document.getElementById('research-button').onclick = researchAndSummarize;
