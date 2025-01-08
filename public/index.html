@@ -3,103 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Small Time Devs - AI</title>
+    <title>Agent Platform</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/marked@4.0.12/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <!-- Include Highlight.js for syntax highlighting -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-    <script>
-        // Initialize Highlight.js for code block highlighting
-        document.addEventListener("DOMContentLoaded", () => {
-            hljs.highlightAll();
-        });
-        
-        // Helper function to render Markdown with syntax highlighting
-        function renderMarkdown(text) {
-            const html = marked.parse(text, { 
-                highlight: (code, lang) => {
-                    return hljs.highlightAuto(code, [lang]).value;
-                }
-            });
-            return html;
-        }
-    </script>
+
+    <!-- Favicon -->
+    <link rel="icon" href="/path/to/favicon.ico">
 </head>
 <body>
-    <!-- Background Selection Dropdown -->
-    <div class="background-selector">
-        <label for="background-select">Choose Background:</label>
-        <select id="background-select" onchange="updateBackground()">
-            <option value="">Select a background</option>
-        </select>
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="logo">
+            <img src="/path/to/logo.png" alt="Logo" />
+        </div>
+        <nav>
+            <a href="#" class="active">🏠</a>
+            <a href="#">📂</a>
+            <a href="#">🔒</a>
+            <a href="#">⚙️</a>
+        </nav>
+    </aside>
 
-    </div>
-
-    <!-- Saved Conversations Dropdown -->
-    <div class="conversation-selector">
-        <label for="conversation-select">Load Conversation:</label>
-        <select id="conversation-select" onchange="loadConversation()">
-            <option value="">Select a conversation</option>
-        </select>
-    </div>
-
-    <!-- Iframe for selected background -->
-    <div class="background-iframe">
-        <iframe id="background-iframe" frameborder="0" allow="fullscreen"></iframe>
-    </div>
-
+    <!-- Main Content -->
     <div class="main-container">
-        <!-- Content Wrapper for AI Interaction and Model -->
-        <div class="content-wrapper">
-            <!-- Avatar Container -->
-            <section id="avatar-container">
-                <img src="Aramid.png" alt="Aramid Avatar" id="avatar" />
-            </section>
+        <!-- Top Navigation Bar -->
+        <header class="top-bar">
+            <h1>Agent Platform</h1>
+            <div class="actions">
+                <a href="#">Pricing</a>
+                <a href="#">Get demo</a>
+                <a href="#">Docs</a>
+            </div>
+        </header>
 
-            <!-- Chat Interface -->
-            <section class="container chat-container">
-                <h1>Talk With Aramid</h1>
-                
-                <!-- Prompt Text Area -->
-                <textarea id="prompt" rows="5" placeholder="Type your prompt..."></textarea>
-                
-                <!-- Button Group for Generating Text and other actions -->
+        <!-- Left Section: Task Description and Summary -->
+        <div class="left-section">
+            <!-- Task Description Section -->
+            <div class="card task">
+                <h2>Task Description</h2>
+                <textarea id="prompt" placeholder="Enter your task or question..."></textarea>
                 <div class="button-group">
                     <button onclick="generateText()">Generate</button>
-                    <button id="continue-button" onclick="continueText()" style="display:none;">Continue</button>
-                    <button id="train-button" onclick="trainAI()">Train</button>
-                    <button id="talk-button" onclick="talkWithAnotherAI()">AI to AI Conversation</button>
-                    <button id="research-button" onclick="researchAndSummarize()">Research</button>
-                    <button id="crypto-search-button" onclick="fetchCryptoInfo()">Search Crypto Info</button>
+                    <button onclick="continueText()">Continue</button>
+                    <button onclick="researchAndSummarize()">Research</button>
+                    <button onclick="agentChat()">Agent Chat</button>
                 </div>
+            </div>
 
-                <!-- Crypto Token Input Field for Crypto Search -->
-                <div class="crypto-search-section">
-                    <label for="token-input">Crypto Token:</label>
-                    <input type="text" id="token-input" placeholder="Enter token name or symbol (e.g., SOL)" />
+            <!-- Summary Section -->
+            <div class="card summary">
+                <h2>Summary</h2>
+                <div id="summary-box" class="response-box">
+                    <p>The summary will appear here...</p>
                 </div>
+            </div>
+        </div>
 
-                <!-- Execute Command Section -->
-                <div class="command-section">
-                    <label for="command-input">Execute Command:</label>
-                    <input type="text" id="command-input" placeholder="Enter command (e.g., start notepad write me a letter)" />
-                    <button onclick="executeCommand()">Execute</button>
+        <!-- Right Section: Agent Responses -->
+        <div class="right-section">
+            <div class="card results">
+                <h2>Agent Responses</h2>
+                <div id="agent-responses" class="agent-response-box">
+                    <p>Agent responses will appear here...</p>
                 </div>
-                
-                <h2>Response:</h2>
-                <div id="response-container">
-                    <!-- Primary response container with Markdown rendering and code highlighting -->
-                    <div id="response" class="response-box"></div>
-                </div>
-                
-                <!-- Add huggingface-response div for AI-to-AI conversation with Markdown support -->
-                <div id="huggingface-response" class="response-box" style="display: none;"></div>
-            </section>
+            </div>
         </div>
     </div>
 
-    <!-- Link to app.js -->
-    <script src="app.js"></script>
+    <!-- Include Marked.js for Markdown Rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Custom JavaScript -->
+    <script src="app.mjs" defer></script>
 </body>
 </html>
