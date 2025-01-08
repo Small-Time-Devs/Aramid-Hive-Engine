@@ -158,52 +158,35 @@ async function researchAndSummarize() {
 
 async function agentChat() {
     const prompt = document.getElementById('prompt').value.trim();
-    const agentResponsesDiv = document.getElementById('agent-responses');
-    const summaryBoxDiv = document.getElementById('summary-box');
-
+    const responseDiv = document.getElementById('response');
     if (!prompt) {
-        agentResponsesDiv.innerHTML = "<p>Please provide a valid question or task.</p>";
+        responseDiv.innerText = "Please provide a valid question or task.";
         return;
     }
 
-    try {
-        agentResponsesDiv.innerHTML = "Processing...";
-        summaryBoxDiv.innerHTML = "";
+    const sessionId = localStorage.getItem('sessionId') || Date.now().toString();
+    localStorage.setItem('sessionId', sessionId);
 
+    responseDiv.innerText = "Processing...";
+
+    try {
         const response = await fetch('/agent-chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: prompt }),
+            body: JSON.stringify({ query: prompt, sessionId: sessionId }),
         });
 
-        const result = await response.json();
-
-        // Ensure the result has a valid structure
-        const agents = result.agents || [];
-        const summary = result.summary || "No summary provided.";
-
-        // Inject agent responses with Markdown rendering
-        if (agents.length > 0) {
-            agentResponsesDiv.innerHTML = agents
-                .map(
-                    (agent) => `
-                    <div class="agent-section">
-                        <h3>${agent.name}</h3>
-                        <div>${marked.parse(agent.response)}</div> <!-- Render Markdown -->
-                    </div>
-                `
-                )
-                .join("");
-        } else {
-            agentResponsesDiv.innerHTML = "<p>No agent responses available.</p>";
+        if (!response.ok) {
+            const errorMessage = await response.text();
+            throw new Error(`HTTP error! Status: ${response.status} - ${errorMessage}`);
         }
 
-        // Display summary with Markdown rendering
-        summaryBoxDiv.innerHTML = marked.parse(summary);
+        const result = await response.json();
+        responseDiv.innerHTML = renderMarkdown(result.text || 'No response from the agent.');
+        hljs.highlightAll(); // Apply syntax highlighting
     } catch (error) {
-        console.error("Error:", error);
-        agentResponsesDiv.innerHTML = `<p>Error: ${error.message}</p>`;
-        summaryBoxDiv.innerHTML = "";
+        console.error('Error:', error);
+        responseDiv.innerText = `An error occurred: ${error.message}`;
     }
 }
 

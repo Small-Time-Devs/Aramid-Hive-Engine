@@ -59,17 +59,15 @@ const agents = {
     electricMotorIndustry: new Agent("ElectricMotorIndustry", electricMotorIndustry)
 };
 
-export async function startConversation(question) {
-    const agentResponses = [];
-    let summary = "";
-
+async function startConversation(question) {
     for (const [role, triggerWords] of Object.entries(keywords)) {
         if (triggerWords.some((word) => question.toLowerCase().includes(word))) {
             const agent = agents[role];
             if (agent) {
                 try {
                     const response = await agent.prompts.handleQuestion(question);
-                    agentResponses.push({ name: agent.name, response });
+                    console.log(`${agent.name}: ${response}`);
+                    return response;
                 } catch (error) {
                     console.error(`Error handling role ${role}:`, error);
                     throw new Error("Failed to generate a response.");
@@ -78,12 +76,7 @@ export async function startConversation(question) {
         }
     }
 
-    // Generate summary from agent responses
-    if (agentResponses.length > 0) {
-        summary = `Based on the analysis of the following agents: ${agentResponses
-            .map((agent) => agent.name)
-            .join(", ")}, we conclude that...`; // Customize as needed
-    }
-
-    return { agents: agentResponses, summary };
+    throw new Error("No suitable role or prompt found for the question.");
 }
+
+export { startConversation };

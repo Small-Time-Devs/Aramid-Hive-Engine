@@ -71,22 +71,21 @@ function formatAgentResponse(agentRole, responseText) {
 }
 
 app.post('/agent-chat', async (req, res) => {
-    const { query } = req.body;
+    const { query, sessionId } = req.body;
 
-    if (!query) {
-        return res.status(400).json({ error: "Query is required." });
+    if (!query || !sessionId) {
+        return res.status(400).json({ error: "Both 'query' and 'sessionId' are required." });
     }
 
+    // Proceed with orchestrating the response
     try {
-        const { agents = [], summary = "No summary available." } = await startConversation(query); // Ensure default values
-
-        res.json({ agents, summary });
+        const response = await startConversation(query);
+        res.json({ text: response });
     } catch (error) {
-        console.error("Agent Chat Error:", error);
-        res.status(500).json({ agents: [], summary: "An error occurred while processing your request." });
+        console.error('Agent Chat Error:', error);
+        res.status(500).json({ error: "An error occurred while processing your request." });
     }
 });
-
 
 // Helper to perform internet research using Google Custom Search API
 async function internetResearch(query) {

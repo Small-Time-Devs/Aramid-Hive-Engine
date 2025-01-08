@@ -6,7 +6,7 @@ body {
   background-color: #141414;
   color: #eaeaea;
   display: flex;
-  height: 100vh;
+  height: 100vh; /* Ensure the body takes up the full height of the viewport */
 }
 
 a {
@@ -63,33 +63,36 @@ a {
   color: #ff3b3b;
 }
 
-/* Main Container Layout */
+.toggle-button {
+  background-color: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+
+/* Main Container */
 .main-container {
-  margin-left: 60px; /* Leave space for the sidebar */
-  margin-top: 80px; /* Leave space for the top bar */
-  width: calc(100% - 60px); /* Adjust for sidebar width */
+  margin-left: 60px;
+  width: calc(100% - 60px);
   padding: 20px;
   display: flex;
-  gap: 20px;
-  height: calc(100vh - 80px); /* Adjust for top bar height */
+  flex-direction: column;
+  gap: 20px; /* Add spacing between sections */
+  height: 100vh;
+  overflow-y: auto; /* Allow vertical scrolling for long content */
   box-sizing: border-box;
 }
 
-
 /* Top Navigation Bar */
 .top-bar {
-  position: fixed; /* Fix the top bar at the top */
-  top: 0;
-  left: 0;
-  width: 100%; /* Make it span the entire width */
-  background-color: #1a1a1a; /* Match the sidebar color */
-  z-index: 10; /* Ensure it stays above other elements */
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 20px;
+  margin-bottom: 20px;
   border-bottom: 1px solid #333;
-  box-sizing: border-box;
+  padding-bottom: 10px;
 }
 
 .top-bar h1 {
@@ -107,20 +110,7 @@ a {
   text-decoration: underline;
 }
 
-/* Left Section */
-.left-section {
-  width: 40%;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-/* Right Section */
-.right-section {
-  width: 60%;
-}
-
-/* Card Layout */
+/* Task Description and Analysis Results Section */
 .card {
   background-color: #1e1e1e;
   border: 1px solid #ff3b3b;
@@ -130,17 +120,24 @@ a {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 10px; /* Space between elements inside the card */
 }
 
-.card h2 {
-  color: #ff3b3b;
+.task {
+  flex: 0 0 auto; /* Ensure task card does not grow or shrink */
+}
+
+.results {
+  flex: 1 1 auto; /* Allow the results card to take up remaining space */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* Textarea Styling */
 textarea {
   width: 100%;
-  height: 100px;
+  height: 100px; /* Adjusted height */
   background-color: #2a2a2a;
   border: 1px solid #444;
   color: #fff;
@@ -174,44 +171,20 @@ textarea:focus {
   background-color: #e63535;
 }
 
-/* Agent Response Box */
-.agent-response-box {
-  padding: 10px;
-  background-color: #2a2a2a;
-  border-radius: 5px;
-  overflow-y: auto;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.agent-response-box .agent-section {
-  border: 1px solid #444;
-  border-radius: 5px;
-  padding: 10px;
-  background-color: #1e1e1e;
-}
-
-.agent-response-box .agent-section h3 {
-  margin: 0 0 10px;
-  color: #ff3b3b;
-  font-size: 1.2rem;
-  font-weight: bold;
-}
-
-/* Summary Section */
-.summary {
-  flex: 0 0 auto;
-}
-
+/* Response Box */
 .response-box {
-  padding: 10px;
+  padding: 15px;
   background-color: #2a2a2a;
   border-radius: 5px;
-  border: 1px solid #444;
   color: #ddd;
-  overflow-y: auto;
-  max-height: 200px; /* Limit height for scrolling */
-  white-space: pre-wrap;
+  font-family: 'Courier New', Courier, monospace; /* Use monospace font for text output */
+  white-space: pre-wrap; /* Preserve formatting and wrap long lines */
+  overflow-y: auto; /* Allow scrolling if content overflows */
+  height: 100%; /* Stretch to fill the results card */
+  box-sizing: border-box;
+}
+
+/* Ensure Spacing Between Sections */
+.card + .card {
+  margin-top: 20px; /* Add spacing between cards */
 }
