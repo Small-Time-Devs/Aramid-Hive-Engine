@@ -2,6 +2,7 @@ import * as accountant from "./accounting/accountant.mjs";
 import * as xrayTech from "./medical/xrayTech.mjs";
 import * as cryptoAnalyst from "./crypto/cryptoAnalyst.mjs";
 import * as electricMotorIndustry from "./industry/electricMotorIndustry.mjs";
+import * as twitterProfessional from "./twitter/twitterProfessional.mjs";
 import { config } from '../config/config.mjs';
 import axios from 'axios';
 import OpenAI from 'openai';
@@ -56,7 +57,8 @@ const agents = {
     accountant: new Agent("Accountant", accountant),
     xrayTech: new Agent("XrayTech", xrayTech),
     cryptoAnalyst: new Agent("CryptoAnalyst", cryptoAnalyst),
-    electricMotorIndustry: new Agent("ElectricMotorIndustry", electricMotorIndustry)
+    electricMotorIndustry: new Agent("ElectricMotorIndustry", electricMotorIndustry),
+    twitterProfessional: new Agent("TwitterProfessional", twitterProfessional)
 };
 
 export async function startConversation(question) {
