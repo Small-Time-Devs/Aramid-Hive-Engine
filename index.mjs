@@ -3,20 +3,99 @@ import dotenv from 'dotenv';
 import axios from 'axios';
 import path from 'path';
 import fs from 'fs';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import timeout from 'connect-timeout'; // Import the timeout middleware
 import { fileURLToPath } from 'url';
 import { startConversation, autoPostToTwitter } from './src/agents/orchestrator.mjs';
 import { config } from './src/config/config.mjs'; // Import the config
 
 dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 5051;
-
-// Derive __dirname from import.meta.url
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-app.use(express.json());
+const app = express();
+const PORT = process.env.PORT || 4700;
+app.set('trust proxy', 'loopback, linklocal, uniquelocal');
+
+// Allowed origins
+const allowedOrigins = [
+    'http://127.0.0.1:',
+    'http://localhost:',
+    'http://localhost:4700',
+  
+    'https://smalltimedevs.com', 
+    'https://aramid.smalltimedevs.com',
+    'smalltimedevs.com',
+];
+
+// Blocked IPs
+const blockedIPs = [''];
+
+// CORS configuration with custom error message
+const corsOptions = {
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps, curl requests)
+      if (!origin) {
+        callback(null, true);
+      }
+      // Allow only the specified domains
+      else if (allowedOrigins.includes(origin)) {
+        callback(null, true); // Allow requests from your domains
+      } else {
+        callback(new Error('Access denied: Your domain is not allowed by CORS policy'));
+      }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+    optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+
+// IP blocking middleware
+function blockIPs(req, res, next) {
+  const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.socket.remoteAddress || req.ip;
+
+  console.log("Detected IP:", clientIP); // Log the detected IP for debugging
+
+  // If the IP is in the blocked list, return a 403 error
+  if (blockedIPs.includes(clientIP)) {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied: Your IP is blocked',
+    });
+  }
+  next(); // Continue if IP is not blocked
+}
+
+// Apply IP blocking middleware globally
+app.use(blockIPs);
+// Apply CORS globally
+app.use(cors(corsOptions));
+// Handle OPTIONS requests for preflight
+app.options('*', cors(corsOptions));
+
+// Middleware to handle the custom CORS error
+app.use((err, req, res, next) => {
+  if (err.message.includes('Access denied')) {
+    // Send a custom error message and status code
+    return res.status(403).json({
+      success: false,
+      message: err.message,
+    });
+  }
+  next(); // If no error, continue
+});
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, '..', 'public')));
+
+// Apply timeout middleware globally with a timeout of 5 minutes (300000 ms)
+app.use(timeout('300000'));
 
 // Ensure 'conversations' folder exists
 const conversationsDir = path.join(__dirname, 'conversations');
