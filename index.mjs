@@ -18,10 +18,6 @@ const __dirname = path.dirname(__filename);
 
 app.use(express.json());
 
-if (config.runFrontend) {
-    app.use(express.static(path.join(__dirname, 'public')));
-}
-
 // Ensure 'conversations' folder exists
 const conversationsDir = path.join(__dirname, 'conversations');
 if (!fs.existsSync(conversationsDir)) fs.mkdirSync(conversationsDir);
