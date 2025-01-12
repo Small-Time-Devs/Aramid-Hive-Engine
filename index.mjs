@@ -5,6 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { startConversation } from './src/agents/orchestrator.mjs';
+import { config } from './src/config/config.mjs'; // Import the config
 
 dotenv.config();
 
@@ -16,7 +17,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+
+if (config.runFrontend) {
+    app.use(express.static(path.join(__dirname, 'public')));
+}
 
 // Ensure 'conversations' folder exists
 const conversationsDir = path.join(__dirname, 'conversations');
@@ -86,7 +90,6 @@ app.post('/agent-chat', async (req, res) => {
         res.status(500).json({ agents: [], summary: "An error occurred while processing your request." });
     }
 });
-
 
 // Helper to perform internet research using Google Custom Search API
 async function internetResearch(query) {
