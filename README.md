@@ -5,7 +5,7 @@ This project is a web-based AI interaction platform that allows users to interac
 ## Features
 
 - **Text Generation**: Generate text responses based on user prompts.
-- **Agent Chat**: Spawn AI Agents that are specialized to procure the proper answer to your question or tasks.
+- **Agent Chat**: Spawn AI Agents that are specialized to procure the proper answer to your question or tasks. Each agent's personality is dynamically generated for every response, eliminating the need for hardcoding.
 
 ## Prerequisites
 
@@ -59,7 +59,7 @@ This project is a web-based AI interaction platform that allows users to interac
 3. **Interact with the AI**:
     - **Generate Text**: Enter a prompt in the text area and click "Generate" to get a response from the AI.
     - **Train the AI**: Click "Train" to train the AI model with the provided prompt and predefined follow-up questions.
-    - **Agent Chat**: Spawn AI Agents that are specialized to procure the proper answer to your question or tasks.
+    - **Agent Chat**: Spawn AI Agents that are specialized to procure the proper answer to your question or tasks. Each agent's personality is dynamically generated for every response, ensuring unique interactions every time.
 
 ## Customization
 
@@ -122,6 +122,7 @@ SITE_URL='https://your-site-url'
 - **LM Studio**: [https://lmstudio.ai](https://lmstudio.ai).
 - **Small Time Devs Website**: [https://smalltimedevs.com](https://smalltimedevs.com).
 - **Lucky Bet Bots**: [https://lucky-bet.io](https://lucky-bet.io).
+- **Web Front End**: [https://github.com/MotoAcidic/Aramid-Hive-UI](https://github.com/MotoAcidic/Aramid-Hive-UI).
 
 ## Contributing
 
