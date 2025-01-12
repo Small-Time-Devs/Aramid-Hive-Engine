@@ -7,19 +7,20 @@ import { config } from '../config/config.mjs';
 import axios from 'axios';
 import OpenAI from 'openai';
 import { keywords } from './keyWords.mjs';
+import { generateAgentConfigurations, handleQuestion } from './dynamic/dynamic.mjs'; // Import the dynamic agent generator and handler
 
 const openai = new OpenAI();
 
 class Agent {
-    constructor(name, prompts) {
+    constructor(name, personality, specialty) {
         this.name = name;
-        this.prompts = prompts;
+        this.personality = personality;
+        this.specialty = specialty;
         this.history = [];
     }
 
-    async generateResponse(input, promptFunction) {
-        const personality = await this.prompts[promptFunction]();
-        const prompt = `${personality}\nUser: ${input}\n${this.name}:`;
+    async generateResponse(input) {
+        const prompt = `${this.personality}\nUser: ${input}\n${this.name}:`;
         if (config.useLocalLLM) {
             try {
                 const response = await axios.post(config.localLLM.serverUrl, {
@@ -38,7 +39,7 @@ class Agent {
                 const completion = await openai.chat.completions.create({
                     model: config.openAI.model,
                     messages: [
-                        { "role": "system", "content": personality },
+                        { "role": "system", "content": this.personality },
                         { "role": "user", "content": input }
                     ]
                 });
@@ -53,46 +54,22 @@ class Agent {
     }
 }
 
-const agents = {
-    accountant: new Agent("Accountant", accountant),
-    xrayTech: new Agent("XrayTech", xrayTech),
-    cryptoAnalyst: new Agent("CryptoAnalyst", cryptoAnalyst),
-    electricMotorIndustry: new Agent("ElectricMotorIndustry", electricMotorIndustry),
-    twitterProfessional: new Agent("TwitterProfessional", twitterProfessional)
-};
-
 export async function startConversation(question) {
     const agentResponses = [];
     let summary = "";
 
-    // Check if both "crypto" and "twitter" are mentioned
-    const lowerCaseQuestion = question.toLowerCase();
-    const isCryptoMentioned = lowerCaseQuestion.includes("crypto");
-    const isTwitterMentioned = lowerCaseQuestion.includes("twitter");
+    // Generate agent configurations dynamically
+    const agentConfigs = await generateAgentConfigurations(question);
 
-    if (isCryptoMentioned && isTwitterMentioned) {
-        // Prioritize twitterProfessional agent
+    // Create and execute tasks for each generated agent
+    for (const config of agentConfigs) {
+        const agent = new Agent(config.name, config.personality, config.specialty);
         try {
-            const response = await agents.twitterProfessional.prompts.handleQuestion(question);
-            agentResponses.push({ name: agents.twitterProfessional.name, response });
+            const response = await agent.generateResponse(question);
+            agentResponses.push({ name: agent.name, response });
         } catch (error) {
-            console.error(`Error handling role twitterProfessional:`, error);
+            console.error(`Error handling role ${agent.name}:`, error);
             throw new Error("Failed to generate a response.");
-        }
-    } else {
-        for (const [role, triggerWords] of Object.entries(keywords)) {
-            if (triggerWords.some((word) => lowerCaseQuestion.includes(word))) {
-                const agent = agents[role];
-                if (agent) {
-                    try {
-                        const response = await agent.prompts.handleQuestion(question);
-                        agentResponses.push({ name: agent.name, response });
-                    } catch (error) {
-                        console.error(`Error handling role ${role}:`, error);
-                        throw new Error("Failed to generate a response.");
-                    }
-                }
-            }
         }
     }
 
