@@ -27,6 +27,21 @@ export const config = {
         urls: ["https://smalltimedevs.com/", "https://aramid.smalltimedevs", "https://twitter.com/smalltimedevs", "https://api.smalltimedevs.com/", "https://github.com/Small-Time-Devs"],
         targetAudience: "Crypto traders and enthusiasts",
         // Add more specifications as needed
-    }
+    },
 
+    // Add CoinGecko API URL
+    coinGeckoApiUrl: 'https://api.coingecko.com/api/v3',
+
+    // Add API sections and their respective APIs
+    apis: {
+        crypto: {
+            coinGecko: 'https://api.coingecko.com/api/v3',
+            // Add more crypto-related APIs as needed
+        },
+        weather: {
+            openWeatherMap: 'https://api.openweathermap.org/data/2.5',
+            // Add more weather-related APIs as needed
+        },
+        // Add more API sections as needed
+    }
 };

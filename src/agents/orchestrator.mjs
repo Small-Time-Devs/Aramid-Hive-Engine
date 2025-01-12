@@ -6,16 +6,17 @@ import * as twitterProfessional from "./twitter/twitterProfessional.mjs";
 import { config } from '../config/config.mjs';
 import axios from 'axios';
 import OpenAI from 'openai';
-import { keywords } from './keyWords.mjs';
+import { keywords } from './keyWords.mjs'; // Import the keyword mapping
 import { generateAgentConfigurations, handleQuestion } from './dynamic/dynamic.mjs'; // Import the dynamic agent generator and handler
 
 const openai = new OpenAI();
 
 class Agent {
-    constructor(name, personality, specialty) {
+    constructor(name, personality, specialty, apis) {
         this.name = name;
         this.personality = personality;
         this.specialty = specialty;
+        this.apis = apis;
         this.history = [];
     }
 
@@ -58,12 +59,22 @@ export async function startConversation(question) {
     const agentResponses = [];
     let summary = "";
 
+    // Determine the API section based on the keywords in the question
+    let apiSection = null;
+    for (const [section, words] of Object.entries(keywords)) {
+        if (words.some(word => question.toLowerCase().includes(word))) {
+            apiSection = section;
+            break;
+        }
+    }
+
     // Generate agent configurations dynamically
     const agentConfigs = await generateAgentConfigurations(question);
 
     // Create and execute tasks for each generated agent
     for (const config of agentConfigs) {
-        const agent = new Agent(config.name, config.personality, config.specialty);
+        const agentApis = apiSection ? config.apis[apiSection] : {};
+        const agent = new Agent(config.name, config.personality, config.specialty, agentApis);
         try {
             const response = await agent.generateResponse(question);
             agentResponses.push({ name: agent.name, response });

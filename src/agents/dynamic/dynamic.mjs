@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { config } from '../../config/config.mjs';
 import { performGoogleSearch } from '../../utils/searchUtils.mjs'; // Import the search utility
+import { fetchCryptoMarketData } from '../../utils/apiUtils.mjs'; // Import the CoinGecko API utility
 
 const openai = new OpenAI();
 
@@ -47,10 +48,10 @@ async function fetchSpecifications(query) {
     return specifications;
 }
 
-async function fetchCrypto(query) {
-    const searchResults = await performGoogleSearch(`${query} crypto`);
-    const specifications = searchResults.map(result => `${result.title}: ${result.snippet}`).join('\n');
-    return specifications;
+async function fetchCurrentCryptoData() {
+    const marketData = await fetchCryptoMarketData();
+    const currentData = marketData.map(data => `${data.name}: ${data.current_price} USD, Market Cap: ${data.market_cap} USD`).join('\n');
+    return currentData;
 }
 
 async function fetchCurrentData(query) {
@@ -60,7 +61,10 @@ async function fetchCurrentData(query) {
 }
 
 export async function handleQuestion(question) {
-    const openai = new OpenAI();
+    const openai = new OpenAI({
+        apiKey: config.openAI.apiKey,
+        organization: config.openAI.organization
+    });
 
     async function generateResponse(input, promptFunction, additionalContext = "") {
         const personality = await promptFunction();
@@ -85,7 +89,7 @@ export async function handleQuestion(question) {
     if (question.toLowerCase().includes("specifications")) {
         searchContext = await fetchSpecifications(question);
     } else if (question.toLowerCase().includes("crypto")) {
-        searchContext = await fetchCrypto(question);
+        searchContext = await fetchCurrentCryptoData();
     } else {
         searchContext = await fetchCurrentData(question);
     }
