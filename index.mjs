@@ -4,7 +4,7 @@ import axios from 'axios';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { startConversation } from './src/agents/orchestrator.mjs';
+import { startConversation, autoPostToTwitter } from './src/agents/orchestrator.mjs';
 import { config } from './src/config/config.mjs'; // Import the config
 
 dotenv.config();
@@ -105,3 +105,8 @@ async function internetResearch(query) {
 }
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+
+// Call autoPostToTwitter function if auto-posting is enabled
+if (config.xAutoPoster) {
+    autoPostToTwitter();
+}

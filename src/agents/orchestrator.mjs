@@ -65,16 +65,32 @@ export async function startConversation(question) {
     const agentResponses = [];
     let summary = "";
 
-    for (const [role, triggerWords] of Object.entries(keywords)) {
-        if (triggerWords.some((word) => question.toLowerCase().includes(word))) {
-            const agent = agents[role];
-            if (agent) {
-                try {
-                    const response = await agent.prompts.handleQuestion(question);
-                    agentResponses.push({ name: agent.name, response });
-                } catch (error) {
-                    console.error(`Error handling role ${role}:`, error);
-                    throw new Error("Failed to generate a response.");
+    // Check if both "crypto" and "twitter" are mentioned
+    const lowerCaseQuestion = question.toLowerCase();
+    const isCryptoMentioned = lowerCaseQuestion.includes("crypto");
+    const isTwitterMentioned = lowerCaseQuestion.includes("twitter");
+
+    if (isCryptoMentioned && isTwitterMentioned) {
+        // Prioritize twitterProfessional agent
+        try {
+            const response = await agents.twitterProfessional.prompts.handleQuestion(question);
+            agentResponses.push({ name: agents.twitterProfessional.name, response });
+        } catch (error) {
+            console.error(`Error handling role twitterProfessional:`, error);
+            throw new Error("Failed to generate a response.");
+        }
+    } else {
+        for (const [role, triggerWords] of Object.entries(keywords)) {
+            if (triggerWords.some((word) => lowerCaseQuestion.includes(word))) {
+                const agent = agents[role];
+                if (agent) {
+                    try {
+                        const response = await agent.prompts.handleQuestion(question);
+                        agentResponses.push({ name: agent.name, response });
+                    } catch (error) {
+                        console.error(`Error handling role ${role}:`, error);
+                        throw new Error("Failed to generate a response.");
+                    }
                 }
             }
         }
@@ -88,4 +104,25 @@ export async function startConversation(question) {
     }
 
     return { agents: agentResponses, summary };
+}
+
+export async function autoPostToTwitter() {
+    if (!config.xAutoPoster) return;
+
+    const maxPostsPerMonth = config.postsPerMonth;
+    const postsPerDay = config.postsPerDay;
+    const maxPostsPerDay = Math.min(postsPerDay, Math.floor(maxPostsPerMonth / 30));
+    const interval = 24 * 60 * 60 * 1000 / maxPostsPerDay; // Interval in milliseconds
+
+    for (let i = 0; i < maxPostsPerDay; i++) {
+        setTimeout(async () => {
+            try {
+                const tweet = await twitterProfessional.generateAutoPostTweet();
+                await twitterProfessional.postToTwitter(tweet);
+                console.log("Auto-posted Tweet:", tweet);
+            } catch (error) {
+                console.error("Error auto-posting to Twitter:", error);
+            }
+        }, i * interval);
+    }
 }

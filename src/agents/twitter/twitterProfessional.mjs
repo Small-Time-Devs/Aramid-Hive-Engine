@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { config } from "../../config/config.mjs";
 import axios from "axios";
 import dotenv from "dotenv";
+import Twitter from "twitter-lite";
 
 dotenv.config();
 
@@ -36,7 +37,7 @@ export async function TWITTER_AUTO_POSTER_AGENT() {
   `;
 }
 
-async function generateTweet(input, specifications = "") {
+export async function generateTweet(input, specifications = "") {
   const openai = new OpenAI();
   const prompt = await TWITTER_AGENT();
 
@@ -64,7 +65,7 @@ async function generateTweet(input, specifications = "") {
   }
 }
 
-async function generateAutoPostTweet() {
+export async function generateAutoPostTweet() {
   const openai = new OpenAI();
   const prompt = await TWITTER_AUTO_POSTER_AGENT();
 
@@ -82,10 +83,35 @@ async function generateAutoPostTweet() {
         },
       ],
     });
-    return completion.choices[0].message.content.trim();
+
+    let tweet = completion.choices[0].message.content.trim();
+
+    // Ensure each post includes a unique URL from the config
+    const urls = config.autoPostSpecifications.urls;
+    const uniqueUrl = urls[Math.floor(Math.random() * urls.length)];
+    tweet += `\n\nMore info: ${uniqueUrl}`;
+
+    return tweet;
   } catch (error) {
     console.error("Error generating auto-post tweet:", error);
     throw new Error("Failed to generate an auto-post tweet.");
+  }
+}
+
+export async function postToTwitter(tweet) {
+  const client = new Twitter({
+    consumer_key: process.env.TWITTER_API_KEY,
+    consumer_secret: process.env.TWITTER_API_SECRET,
+    access_token_key: process.env.TWITTER_ACCESS_TOKEN,
+    access_token_secret: process.env.TWITTER_ACCESS_SECRET,
+  });
+
+  try {
+    const response = await client.post("statuses/update", { status: tweet });
+    console.log("Tweet posted successfully:", response);
+  } catch (error) {
+    console.error("Error posting tweet:", error);
+    throw new Error("Failed to post tweet.");
   }
 }
 
@@ -100,7 +126,7 @@ export async function createTwitterPost(input, specifications = "") {
   }
 }
 
-async function handleTwitterPost(question, specs = {}) {
+export async function handleTwitterPost(question, specs = {}) {
   try {
     const tweet = await generateTweet(question, specs);
     console.log("Generated Tweet:", tweet);
@@ -111,44 +137,33 @@ async function handleTwitterPost(question, specs = {}) {
   }
 }
 
-async function autoPostToTwitter() {
-  if (!config.xAutoPoster) return;
+export async function handleQuestion(question) {
+  const openai = new OpenAI();
 
-  const maxPostsPerMonth = 1500;
-  const postsPerDay = config.postsPerDay;
-  const maxPostsPerDay = Math.min(postsPerDay, Math.floor(maxPostsPerMonth / 30));
-
-  for (let i = 0; i < maxPostsPerDay; i++) {
+  async function generateResponse(input, promptFunction, additionalContext = "") {
+    const personality = await promptFunction();
+    const prompt = `${personality}\n${additionalContext}\nUser: ${input}\nTwitterProfessional:`;
     try {
-      const tweet = await generateAutoPostTweet();
-      // Logic to post tweet using Twitter API
-      console.log("Auto-posted Tweet:", tweet);
+      const completion = await openai.chat.completions.create({
+        model: config.openAI.model,
+        messages: [
+          { role: "system", content: personality },
+          { role: "user", content: input },
+        ],
+      });
+      return completion.choices[0].message.content;
     } catch (error) {
-      console.error("Error auto-posting to Twitter:", error);
+      console.error("Error connecting to OpenAI API:", error);
+      throw new Error("Failed to connect to OpenAI API.");
     }
   }
+
+  // Generate tweet response
+  const tweetResponse = await generateResponse(question, TWITTER_AGENT);
+
+  // Final combined response
+  return `
+    ### Tweet Response:
+    ${tweetResponse}
+  `;
 }
-
-// Call autoPostToTwitter function if auto-posting is enabled
-if (config.xAutoPoster) {
-  autoPostToTwitter();
-}
-
-// Example Usage
-/*
-(async () => {
-  const question = "Promote a new crypto trading platform";
-  const specifications = {
-    platformName: "CryptoHive",
-    keyFeature: "Lightning-fast transactions with 0% trading fees for the first 3 months",
-    targetAudience: "Crypto traders and enthusiasts",
-  };
-
-  try {
-    const tweet = await handleTwitterPost(question, specifications);
-    console.log("Final Tweet:", tweet);
-  } catch (error) {
-    console.error("Error:", error);
-  }
-})();
-*/
