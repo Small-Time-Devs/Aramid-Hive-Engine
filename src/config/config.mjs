@@ -6,7 +6,7 @@ export const config = {
     useLocalLLM: false, // Set to false to use OpenAI API
     openAI: {
         apiKey: process.env.OPENAI_API_KEY, // Set your OpenAI API key here
-        model: 'gpt-4o-mini', // Set the OpenAI model to use
+        model: 'gpt-4o', // Set the OpenAI model to use
         store: true, // Set to true to store conversations in the 'conversations' folder
     },
     localLLM: {
@@ -15,7 +15,7 @@ export const config = {
     },
 
     siteUrl: process.env.SITE_URL || 'http://localhost:5051', // Add site URL configuration
-    runFrontend: 'true', // This will run the frontend by default if set to true and only run the backend if set to false
+    runFrontend: 'false', // This will run the frontend by default if set to true and only run the backend if set to false
     xAutoPoster: false, // Set to true to enable auto-posting to Twitter/X
     postsPerDay: 50, // Set the number of posts per day (max 50 to stay within 1500 posts/month limit)
     postsPerMonth: 1500, // Set the maximum number of posts per month
@@ -29,19 +29,17 @@ export const config = {
         // Add more specifications as needed
     },
 
-    // Add CoinGecko API URL
-    coinGeckoApiUrl: 'https://api.coingecko.com/api/v3',
-
     // Add API sections and their respective APIs
-    apis: {
-        crypto: {
-            coinGecko: 'https://api.coingecko.com/api/v3',
-            // Add more crypto-related APIs as needed
-        },
-        weather: {
-            openWeatherMap: 'https://api.openweathermap.org/data/2.5',
-            // Add more weather-related APIs as needed
-        },
-        // Add more API sections as needed
-    }
+    apis:
+        {
+            crypto: {
+                coinGecko: 'https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids=', // Update to accept a variable
+                // Add more crypto-related APIs as needed
+            },
+            weather: {
+                openWeatherMap: 'https://api.openweathermap.org/data/2.5/weather?q=London&appid=your_api_key',
+                // Add more weather-related APIs as needed
+            },
+            // Add more API sections as needed
+        }
 };

@@ -2,10 +2,10 @@ import * as accountant from "./accounting/accountant.mjs";
 import * as xrayTech from "./medical/xrayTech.mjs";
 import * as cryptoAnalyst from "./crypto/cryptoAnalyst.mjs";
 import * as electricMotorIndustry from "./industry/electricMotorIndustry.mjs";
-import { config } from '../config/config.mjs';
+import { config } from '../../config/config.mjs';
 import axios from 'axios';
 import OpenAI from 'openai';
-import { keywords } from './keyWords.mjs';
+import { keywords } from '../keyWords.mjs';
 
 const openai = new OpenAI();
 

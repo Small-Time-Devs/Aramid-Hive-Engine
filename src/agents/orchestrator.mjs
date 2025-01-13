@@ -1,13 +1,11 @@
-import * as accountant from "./accounting/accountant.mjs";
-import * as xrayTech from "./medical/xrayTech.mjs";
-import * as cryptoAnalyst from "./crypto/cryptoAnalyst.mjs";
-import * as electricMotorIndustry from "./industry/electricMotorIndustry.mjs";
 import * as twitterProfessional from "./twitter/twitterProfessional.mjs";
 import { config } from '../config/config.mjs';
-import axios from 'axios';
 import OpenAI from 'openai';
 import { keywords } from './keyWords.mjs'; // Import the keyword mapping
-import { generateAgentConfigurations, handleQuestion } from './dynamic/dynamic.mjs'; // Import the dynamic agent generator and handler
+import { generateAgentConfigurations } from './dynamic/dynamic.mjs'; // Import the dynamic agent generator
+import { fetchCryptoData, fetchWeatherData } from '../utils/apiUtils.mjs'; // Import the API fetching functions
+import { analyzeCryptoData } from '../utils/analyzer.mjs'; // Import the analyzing functions
+import { formatCryptoData } from '../utils/formater.mjs'; // Import the formatting functions
 
 const openai = new OpenAI();
 
@@ -68,19 +66,35 @@ export async function startConversation(question) {
         }
     }
 
+    // Extract the cryptocurrency name from the question
+    const cryptoNameMatch = question.match(/(?:price of|price for|price)\s+(\w+)/i);
+    const cryptoName = cryptoNameMatch ? cryptoNameMatch[1].toLowerCase() : null;
+
     // Generate agent configurations dynamically
     const agentConfigs = await generateAgentConfigurations(question);
 
     // Create and execute tasks for each generated agent
     for (const config of agentConfigs) {
-        const agentApis = apiSection ? config.apis[apiSection] : {};
+        const agentApis = config.apis ? config.apis[apiSection] : {};
         const agent = new Agent(config.name, config.personality, config.specialty, agentApis);
         try {
-            const response = await agent.generateResponse(question);
+            let response;
+            if (apiSection === "crypto" && cryptoName) {
+                const cryptoData = await fetchCryptoData(cryptoName);
+                const formattedCryptoData = formatCryptoData(cryptoData);
+                const analysis = await analyzeCryptoData(cryptoData, agent.generateResponse.bind(agent));
+                response = `${formattedCryptoData}\n\n### Analysis\n${analysis}`;
+            } else if (apiSection === "weather") {
+                const weatherData = await fetchWeatherData();
+                response = `### Weather Data\n${JSON.stringify(weatherData, null, 2)}`;
+            } else {
+                response = await agent.generateResponse(question);
+            }
+            console.log(`${agent.name}\n${response}`); // Log the response in the console
             agentResponses.push({ name: agent.name, response });
         } catch (error) {
             console.error(`Error handling role ${agent.name}:`, error);
-            throw new Error("Failed to generate a response.");
+            agentResponses.push({ name: agent.name, response: `Error: ${error.message}` });
         }
     }
 
