@@ -16,17 +16,39 @@ export const config = {
 
     siteUrl: process.env.SITE_URL || 'http://localhost:5051', // Add site URL configuration
     runFrontend: 'false', // This will run the frontend by default if set to true and only run the backend if set to false
-    xAutoPoster: false, // Set to true to enable auto-posting to Twitter/X
+    xAutoPoster: true, // Set to true to enable auto-posting to Twitter/X
     postsPerDay: 50, // Set the number of posts per day (max 50 to stay within 1500 posts/month limit)
     postsPerMonth: 1500, // Set the maximum number of posts per month
     // Note: To stay within the free limit of 1500 posts per month, set postsPerDay <= 50
     
+    /*
     autoPostSpecifications: {
-        platformName: "Small Time Devs",
+        platformName: "Aramid AI",
         keyFeature: "AI Bots Trading, Telegram Bot for Solana And XRPL, Custom Raydium API, Solana Volume Bot Custom XRP Trading API",
-        urls: ["https://smalltimedevs.com/", "https://aramid.smalltimedevs", "https://twitter.com/smalltimedevs", "https://api.smalltimedevs.com/", "https://github.com/Small-Time-Devs"],
+        urls: ["https://aramid.smalltimedevs/Chat", "https://aramid.app"],
         targetAudience: "Crypto traders and enthusiasts",
-        // Add more specifications as needed
+    },
+    */
+
+    autoPostSpecifications: {
+        platformName: "Aramid Hive Engine",
+        keyFeatures: [
+            "AI-powered trading bots for Solana and XRPL",
+            "Telegram bot integration for real-time updates",
+            "Custom Raydium API for enhanced trading capabilities",
+            "Solana volume tracking and analytics",
+            "Custom XRP trading API for optimized performance",
+            "Advanced sentiment analysis for market predictions",
+            "Automated portfolio management with customizable strategies",
+            "Integration with decentralized exchanges for seamless trading",
+            "Real-time notifications on market trends and project updates",
+            "Support for developing and deploying custom AI models within the Aramid Hive Engine framework"
+        ],
+        urls: [
+            "https://aramid.smalltimedevs/Chat",
+            "https://aramid.app/"
+        ],
+        targetAudience: "Cryptocurrency traders, blockchain developers, and AI enthusiasts"
     },
 
     // Add API sections and their respective APIs

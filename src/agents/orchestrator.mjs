@@ -120,8 +120,8 @@ export async function autoPostToTwitter() {
         setTimeout(async () => {
             try {
                 const tweet = await twitterProfessional.generateAutoPostTweet();
-                await twitterProfessional.postToTwitter(tweet);
                 console.log("Auto-posted Tweet:", tweet);
+                await twitterProfessional.postToTwitter(tweet);
             } catch (error) {
                 console.error("Error auto-posting to Twitter:", error);
             }
