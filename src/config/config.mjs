@@ -63,5 +63,10 @@ export const config = {
                 // Add more weather-related APIs as needed
             },
             // Add more API sections as needed
-        }
+        },
+    twitter: {
+        callbackUrl: process.env.TWITTER_CALLBACK_URL || 'http://localhost:4700/twitter/callback', // Add callback URL configuration
+        clientId: process.env.TWITTER_CLIENT_ID, // Add client ID
+        clientSecret: process.env.TWITTER_CLIENT_SECRET, // Add client secret
+    },
 };

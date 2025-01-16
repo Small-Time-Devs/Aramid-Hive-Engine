@@ -109,22 +109,22 @@ export async function startConversation(question) {
 }
 
 export async function autoPostToTwitter() {
-    if (!config.xAutoPoster) return;
+  if (!config.xAutoPoster) return;
 
-    const maxPostsPerMonth = config.postsPerMonth;
-    const postsPerDay = config.postsPerDay;
-    const maxPostsPerDay = Math.min(postsPerDay, Math.floor(maxPostsPerMonth / 30));
-    const interval = 24 * 60 * 60 * 1000 / maxPostsPerDay; // Interval in milliseconds
+  const maxPostsPerMonth = config.postsPerMonth;
+  const postsPerDay = config.postsPerDay;
+  const maxPostsPerDay = Math.min(postsPerDay, Math.floor(maxPostsPerMonth / 30));
+  const interval = 24 * 60 * 60 * 1000 / maxPostsPerDay; // Interval in milliseconds
 
-    for (let i = 0; i < maxPostsPerDay; i++) {
-        setTimeout(async () => {
-            try {
-                const tweet = await twitterProfessional.generateAutoPostTweet();
-                console.log("Auto-posted Tweet:", tweet);
-                await twitterProfessional.postToTwitter(tweet);
-            } catch (error) {
-                console.error("Error auto-posting to Twitter:", error);
-            }
-        }, i * interval);
-    }
+  for (let i = 0; i < maxPostsPerDay; i++) {
+    setTimeout(async () => {
+      try {
+        const tweet = await twitterProfessional.generateAutoPostTweet();
+        console.log("Auto-posted Tweet:", tweet);
+        await twitterProfessional.postToTwitter(tweet);
+      } catch (error) {
+        console.error("Error auto-posting to Twitter:", error);
+      }
+    }, i * interval);
+  }
 }

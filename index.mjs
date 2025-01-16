@@ -179,6 +179,65 @@ async function internetResearch(query) {
     }
 }
 
+app.get('/twitter/callback', async (req, res) => {
+  const { oauth_token, oauth_verifier } = req.query;
+
+  if (!oauth_token || !oauth_verifier) {
+    return res.status(400).send('Missing oauth_token or oauth_verifier');
+  }
+
+  const consumer_key = process.env.TWITTER_API_KEY;
+  const consumer_secret = process.env.TWITTER_API_SECRET;
+
+  const oauth = OAuth({
+    consumer: {
+      key: consumer_key,
+      secret: consumer_secret
+    },
+    signature_method: 'HMAC-SHA1',
+    hash_function: (baseString, key) => crypto.createHmac('sha1', key).update(baseString).digest('base64')
+  });
+
+  const token = {
+    key: oauth_token,
+    secret: '' // The request token secret should be stored and retrieved here
+  };
+
+  const request_data = {
+    url: 'https://api.twitter.com/oauth/access_token',
+    method: 'POST',
+    data: { oauth_verifier }
+  };
+
+  const authHeader = oauth.toHeader(oauth.authorize(request_data, token));
+
+  try {
+    const response = await axios.post(request_data.url, null, {
+      headers: {
+        Authorization: authHeader["Authorization"],
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+
+    const params = new URLSearchParams(response.data);
+    const access_token = params.get('oauth_token');
+    const access_token_secret = params.get('oauth_token_secret');
+    const user_id = params.get('user_id');
+    const screen_name = params.get('screen_name');
+
+    // Store the access token and secret securely
+    console.log('Access Token:', access_token);
+    console.log('Access Token Secret:', access_token_secret);
+    console.log('User ID:', user_id);
+    console.log('Screen Name:', screen_name);
+
+    res.send('Twitter callback handled successfully.');
+  } catch (error) {
+    console.error('Error handling Twitter callback:', error);
+    res.status(500).send('Error handling Twitter callback.');
+  }
+});
+
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
 
 // Call autoPostToTwitter function if auto-posting is enabled

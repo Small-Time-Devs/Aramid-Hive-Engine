@@ -2,7 +2,9 @@ import OpenAI from "openai";
 import { config } from "../../config/config.mjs";
 import axios from "axios";
 import dotenv from "dotenv";
-import Twitter from "twitter-lite";
+import fetch from "node-fetch";
+import OAuth from "oauth-1.0a";
+import crypto from "crypto";
 
 dotenv.config();
 
@@ -148,18 +150,53 @@ export async function generateAutoPostTweet() {
 }
 
 export async function postToTwitter(tweet) {
-  const client = new Twitter({
-    consumer_key: process.env.TWITTER_API_KEY,
-    consumer_secret: process.env.TWITTER_API_SECRET,
-    access_token_key: process.env.TWITTER_ACCESS_TOKEN,
-    access_token_secret: process.env.TWITTER_ACCESS_SECRET,
+  // Log the credentials to verify they are being loaded correctly
+  console.log("Twitter API Key:", process.env.TWITTER_API_KEY);
+  console.log("Twitter API Secret:", process.env.TWITTER_API_SECRET);
+  console.log("Twitter Access Token:", process.env.TWITTER_ACCESS_TOKEN);
+  console.log("Twitter Access Secret:", process.env.TWITTER_ACCESS_SECRET);
+
+  const consumer_key = process.env.TWITTER_API_KEY;
+  const consumer_secret = process.env.TWITTER_API_SECRET;
+  const access_token = process.env.TWITTER_ACCESS_TOKEN;
+  const access_secret = process.env.TWITTER_ACCESS_SECRET;
+
+  const data = {
+    text: tweet
+  };
+
+  const endpointURL = `https://api.twitter.com/2/tweets`;
+
+  const oauth = OAuth({
+    consumer: {
+      key: consumer_key,
+      secret: consumer_secret
+    },
+    signature_method: 'HMAC-SHA1',
+    hash_function: (baseString, key) => crypto.createHmac('sha1', key).update(baseString).digest('base64')
   });
 
+  const token = {
+    key: access_token,
+    secret: access_secret
+  };
+
+  const authHeader = oauth.toHeader(oauth.authorize({
+    url: endpointURL,
+    method: 'POST',
+    data: { oauth_callback: config.twitter.callbackUrl } // Include callback URL
+  }, token));
+
   try {
-    const response = await client.post("statuses/update", { status: tweet });
-    console.log("Tweet posted successfully:", response);
+    const response = await axios.post(endpointURL, data, {
+      headers: {
+        Authorization: authHeader["Authorization"],
+        'Content-Type': 'application/json'
+      }
+    });
+    console.log("Tweet posted successfully:", response.data);
   } catch (error) {
-    console.error("Error posting tweet:", error);
+    console.error("Error posting tweet:", error.response ? error.response.data : error.message);
     throw new Error("Failed to post tweet.");
   }
 }
