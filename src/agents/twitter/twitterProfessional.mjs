@@ -150,55 +150,56 @@ export async function generateAutoPostTweet() {
 }
 
 export async function postToTwitter(tweet) {
-  // Log the credentials to verify they are being loaded correctly
-  console.log("Twitter API Key:", process.env.TWITTER_API_KEY);
-  console.log("Twitter API Secret:", process.env.TWITTER_API_SECRET);
-  console.log("Twitter Access Token:", process.env.TWITTER_ACCESS_TOKEN);
-  console.log("Twitter Access Secret:", process.env.TWITTER_ACCESS_SECRET);
+  const url = "https://api.twitter.com/2/tweets";
 
-  const consumer_key = process.env.TWITTER_API_KEY;
-  const consumer_secret = process.env.TWITTER_API_SECRET;
-  const access_token = process.env.TWITTER_ACCESS_TOKEN;
-  const access_secret = process.env.TWITTER_ACCESS_SECRET;
-
-  const data = {
-    text: tweet
-  };
-
-  const endpointURL = `https://api.twitter.com/2/tweets`;
-
+  // Set up OAuth 1.0a credentials
   const oauth = OAuth({
     consumer: {
-      key: consumer_key,
-      secret: consumer_secret
+      key: process.env.TWITTER_API_KEY,
+      secret: process.env.TWITTER_API_SECRET,
     },
-    signature_method: 'HMAC-SHA1',
-    hash_function: (baseString, key) => crypto.createHmac('sha1', key).update(baseString).digest('base64')
+    signature_method: "HMAC-SHA1",
+    hash_function: (baseString, key) =>
+      crypto.createHmac("sha1", key).update(baseString).digest("base64"),
   });
 
   const token = {
-    key: access_token,
-    secret: access_secret
+    key: process.env.TWITTER_ACCESS_TOKEN,
+    secret: process.env.TWITTER_ACCESS_SECRET,
   };
 
-  const authHeader = oauth.toHeader(oauth.authorize({
-    url: endpointURL,
-    method: 'POST',
-    data: { oauth_callback: config.twitter.callbackUrl } // Include callback URL
-  }, token));
+  const requestData = {
+    url: url,
+    method: "POST",
+    data: { text: tweet },
+  };
 
-  try {
-    const response = await axios.post(endpointURL, data, {
-      headers: {
-        Authorization: authHeader["Authorization"],
-        'Content-Type': 'application/json'
+  const headers = {
+    ...oauth.toHeader(oauth.authorize(requestData, token)),
+    "Content-Type": "application/json",
+  };
+
+  return fetch(url, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify({ text: tweet }),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        return response.json().then((err) => {
+          throw new Error(`Failed to post tweet: ${err.detail || err.title}`);
+        });
       }
+      return response.json();
+    })
+    .then((response) => {
+      console.log("Tweet posted successfully:", response);
+      return response;
+    })
+    .catch((err) => {
+      console.error("Error posting tweet:", err.message);
+      throw new Error("Failed to post tweet.");
     });
-    console.log("Tweet posted successfully:", response.data);
-  } catch (error) {
-    console.error("Error posting tweet:", error.response ? error.response.data : error.message);
-    throw new Error("Failed to post tweet.");
-  }
 }
 
 export async function createTwitterPost(input, specifications = "") {
