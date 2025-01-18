@@ -16,9 +16,9 @@ export const config = {
 
     siteUrl: process.env.SITE_URL || 'http://localhost:5051', // Add site URL configuration
     runFrontend: 'false', // This will run the frontend by default if set to true and only run the backend if set to false
-    xAutoPoster: false, // Set to true to enable auto-posting to Twitter/X
-    postsPerDay: 50, // Set the number of posts per day (max 50 to stay within 1500 posts/month limit)
-    postsPerMonth: 1500, // Set the maximum number of posts per month
+    xAutoPoster: true, // Set to true to enable auto-posting to Twitter/X
+    postsPerDay: 15, // Set the number of posts per day (max 50 to stay within 1500 posts/month limit)
+    postsPerMonth: 400, // Set the maximum number of posts per month
     // Note: To stay within the free limit of 1500 posts per month, set postsPerDay <= 50
     
     /*
@@ -42,7 +42,8 @@ export const config = {
             "Automated portfolio management with customizable strategies",
             "Integration with decentralized exchanges for seamless trading",
             "Real-time notifications on market trends and project updates",
-            "Support for developing and deploying custom AI models within the Aramid Hive Engine framework"
+            "Support for developing and deploying custom AI models within the Aramid Hive Engine framework",
+            "Coming Soon: Have me pick daily trades via solana or xrpl inside the telegram bot."
         ],
         urls: [
             "https://aramid.smalltimedevs/Chat",

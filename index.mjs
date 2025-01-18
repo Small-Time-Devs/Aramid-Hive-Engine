@@ -180,56 +180,30 @@ async function internetResearch(query) {
 }
 
 app.get('/twitter/callback', async (req, res) => {
-  const { oauth_token, oauth_verifier } = req.query;
+  const { code } = req.query;
 
-  if (!oauth_token || !oauth_verifier) {
-    return res.status(400).send('Missing oauth_token or oauth_verifier');
+  if (!code) {
+    return res.status(400).send('Missing authorization code');
   }
 
-  const consumer_key = process.env.TWITTER_API_KEY;
-  const consumer_secret = process.env.TWITTER_API_SECRET;
-
-  const oauth = OAuth({
-    consumer: {
-      key: consumer_key,
-      secret: consumer_secret
-    },
-    signature_method: 'HMAC-SHA1',
-    hash_function: (baseString, key) => crypto.createHmac('sha1', key).update(baseString).digest('base64')
+  const client = new TwitterApi({
+    clientId: process.env.TWITTER_CLIENT_ID,
+    clientSecret: process.env.TWITTER_CLIENT_SECRET,
   });
 
-  const token = {
-    key: oauth_token,
-    secret: '' // The request token secret should be stored and retrieved here
-  };
-
-  const request_data = {
-    url: 'https://api.twitter.com/oauth/access_token',
-    method: 'POST',
-    data: { oauth_verifier }
-  };
-
-  const authHeader = oauth.toHeader(oauth.authorize(request_data, token));
-
   try {
-    const response = await axios.post(request_data.url, null, {
-      headers: {
-        Authorization: authHeader["Authorization"],
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
+    const { client: loggedClient, accessToken, refreshToken } = await client.loginWithOAuth2({
+      code,
+      redirectUri: config.twitter.callbackUrl,
     });
 
-    const params = new URLSearchParams(response.data);
-    const access_token = params.get('oauth_token');
-    const access_token_secret = params.get('oauth_token_secret');
-    const user_id = params.get('user_id');
-    const screen_name = params.get('screen_name');
+    // Store the access token and refresh token securely
+    console.log('Access Token:', accessToken);
+    console.log('Refresh Token:', refreshToken);
 
-    // Store the access token and secret securely
-    console.log('Access Token:', access_token);
-    console.log('Access Token Secret:', access_token_secret);
-    console.log('User ID:', user_id);
-    console.log('Screen Name:', screen_name);
+    // Save tokens to environment variables or a secure storage
+    process.env.TWITTER_ACCESS_TOKEN = accessToken;
+    process.env.TWITTER_REFRESH_TOKEN = refreshToken;
 
     res.send('Twitter callback handled successfully.');
   } catch (error) {

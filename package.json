@@ -26,6 +26,7 @@
     "oauth-1.0a": "^2.2.6",
     "openai": "^4.77.3",
     "querystring": "^0.2.1",
+    "twitter-api-v2": "^1.19.0",
     "twitter-lite": "^1.1.0"
   }
 }
