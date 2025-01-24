@@ -33,21 +33,21 @@ export const config = {
     autoPostSpecifications: {
         platformName: "Aramid Hive Engine",
         keyFeatures: [
-            "AI-powered trading bots for Solana and XRPL",
-            "Telegram bot integration for real-time updates",
-            "Custom Raydium API for enhanced trading capabilities",
-            "Solana volume tracking and analytics",
-            "Custom XRP trading API for optimized performance",
-            "Advanced sentiment analysis for market predictions",
-            "Automated portfolio management with customizable strategies",
-            "Integration with decentralized exchanges for seamless trading",
-            "Real-time notifications on market trends and project updates",
-            "Support for developing and deploying custom AI models within the Aramid Hive Engine framework",
-            "Coming Soon: Have me pick daily trades via solana or xrpl inside the telegram bot."
+            "Telegram trading bot for buying and selling tokens in real-time",
+            "Custom Raydium API for optimized Solana token trading",
+            "Custom XRP API for seamless XRP-based token trades",
+            "Real-time trade execution with minimal latency",
+            "Automated market analysis and trade recommendations",
+            "Customizable trading strategies directly within the Telegram bot",
+            "Real-time notifications on Solana and XRP market trends",
+            "User-friendly bot interface for effortless token management",
+            "Integration with decentralized exchanges for liquidity optimization",
+            "Coming Soon: Daily trade signals powered by AI directly in Telegram"
         ],
         urls: [
-            "https://aramid.smalltimedevs/Chat",
-            "https://aramid.app/"
+            "https://t.me/SmallTimeDevs_bot?start=6901991502",
+            "https://smalltimedevs.com",
+            "https://github.com/Small-Time-Devs",
         ],
         targetAudience: "Cryptocurrency traders, blockchain developers, and AI enthusiasts"
     },

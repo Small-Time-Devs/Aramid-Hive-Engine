@@ -5,10 +5,10 @@ import dotenv from "dotenv";
 import fetch from "node-fetch";
 import OAuth from "oauth-1.0a";
 import crypto from "crypto";
-import { TwitterApi } from "twitter-api-v2";
 import got from "got";
 import qs from "querystring";
 import readline from "readline";
+import { TwitterApi } from "twitter-api-v2";
 
 dotenv.config();
 
@@ -57,12 +57,13 @@ export async function TWITTER_AGENT() {
     - Use **visual cues like emojis** to guide the reader and create excitement.
     - Close with a powerful **call-to-action (CTA)** that drives clicks and engagement.
     - Incorporate **trending hashtags** and contextually relevant keywords for discoverability.
+    - **Keep the tweet concise and within 230 characters** while maximizing impact.
 
     Advanced Instructions:
     - Use a mix of **powerful verbs**, bold claims, and creative hooks.
     - Appeal to the target audience's goals and pain points.
     - Frame the product as the **future of the industry** or a **must-have solution**.
-    - Keep the tweet concise and within 280 characters while maximizing impact.
+    - Keep the tweet concise and within 230 characters while maximizing impact.
 
     Input: Topic, product, or specifications.
     Output: A tweet that excites, informs, and drives engagement.
@@ -79,6 +80,7 @@ export async function TWITTER_AUTO_POSTER_AGENT() {
     - Highlight the **most valuable features and benefits** in bullet-point or line-break format for easy reading.
     - Close with a **compelling CTA** that drives readers to click or learn more.
     - Include **targeted hashtags** and use dynamic, conversational language.
+    - **Keep the tweet concise and within 230 characters** while maximizing impact.
 
     Key Features:
     - Maximize engagement by using urgency, excitement, or curiosity in the opening.
@@ -86,7 +88,7 @@ export async function TWITTER_AUTO_POSTER_AGENT() {
     - Ensure URLs and hashtags are strategically placed for visibility.
 
     Input: Product details and specifications.
-    Output: A ready-to-post tweet with energy and impact.
+    Output: A ready-to-post tweet with energy and impact, formatted to be passed through the Twitter API.
   `;
 }
 
@@ -111,7 +113,14 @@ export async function generateTweet(input, specifications = "") {
         },
       ],
     });
-    return completion.choices[0].message.content.trim();
+    let tweet = completion.choices[0].message.content.trim();
+    tweet = tweet.replace(/\*\*/g, ''); // Remove Markdown bold formatting
+    tweet = tweet.replace(/\n/g, ' \\n '); // Replace newlines with escaped newlines
+    tweet = tweet.replace(/\s+/g, ' ').trim(); // Remove extra spaces
+    if (tweet.length > 230) {
+      tweet = tweet.substring(0, 227) + '...'; // Ensure tweet is within 230 characters
+    }
+    return tweet;
   } catch (error) {
     console.error("Error generating tweet:", error);
     throw new Error("Failed to generate a tweet.");
@@ -138,11 +147,17 @@ export async function generateAutoPostTweet() {
     });
 
     let tweet = completion.choices[0].message.content.trim();
+    tweet = tweet.replace(/\*\*/g, ''); // Remove Markdown bold formatting
+    tweet = tweet.replace(/\n/g, ' \\n '); // Replace newlines with escaped newlines
+    tweet = tweet.replace(/\s+/g, ' ').trim(); // Remove extra spaces
+    if (tweet.length > 230) {
+      tweet = tweet.substring(0, 227) + '...'; // Ensure tweet is within 230 characters
+    }
 
     // Ensure each post includes a unique URL from the config
     const urls = config.autoPostSpecifications.urls;
     const uniqueUrl = urls[Math.floor(Math.random() * urls.length)];
-    tweet += `\n\nMore info: ${uniqueUrl}`;
+    tweet += ` More info: ${uniqueUrl}`;
 
     return tweet;
   } catch (error) {
@@ -151,122 +166,24 @@ export async function generateAutoPostTweet() {
   }
 }
 
-const consumer_key = process.env.TWITTER_API_KEY;
-const consumer_secret = process.env.TWITTER_API_SECRET;
-
-const oauth = OAuth({
-  consumer: {
-    key: consumer_key,
-    secret: consumer_secret
-  },
-  signature_method: 'HMAC-SHA1',
-  hash_function: (baseString, key) => crypto.createHmac('sha1', key).update(baseString).digest('base64')
-});
-
-const endpointURL = `https://api.twitter.com/2/tweets`;
-
-async function requestToken() {
-  const requestTokenURL = 'https://api.twitter.com/oauth/request_token?oauth_callback=oob&x_auth_access_type=write';
-  const authHeader = oauth.toHeader(oauth.authorize({
-    url: requestTokenURL,
-    method: 'POST'
-  }));
-
-  const req = await got.post(requestTokenURL, {
-    headers: {
-      Authorization: authHeader["Authorization"]
-    }
-  });
-  if (req.body) {
-    return qs.parse(req.body);
-  } else {
-    throw new Error('Cannot get an OAuth request token');
-  }
-}
-
-async function accessToken({ oauth_token, oauth_token_secret }, verifier) {
-  const accessTokenURL = 'https://api.twitter.com/oauth/access_token';
-  const authHeader = oauth.toHeader(oauth.authorize({
-    url: accessTokenURL,
-    method: 'POST'
-  }));
-  const path = `https://api.twitter.com/oauth/access_token?oauth_verifier=${verifier}&oauth_token=${oauth_token}`;
-  const req = await got.post(path, {
-    headers: {
-      Authorization: authHeader["Authorization"]
-    }
-  });
-  if (req.body) {
-    return qs.parse(req.body);
-  } else {
-    throw new Error('Cannot get an OAuth access token');
-  }
-}
-
-async function getRequest({ oauth_token, oauth_token_secret }, tweet) {
-  const token = {
-    key: oauth_token,
-    secret: oauth_token_secret
-  };
-
-  const authHeader = oauth.toHeader(oauth.authorize({
-    url: endpointURL,
-    method: 'POST'
-  }, token));
-
-  const req = await got.post(endpointURL, {
-    json: { text: tweet },
-    responseType: 'json',
-    headers: {
-      Authorization: authHeader["Authorization"],
-      'user-agent': "v2CreateTweetJS",
-      'content-type': "application/json",
-      'accept': "application/json"
-    }
-  });
-  if (req.body) {
-    return req.body;
-  } else {
-    throw new Error('Unsuccessful request');
-  }
-}
-
 export async function postToTwitter(tweet) {
   try {
-    // Get request token
-    const oAuthRequestToken = await requestToken();
-    // Get authorization
-    const authorizeURL = new URL('https://api.twitter.com/oauth/authorize');
-    authorizeURL.searchParams.append('oauth_token', oAuthRequestToken.oauth_token);
-    console.log('Please go here and authorize:', authorizeURL.href);
-    
-    // Prompt user to enter the PIN
-    const pin = await input('Paste the PIN here: ');
-    
-    // Get the access token
-    const oAuthAccessToken = await accessToken(oAuthRequestToken, pin.trim());
-    // Make the request
-    const response = await getRequest(oAuthAccessToken, tweet);
-    console.log("Tweet posted successfully:", response);
-    return response;
-  } catch (error) {
-    console.error("Error posting tweet:", error);
-    throw new Error("Failed to post tweet.");
-  }
-}
+    const client = new TwitterApi({
+      appKey: 'sdsBRwAaszBlinWwY1PSOpbhD',
+      appSecret: 'cFG6bUpxzNgdzZPmRF0QFIL2PhyTuqh2KhchMet6yim3v8Furu',
+      accessToken: '1879525759376830464-BFXyzSfOoAYmnzA9IR7y6lHQspXoUs',
+      accessSecret: 'AyuCWZuJywN3DbMs7pzjJsjXcPpJ0O1qBNvFaQptGMGcC',
+    });
 
-// Helper function to get user input
-async function input(prompt) {
-  return new Promise((resolve) => {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
-    rl.question(prompt, (out) => {
-      rl.close();
-      resolve(out);
-    });
-  });
+    const formattedTweet = tweet.replace(/\*\*/g, '').replace(/\\n/g, '\n').replace(/\s+/g, ' ').trim();
+    console.log("Formatted Tweet:", formattedTweet);
+    const { data: createdTweet } = await client.v2.tweet(formattedTweet);
+    console.log('Tweet posted successfully:', createdTweet);
+    return createdTweet;
+  } catch (error) {
+    console.error('Error posting tweet:', error);
+    throw new Error('Failed to post tweet.');
+  }
 }
 
 export async function createTwitterPost(input, specifications = "") {

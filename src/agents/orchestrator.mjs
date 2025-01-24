@@ -7,6 +7,7 @@ import { fetchCryptoData, fetchWeatherData } from '../utils/apiUtils.mjs'; // Im
 import { analyzeCryptoData } from '../utils/analyzer.mjs'; // Import the analyzing functions
 import { formatCryptoData } from '../utils/formater.mjs'; // Import the formatting functions
 
+
 const openai = new OpenAI();
 
 class Agent {
