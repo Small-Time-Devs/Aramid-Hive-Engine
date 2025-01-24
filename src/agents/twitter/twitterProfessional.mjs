@@ -169,10 +169,10 @@ export async function generateAutoPostTweet() {
 export async function postToTwitter(tweet) {
   try {
     const client = new TwitterApi({
-      appKey: 'sdsBRwAaszBlinWwY1PSOpbhD',
-      appSecret: 'cFG6bUpxzNgdzZPmRF0QFIL2PhyTuqh2KhchMet6yim3v8Furu',
-      accessToken: '1879525759376830464-BFXyzSfOoAYmnzA9IR7y6lHQspXoUs',
-      accessSecret: 'AyuCWZuJywN3DbMs7pzjJsjXcPpJ0O1qBNvFaQptGMGcC',
+      appKey: `${process.env.TWITTER_APP_KEY}`,
+      appSecret: `${process.env.TWITTER_APP_SECRET}`,
+      accessToken: `${process.env.TWITTER_ACCESS_TOKEN}`,
+      accessSecret: `${process.env.TWITTER_ACCESS_SECRET}`,
     });
 
     const [mainTweet, ...additionalText] = tweet.split(' More info: ');
