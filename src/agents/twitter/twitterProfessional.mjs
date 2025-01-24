@@ -175,17 +175,10 @@ export async function postToTwitter(tweet) {
       accessSecret: `${process.env.TWITTER_ACCESS_SECRET}`,
     });
 
-    const [mainTweet, ...additionalText] = tweet.split(' More info: ');
-    const formattedTweet = mainTweet.replace(/\*\*/g, '').replace(/\\n/g, '\n').replace(/\s+/g, ' ').trim();
+    const formattedTweet = tweet.replace(/\*\*/g, '').replace(/\\n/g, '\n').replace(/\s+/g, ' ').trim();
     console.log("Formatted Tweet:", formattedTweet);
     const { data: createdTweet } = await client.v2.tweet(formattedTweet);
     console.log('Tweet posted successfully:', createdTweet);
-
-    if (additionalText.length > 0) {
-      const commentText = `More info: ${additionalText.join(' More info: ')}`;
-      const { data: commentTweet } = await client.v2.reply(commentText, createdTweet.id);
-      console.log('Comment posted successfully:', commentTweet);
-    }
 
     return createdTweet;
   } catch (error) {
