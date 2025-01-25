@@ -9,7 +9,7 @@ import got from "got";
 import qs from "querystring";
 import readline from "readline";
 import { TwitterApi } from "twitter-api-v2";
-import { fetchLatestTokenProfiles, fetchLatestBoostedTokens } from "../../utils/apiUtils.mjs";
+import { fetchLatestTokenProfiles, fetchLatestBoostedTokens, fetchTokenName, fetchTokenPrice } from "../../utils/apiUtils.mjs";
 
 dotenv.config();
 
@@ -152,7 +152,10 @@ export async function generateSnarkyTweet() {
   const tokenProfiles = await fetchLatestBoostedTokens();
   const randomToken = tokenProfiles[Math.floor(Math.random() * tokenProfiles.length)];
   const tokenDescription = randomToken.description || "No description available";
-  const tokenName = randomToken.name || randomToken.symbol || "Unnamed Token"; // Ensure token name is correctly extracted
+  const tokenAddress = randomToken.tokenAddress;
+  const tokenName = await fetchTokenName(tokenAddress) || randomToken.name || randomToken.symbol || "Unnamed Token"; // Ensure token name is correctly extracted
+
+  console.log("Token Name:", tokenName); // Debugging log
 
   const prompt = await SNARKY_TWITTER_AGENT();
 
@@ -192,7 +195,10 @@ export async function generateBoostedTweet() {
   const boostedTokens = await fetchLatestBoostedTokens();
   const randomToken = boostedTokens[Math.floor(Math.random() * boostedTokens.length)];
   const tokenDescription = randomToken.description || "No description available";
-  const tokenName = randomToken.name || randomToken.symbol || "Unnamed Token"; // Ensure token name is correctly extracted
+  const tokenAddress = randomToken.tokenAddress;
+  const tokenName = await fetchTokenName(tokenAddress) || randomToken.name || randomToken.symbol || "Unnamed Token"; // Ensure token name is correctly extracted
+
+  console.log("Token Name:", tokenName); // Debugging log
 
   const prompt = await BOOSTED_TWITTER_AGENT();
 
@@ -220,9 +226,9 @@ export async function generateBoostedTweet() {
     const amountSpent = randomToken.amount || randomToken.totalAmount;
     const dollarsSpent = (amountSpent / 10) * 99;
     const twitterUrl = Array.isArray(randomToken.links) ? randomToken.links.find(link => link.type === 'twitter')?.url : '';
-    const twitterHandle = twitterUrl ? twitterUrl.split('/').pop() : '';
-    const comment = await generateComment(amountSpent, dollarsSpent, randomToken.tokenAddress, tokenName, tokenDescription, twitterHandle);
-    return { tweet, comment, tokenName, tokenDescription, amountSpent, dollarsSpent, tokenAddress: randomToken.tokenAddress, twitterHandle };
+    const twitterHandle = twitterUrl ? `@${twitterUrl.split('/').pop()}` : '';
+    const comment = await generateComment(amountSpent, dollarsSpent, tokenAddress, tokenName, tokenDescription, twitterHandle);
+    return { tweet, comment, tokenName, tokenDescription, amountSpent, dollarsSpent, tokenAddress, twitterHandle };
   } catch (error) {
     console.error("Error generating boosted tweet:", error);
     throw new Error("Failed to generate a boosted tweet.");
@@ -230,14 +236,17 @@ export async function generateBoostedTweet() {
 }
 
 export async function generateComment(amountSpent, dollarsSpent, tokenAddress, tokenName, tokenDescription, twitterHandle = '') {
+  console.log("Generating comment for token:", tokenName); // Debugging log
+
   const openai = new OpenAI();
+  const tokenPrice = await fetchTokenPrice(tokenAddress);
   const prompt = `
     ### Comment Generator Prompt
 
     You are a snarky, funny Twitter bot. Your job is to create a highly engaging and humorous comment based on the amount spent on boosts. 
     Each comment must:
     - Include a snarky, funny comment about how much the project paid to be boosted.
-    - Mention the token name and address.
+    - Mention the token name, address, and current price.
     - Use a humorous tone that captures attention and entertains the audience.
     - Include a disclaimer that clearly states not to buy the token.
     - Optionally include hashtags for discoverability and emojis for personality.
@@ -248,6 +257,7 @@ export async function generateComment(amountSpent, dollarsSpent, tokenAddress, t
     Token Name: ${tokenName}
     Token Address: ${tokenAddress}
     Token Description: ${tokenDescription}
+    Token Price: $${tokenPrice}
     Twitter Handle: ${twitterHandle}
 
     Write a comment based on the provided information. Keep the comment concise and under 280 characters.
@@ -275,6 +285,9 @@ export async function generateComment(amountSpent, dollarsSpent, tokenAddress, t
 
             ### Token Description
             ${tokenDescription}
+
+            ### Token Price
+            $${tokenPrice}
 
             ### Twitter Handle
             ${twitterHandle}

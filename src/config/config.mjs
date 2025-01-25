@@ -60,6 +60,8 @@ export const config = {
             coinGecko: 'https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids=', // Update to accept a variable
             dexscreenerTokneProfilesUrl: 'https://api.dexscreener.com/token-profiles/latest/v1',
             dexscreenerTopBoostedUrl: 'https://api.dexscreener.com/token-boosts/top/v1',
+            raydiumTokenNameUrl: 'https://api-v3.raydium.io/mint/ids?mints=',
+            raydiumTokenPriceUrl: 'https://api-v3.raydium.io/mint/price?mints=',
         },
         weather: {
             openWeatherMap: 'https://api.openweathermap.org/data/2.5/weather?q=London&appid=your_api_key',

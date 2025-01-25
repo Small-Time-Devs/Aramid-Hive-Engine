@@ -65,3 +65,29 @@ export async function fetchLatestBoostedTokens() {
     throw new Error('Failed to fetch latest boosted tokens.');
   }
 }
+
+export async function fetchTokenName(contractAddress) {
+    try {
+        const response = await axios.get(`${config.apis.crypto.raydiumTokenNameUrl}${contractAddress}`);
+        if (response.data && response.data.success && response.data.data.length > 0) {
+            return response.data.data[0].name;
+        }
+        throw new Error(`No name found for contract address ${contractAddress}`);
+    } catch (error) {
+        console.error('Error fetching token name:', error);
+        throw new Error(`Failed to fetch token name for contract address ${contractAddress}.`);
+    }
+}
+
+export async function fetchTokenPrice(contractAddress) {
+    try {
+        const response = await axios.get(`${config.apis.crypto.raydiumTokenPriceUrl}${contractAddress}`);
+        if (response.data && response.data.success && response.data.data[contractAddress]) {
+            return response.data.data[contractAddress];
+        }
+        throw new Error(`No price found for contract address ${contractAddress}`);
+    } catch (error) {
+        console.error('Error fetching token price:', error);
+        throw new Error(`Failed to fetch token price for contract address ${contractAddress}.`);
+    }
+}
