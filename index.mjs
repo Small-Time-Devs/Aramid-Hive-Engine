@@ -215,6 +215,6 @@ app.get('/twitter/callback', async (req, res) => {
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
 
 // Call autoPostToTwitter function if auto-posting is enabled
-if (config.xAutoPoster) {
+if (config.twitter.settings.xAutoPoster) {
     autoPostToTwitter();
 }

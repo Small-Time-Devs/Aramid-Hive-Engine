@@ -21,7 +21,7 @@ export async function generateAgentConfigurations(userInput) {
 
     try {
         const completion = await openai.chat.completions.create({
-            model: config.openAI.model,
+            model: config.llmSettings.openAI.model,
             messages: [
                 { role: "system", content: prompt },
                 { role: "user", content: userInput }
@@ -62,8 +62,8 @@ async function fetchCurrentData(query) {
 
 export async function handleQuestion(question) {
     const openai = new OpenAI({
-        apiKey: config.openAI.apiKey,
-        organization: config.openAI.organization
+        apiKey: config.llmSettings.openAI.apiKey,
+        organization: config.llmSettings.openAI.organization
     });
 
     async function generateResponse(input, promptFunction, additionalContext = "") {
@@ -71,7 +71,7 @@ export async function handleQuestion(question) {
         const prompt = `${personality}\n${additionalContext}\nUser: ${input}\nDynamicAgent:`;
         try {
             const completion = await openai.chat.completions.create({
-                model: config.openAI.model,
+                model: config.llmSettings.openAI.model,
                 messages: [
                     { role: "system", content: personality },
                     { role: "user", content: input },

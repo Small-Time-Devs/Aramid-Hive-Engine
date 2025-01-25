@@ -6,7 +6,8 @@ import { generateAgentConfigurations } from './dynamic/dynamic.mjs'; // Import t
 import { fetchCryptoData, fetchWeatherData } from '../utils/apiUtils.mjs'; // Import the API fetching functions
 import { analyzeCryptoData } from '../utils/analyzer.mjs'; // Import the analyzing functions
 import { formatCryptoData } from '../utils/formater.mjs'; // Import the formatting functions
-
+import { TwitterApi } from "twitter-api-v2";
+import { checkRateLimit } from "../utils/helpers.mjs";
 
 const openai = new OpenAI();
 
@@ -21,10 +22,10 @@ class Agent {
 
     async generateResponse(input) {
         const prompt = `${this.personality}\nUser: ${input}\n${this.name}:`;
-        if (config.useLocalLLM) {
+        if (config.llmSettings.localLLM.useLocalLLM) {
             try {
-                const response = await axios.post(config.localLLM.serverUrl, {
-                    modelPath: config.localLLM.modelPath,
+                const response = await axios.post(config.llmSettings.localLLM.serverUrl, {
+                    modelPath: config.llmSettings.localLLM.modelPath,
                     prompt: prompt
                 });
                 const generatedResponse = response.data;
@@ -37,7 +38,7 @@ class Agent {
         } else {
             try {
                 const completion = await openai.chat.completions.create({
-                    model: config.openAI.model,
+                    model: config.llmSettings.openAI.model,
                     messages: [
                         { "role": "system", "content": this.personality },
                         { "role": "user", "content": input }
@@ -110,41 +111,43 @@ export async function startConversation(question) {
 }
 
 export async function autoPostToTwitter() {
-  if (!config.xAutoPoster) return;
+  if (!config.twitter.settings.xAutoPoster) return;
 
-  const maxPostsPerMonth = config.postsPerMonth;
-  const postsPerDay = config.postsPerDay;
+  const maxPostsPerMonth = config.twitter.settings.postsPerMonth;
+  const postsPerDay = config.twitter.settings.postsPerDay;
   const maxPostsPerDay = Math.min(postsPerDay, Math.floor(maxPostsPerMonth / 30));
-  const interval = 24 * 60 * 60 * 1000 / maxPostsPerDay; // Interval in milliseconds
-  //const readInterval = config.timeToReadPostsOnPage * 60 * 1000; // Interval in milliseconds for reading posts
+  const maxTweetsPerDay = Math.floor(maxPostsPerDay / 3); // Each post is 3 tweets (tweet, comment, hashtags)
+  const interval = 24 * 60 * 60 * 1000 / maxTweetsPerDay; // Interval in milliseconds
 
-  for (let i = 0; i < maxPostsPerDay; i++) {
+  const client = new TwitterApi({
+    appKey: `${config.twitter.keys.appKey}`,
+    appSecret: `${config.twitter.keys.appSecret}`,
+    accessToken: `${config.twitter.keys.accessToken}`,
+    accessSecret: `${config.twitter.keys.accessSecret}`,
+  });
+
+  for (let i = 0; i < maxTweetsPerDay; i++) {
     setTimeout(async () => {
       try {
+        const canPost = await checkRateLimit(client);
+        if (!canPost) {
+          console.log('Skipping post due to rate limit.');
+          return;
+        }
+
         const tweet = await twitterProfessional.generateAutoPostTweet();
-        //console.log("Auto-posted Tweet:", tweet);
-        await twitterProfessional.postToTwitter(tweet);
+        await twitterProfessional.postToTwitter(tweet, client);
       } catch (error) {
         console.error("Error auto-posting to Twitter:", error);
       }
     }, i * interval);
   }
-
-  /*
-  setInterval(async () => {
-    try {
-      await twitterProfessional.scanAndRespondToPosts();
-    } catch (error) {
-      console.error("Error scanning and responding to Twitter posts:", error);
-    }
-  }, readInterval);
-  */
 }
 
 export async function scanAndRespondToTwitterPosts() {
-  if (!config.xAutoResponder) return; // Ensure the function respects the xAutoResponder flag
+  if (!config.twitter.settings.xAutoResponder) return; // Ensure the function respects the xAutoResponder flag
 
-  const interval = config.timeToReadPostsOnPage * 60 * 1000; // Interval in milliseconds
+  const interval = config.twitter.settings.timeToReadPostsOnPage * 60 * 1000; // Interval in milliseconds
 
   setInterval(async () => {
     try {

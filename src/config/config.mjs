@@ -3,55 +3,21 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export const config = {
-    useLocalLLM: false, // Set to false to use OpenAI API
-    openAI: {
-        apiKey: process.env.OPENAI_API_KEY, // Set your OpenAI API key here
-        model: 'gpt-4o', // Set the OpenAI model to use
-        store: true, // Set to true to store conversations in the 'conversations' folder
-    },
-    localLLM: {
-        modelPath: process.env.LOCAL_MODEL_API_URL, // Set the file path to your local LLM model
-        serverUrl: process.env.LOCAL_MODEL_API_URL, // Set the server URL for LM Studio
-    },
-
-    siteUrl: process.env.SITE_URL || 'http://localhost:5051', // Add site URL configuration
-    runFrontend: 'false', // This will run the frontend by default if set to true and only run the backend if set to false
-    xAutoPoster: true, // Set to true to enable auto-posting to Twitter/X
-    xAutoResponder: false, // Set to true to enable auto-responding to Twitter posts
-    postsPerDay: 800, // Set the number of posts per day (max 50 to stay within 1500 posts/month limit) 1667
-    timeToReadPostsOnPage: 2, // Set the time to read posts on the page
-    postsPerMonth: 2500, // Set the maximum number of posts per month
-    // Note: To stay within the free limit of 1500 posts per month, set postsPerDay <= 50
     
-    /*
-    autoPostSpecifications: {
-        platformName: "Aramid AI",
-        keyFeature: "AI Bots Trading, Telegram Bot for Solana And XRPL, Custom Raydium API, Solana Volume Bot Custom XRP Trading API",
-        urls: ["https://aramid.smalltimedevs/Chat", "https://aramid.app"],
-        targetAudience: "Crypto traders and enthusiasts",
-    },
-    */
+    llmSettings: {
 
-    autoPostSpecifications: {
-        platformName: "Aramid Hive Engine",
-        keyFeatures: [
-            "Telegram trading bot for buying and selling tokens in real-time",
-            "Custom Raydium API for optimized Solana token trading",
-            "Custom XRP API for seamless XRP-based token trades",
-            "Real-time trade execution with minimal latency",
-            "Automated market analysis and trade recommendations",
-            "Customizable trading strategies directly within the Telegram bot",
-            "Real-time notifications on Solana and XRP market trends",
-            "User-friendly bot interface for effortless token management",
-            "Integration with decentralized exchanges for liquidity optimization",
-            "Coming Soon: Daily trade signals powered by AI directly in Telegram"
-        ],
-        urls: [
-            "https://t.me/SmallTimeDevs_bot?start=6901991502",
-            "https://smalltimedevs.com",
-            "https://github.com/Small-Time-Devs",
-        ],
-        targetAudience: "Cryptocurrency traders, blockchain developers, and AI enthusiasts"
+        openAI: {
+            apiKey: process.env.OPENAI_API_KEY, // Set your OpenAI API key here
+            model: 'gpt-4o', // Set the OpenAI model to use
+            store: true, // Set to true to store conversations in the 'conversations' folder
+        },
+
+        localLLM: {
+            useLocalLLM: false, // Set to false to use OpenAI API
+            modelPath: process.env.LOCAL_MODEL_API_URL, // Set the file path to your local LLM model
+            serverUrl: process.env.LOCAL_MODEL_API_URL, // Set the server URL for LM Studio
+        },
+        
     },
 
     // Add API sections and their respective APIs
@@ -71,10 +37,20 @@ export const config = {
     },
 
     twitter: {
-        appKey: process.env.TWITTER_API_KEY,
-        appSecret: process.env.TWITTER_API_SECRET,
-        accessToken: process.env.TWITTER_ACCESS_TOKEN,
-        accessSecret: process.env.TWITTER_ACCESS_SECRET,
-        twitterUserID: process.env.TWITTER_USER_ID,
+        keys: {
+            appKey: process.env.TWITTER_API_KEY,
+            appSecret: process.env.TWITTER_API_SECRET,
+            accessToken: process.env.TWITTER_ACCESS_TOKEN,
+            accessSecret: process.env.TWITTER_ACCESS_SECRET,
+            twitterUserID: process.env.TWITTER_USER_ID,
+        },
+
+        settings: {
+            xAutoPoster: true, // Set to true to enable auto-posting to Twitter/X
+            xAutoResponder: false, // Set to true to enable auto-responding to Twitter posts
+            postsPerDay: 100, // Updated to reflect the user limit of 100 posts per day
+            postsPerMonth: 3000, // Updated to reflect the new monthly limit
+            timeToReadPostsOnPage: 2, // Set the time to read posts on the page
+        },
     },
 };

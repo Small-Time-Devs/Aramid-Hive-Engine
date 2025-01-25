@@ -9,7 +9,9 @@ import got from "got";
 import qs from "querystring";
 import readline from "readline";
 import { TwitterApi } from "twitter-api-v2";
+import { TwitterApiRateLimitPlugin } from '@twitter-api-v2/plugin-rate-limit';
 import { fetchLatestTokenProfiles, fetchLatestBoostedTokens, fetchTokenName, fetchTokenPrice } from "../../utils/apiUtils.mjs";
+import { checkRateLimit } from "../../utils/helpers.mjs";
 
 dotenv.config();
 
@@ -147,6 +149,23 @@ export async function TWITTER_AUTO_POSTER_AGENT() {
   `;
 }
 
+export async function HASHTAGS_GENERATOR_AGENT() {
+  return `
+    ### Hashtags Generator Prompt
+
+    You are a social media expert. Your job is to create a list of relevant and trending hashtags for a given token. 
+    Each list must:
+    - Include hashtags that are relevant to the token and its description.
+    - Include hashtags that are trending in the crypto community.
+    - Optionally include hashtags for discoverability and engagement.
+
+    Token Name: "{tokenName}"
+    Token Description: "{tokenDescription}"
+
+    Write a list of hashtags based on the provided token name and description.
+  `;
+}
+
 export async function generateSnarkyTweet() {
   const openai = new OpenAI();
   const tokenProfiles = await fetchLatestBoostedTokens();
@@ -161,7 +180,7 @@ export async function generateSnarkyTweet() {
 
   try {
     const completion = await openai.chat.completions.create({
-      model: config.openAI.model,
+      model: config.llmSettings.openAI.model,
       messages: [
         { role: "system", content: prompt.replace("{tokenDescription}", tokenDescription) },
         {
@@ -183,7 +202,8 @@ export async function generateSnarkyTweet() {
     const amountSpent = randomToken.amount || randomToken.totalAmount;
     const dollarsSpent = (amountSpent / 10) * 99;
     const comment = await generateComment(amountSpent, dollarsSpent, randomToken.tokenAddress, tokenName, tokenDescription);
-    return { tweet, comment, tokenName, tokenDescription, amountSpent, dollarsSpent, tokenAddress: randomToken.tokenAddress };
+    const hashtagsComment = await generateHashtagsComment(tokenName, tokenDescription, randomToken.links);
+    return { tweet, comment, hashtagsComment, tokenName, tokenDescription, amountSpent, dollarsSpent, tokenAddress: randomToken.tokenAddress };
   } catch (error) {
     console.error("Error generating snarky tweet:", error);
     throw new Error("Failed to generate a snarky tweet.");
@@ -204,7 +224,7 @@ export async function generateBoostedTweet() {
 
   try {
     const completion = await openai.chat.completions.create({
-      model: config.openAI.model,
+      model: config.llmSettings.openAI.model,
       messages: [
         { role: "system", content: prompt.replace("{tokenDescription}", tokenDescription) },
         {
@@ -221,14 +241,15 @@ export async function generateBoostedTweet() {
     tweet = tweet.replace(/\n/g, ' \\n '); // Replace newlines with escaped newlines
     tweet = tweet.replace(/\s+/g, ' ').trim(); // Remove extra spaces
     if (tweet.length > 280) {
-      tweet = tweet.substring(0, 277) + '...'; // Ensure tweet is within 280 characters
+      tweet.substring(0, 277) + '...'; // Ensure tweet is within 280 characters
     }
     const amountSpent = randomToken.amount || randomToken.totalAmount;
     const dollarsSpent = (amountSpent / 10) * 99;
     const twitterUrl = Array.isArray(randomToken.links) ? randomToken.links.find(link => link.type === 'twitter')?.url : '';
     const twitterHandle = twitterUrl ? `@${twitterUrl.split('/').pop()}` : '';
     const comment = await generateComment(amountSpent, dollarsSpent, tokenAddress, tokenName, tokenDescription, twitterHandle);
-    return { tweet, comment, tokenName, tokenDescription, amountSpent, dollarsSpent, tokenAddress, twitterHandle };
+    const hashtagsComment = await generateHashtagsComment(tokenName, tokenDescription, randomToken.links);
+    return { tweet, comment, hashtagsComment, tokenName, tokenDescription, amountSpent, dollarsSpent, tokenAddress, twitterHandle };
   } catch (error) {
     console.error("Error generating boosted tweet:", error);
     throw new Error("Failed to generate a boosted tweet.");
@@ -265,7 +286,7 @@ export async function generateComment(amountSpent, dollarsSpent, tokenAddress, t
 
   try {
     const completion = await openai.chat.completions.create({
-      model: config.openAI.model,
+      model: config.llmSettings.openAI.model,
       messages: [
         { role: "system", content: prompt },
         {
@@ -309,6 +330,41 @@ export async function generateComment(amountSpent, dollarsSpent, tokenAddress, t
   }
 }
 
+export async function generateHashtagsComment(tokenName, tokenDescription, links) {
+  const openai = new OpenAI();
+  const prompt = await HASHTAGS_GENERATOR_AGENT();
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: config.llmSettings.openAI.model,
+      messages: [
+        { role: "system", content: prompt.replace("{tokenName}", tokenName).replace("{tokenDescription}", tokenDescription) },
+        {
+          role: "user",
+          content: `
+            ### Token Name
+            ${tokenName}
+
+            ### Token Description
+            ${tokenDescription}
+          `,
+        },
+      ],
+    });
+    let hashtagsComment = completion.choices[0].message.content.trim();
+    hashtagsComment = hashtagsComment.replace(/\*\*/g, ''); // Remove Markdown bold formatting
+    hashtagsComment = hashtagsComment.replace(/\n/g, ' \\n '); // Replace newlines with escaped newlines
+    hashtagsComment = hashtagsComment.replace(/\s+/g, ' ').trim(); // Remove extra spaces
+    if (hashtagsComment.length > 280) {
+      hashtagsComment = hashtagsComment.substring(0, 277) + '...'; // Ensure hashtags comment is within 280 characters
+    }
+    return hashtagsComment;
+  } catch (error) {
+    console.error("Error generating hashtags comment:", error);
+    throw new Error("Failed to generate hashtags comment.");
+  }
+}
+
 export async function generateAutoPostTweet() {
   try {
     const randomChoice = Math.floor(Math.random() * 2);
@@ -328,14 +384,13 @@ export async function generateAutoPostTweet() {
   }
 }
 
-export async function postToTwitter(tweetData) {
+export async function postToTwitter(tweetData, client) {
   try {
-    const client = new TwitterApi({
-      appKey: `${config.twitter.appKey}`,
-      appSecret: `${config.twitter.appSecret}`,
-      accessToken: `${config.twitter.accessToken}`,
-      accessSecret: `${config.twitter.accessSecret}`,
-    });
+    const canPost = await checkRateLimit(client);
+    if (!canPost) {
+      console.log('Skipping post due to rate limit.');
+      return;
+    }
 
     const formattedTweet = tweetData.tweet.replace(/\*\*/g, '').replace(/\\n/g, '\n').replace(/\s+/g, ' ').trim();
     const { data: createdTweet } = await client.v2.tweet(formattedTweet);
@@ -345,6 +400,12 @@ export async function postToTwitter(tweetData) {
       const formattedComment = tweetData.comment.replace(/\*\*/g, '').replace(/\\n/g, '\n').replace(/\s+/g, ' ').trim();
       await client.v2.reply(formattedComment, createdTweet.id);
       console.log('Comment posted successfully:', formattedComment);
+    }
+
+    if (tweetData.hashtagsComment) {
+      const formattedHashtagsComment = tweetData.hashtagsComment.replace(/\*\*/g, '').replace(/\\n/g, '\n').replace(/\s+/g, ' ').trim();
+      await client.v2.reply(formattedHashtagsComment, createdTweet.id);
+      console.log('Hashtags comment posted successfully:', formattedHashtagsComment);
     }
 
     return createdTweet;
@@ -379,7 +440,7 @@ export async function handleQuestion(question) {
     const prompt = `${personality}\n${additionalContext}\nUser: ${input}\nTwitterProfessional:`;
     try {
       const completion = await openai.chat.completions.create({
-        model: config.openAI.model,
+        model: config.llmSettings.openAI.model,
         messages: [
           { role: "system", content: personality },
           { role: "user", content: input },
@@ -404,10 +465,10 @@ export async function handleQuestion(question) {
 
 export async function scanAndRespondToPosts() {
   const client = new TwitterApi({
-    appKey: `${config.twitter.appKey}`,
-    appSecret: `${config.twitter.appSecret}`,
-    accessToken: `${config.twitter.accessToken}`,
-    accessSecret: `${config.twitter.accessSecret}`,
+    appKey: `${config.twitter.keys.appKey}`,
+    appSecret: `${config.twitter.keys.appSecret}`,
+    accessToken: `${config.twitter.keys.accessToken}`,
+    accessSecret: `${config.twitter.keys.accessSecret}`,
   });
 
   try {
@@ -439,7 +500,7 @@ async function generateResponseToTweet(tweetText) {
 
   try {
     const completion = await openai.chat.completions.create({
-      model: config.openAI.model,
+      model: config.llmSettings.openAI.model,
       messages: [
         { role: "system", content: prompt },
         { role: "user", content: tweetText }
