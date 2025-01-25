@@ -17,8 +17,8 @@ export const config = {
     siteUrl: process.env.SITE_URL || 'http://localhost:5051', // Add site URL configuration
     runFrontend: 'false', // This will run the frontend by default if set to true and only run the backend if set to false
     xAutoPoster: true, // Set to true to enable auto-posting to Twitter/X
-    postsPerDay: 24, // Set the number of posts per day (max 50 to stay within 1500 posts/month limit)
-    postsPerMonth: 720, // Set the maximum number of posts per month
+    postsPerDay: 90, // Set the number of posts per day (max 50 to stay within 1500 posts/month limit)
+    postsPerMonth: 3000, // Set the maximum number of posts per month
     // Note: To stay within the free limit of 1500 posts per month, set postsPerDay <= 50
     
     /*
@@ -53,21 +53,23 @@ export const config = {
     },
 
     // Add API sections and their respective APIs
-    apis:
-        {
-            crypto: {
-                coinGecko: 'https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids=', // Update to accept a variable
-                // Add more crypto-related APIs as needed
-            },
-            weather: {
-                openWeatherMap: 'https://api.openweathermap.org/data/2.5/weather?q=London&appid=your_api_key',
-                // Add more weather-related APIs as needed
-            },
-            // Add more API sections as needed
+    apis:{
+        crypto: {
+            coinGecko: 'https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids=', // Update to accept a variable
+            // Add more crypto-related APIs as needed
         },
+        weather: {
+            openWeatherMap: 'https://api.openweathermap.org/data/2.5/weather?q=London&appid=your_api_key',
+            // Add more weather-related APIs as needed
+        },
+        // Add more API sections as needed
+    },
+
     twitter: {
-        callbackUrl: process.env.TWITTER_CALLBACK_URL || 'http://localhost:4700/twitter/callback', // Add callback URL configuration
-        clientId: process.env.TWITTER_CLIENT_ID, // Add client ID
-        clientSecret: process.env.TWITTER_CLIENT_SECRET, // Add client secret
+        appKey: process.env.TWITTER_API_KEY,
+        appSecret: process.env.TWITTER_API_SECRET,
+        accessToken: process.env.TWITTER_ACCESS_TOKEN,
+        accessSecret: process.env.TWITTER_ACCESS_SECRET,
+
     },
 };
