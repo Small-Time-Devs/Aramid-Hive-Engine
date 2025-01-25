@@ -17,8 +17,9 @@ export const config = {
     siteUrl: process.env.SITE_URL || 'http://localhost:5051', // Add site URL configuration
     runFrontend: 'false', // This will run the frontend by default if set to true and only run the backend if set to false
     xAutoPoster: true, // Set to true to enable auto-posting to Twitter/X
-    postsPerDay: 90, // Set the number of posts per day (max 50 to stay within 1500 posts/month limit)
-    postsPerMonth: 3000, // Set the maximum number of posts per month
+    postsPerDay: 70, // Set the number of posts per day (max 50 to stay within 1500 posts/month limit)
+    timeToReadPostsOnPage: 2, // Set the time to read posts on the page
+    postsPerMonth: 2500, // Set the maximum number of posts per month
     // Note: To stay within the free limit of 1500 posts per month, set postsPerDay <= 50
     
     /*
