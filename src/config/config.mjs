@@ -56,7 +56,8 @@ export const config = {
     apis:{
         crypto: {
             coinGecko: 'https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids=', // Update to accept a variable
-            // Add more crypto-related APIs as needed
+            dexscreenerTokneProfilesUrl: 'https://api.dexscreener.com/token-profiles/latest/v1',
+            dexscreenerLatestBoostedUrl: 'https://api.dexscreener.com/token-boosts/latest/v1',
         },
         weather: {
             openWeatherMap: 'https://api.openweathermap.org/data/2.5/weather?q=London&appid=your_api_key',

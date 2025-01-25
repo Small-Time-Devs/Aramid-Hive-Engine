@@ -9,6 +9,7 @@ import got from "got";
 import qs from "querystring";
 import readline from "readline";
 import { TwitterApi } from "twitter-api-v2";
+import { fetchLatestTokenProfiles, fetchLatestBoostedTokens } from "../../utils/apiUtils.mjs";
 
 dotenv.config();
 
@@ -111,6 +112,24 @@ export async function SNARKY_TWITTER_AGENT() {
   `;
 }
 
+export async function BOOSTED_TWITTER_AGENT() {
+  return `
+    ### Snarky Twitter Bot Prompt for Boosted Tokens
+
+    You are a snarky, funny Twitter bot. Your job is to create highly engaging and humorous tweets based on the latest boosted token profiles. 
+    Each tweet must:
+    - Include a snarky, funny comment about how much the project paid to be boosted.
+    - Mention the token name and a brief description.
+    - Use a humorous tone that captures attention and entertains the audience.
+    - Include a disclaimer that clearly states not to buy the token.
+    - Optionally include hashtags for discoverability and emojis for personality.
+
+    Token Description: "{tokenDescription}"
+
+    Write a tweet based on the provided token description. Make fun of how much the project paid to be boosted and how stupid the token is. Keep the tone snarky, funny, and engaging. Include a disclaimer that clearly states not to buy the token.
+  `;
+}
+
 export async function TWITTER_AUTO_POSTER_AGENT() {
   return `
     ### Automated Flashy Twitter Marketing Prompt
@@ -168,16 +187,6 @@ export async function generateTweet(input, specifications = "") {
   }
 }
 
-async function fetchLatestTokenProfiles() {
-  try {
-    const response = await axios.get('https://api.dexscreener.com/token-profiles/latest/v1');
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching latest token profiles:', error);
-    throw new Error('Failed to fetch latest token profiles.');
-  }
-}
-
 export async function generateSnarkyTweet() {
   const openai = new OpenAI();
   const tokenProfiles = await fetchLatestTokenProfiles();
@@ -211,6 +220,42 @@ export async function generateSnarkyTweet() {
   } catch (error) {
     console.error("Error generating snarky tweet:", error);
     throw new Error("Failed to generate a snarky tweet.");
+  }
+}
+
+export async function generateBoostedTweet() {
+  const openai = new OpenAI();
+  const boostedTokens = await fetchLatestBoostedTokens();
+  const randomToken = boostedTokens[Math.floor(Math.random() * boostedTokens.length)];
+  const tokenDescription = randomToken.description;
+
+  const prompt = await BOOSTED_TWITTER_AGENT();
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: config.openAI.model,
+      messages: [
+        { role: "system", content: prompt.replace("{tokenDescription}", tokenDescription) },
+        {
+          role: "user",
+          content: `
+            ### Token Description
+            ${tokenDescription}
+          `,
+        },
+      ],
+    });
+    let tweet = completion.choices[0].message.content.trim();
+    tweet = tweet.replace(/\*\*/g, ''); // Remove Markdown bold formatting
+    tweet = tweet.replace(/\n/g, ' \\n '); // Replace newlines with escaped newlines
+    tweet = tweet.replace(/\s+/g, ' ').trim(); // Remove extra spaces
+    if (tweet.length > 230) {
+      tweet = tweet.substring(0, 227) + '...'; // Ensure tweet is within 230 characters
+    }
+    return tweet;
+  } catch (error) {
+    console.error("Error generating boosted tweet:", error);
+    throw new Error("Failed to generate a boosted tweet.");
   }
 }
 
@@ -251,13 +296,15 @@ export async function generateProjectTweet() {
 
 export async function generateAutoPostTweet() {
   try {
-    const randomChoice = Math.floor(Math.random() * 3);
+    const randomChoice = Math.floor(Math.random() * 4);
     let tweet;
 
     if (randomChoice === 0) {
       tweet = await generateSnarkyTweet();
     } else if (randomChoice === 1) {
       tweet = await generateProjectTweet();
+    } else if (randomChoice === 2) {
+      tweet = await generateBoostedTweet();
     } else {
       tweet = await generateTweet("What's on your mind?");
     }

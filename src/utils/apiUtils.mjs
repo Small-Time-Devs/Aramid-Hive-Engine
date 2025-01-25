@@ -45,3 +45,23 @@ export async function fetchCryptoMarketData() {
         return [];
     }
 }
+
+export async function fetchLatestTokenProfiles() {
+  try {
+    const response = await axios.get(config.apis.crypto.dexscreenerTokneProfilesUrl);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching latest token profiles:', error);
+    throw new Error('Failed to fetch latest token profiles.');
+  }
+}
+
+export async function fetchLatestBoostedTokens() {
+  try {
+    const response = await axios.get(config.apis.crypto.dexscreenerLatestBoostedUrl);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching latest boosted tokens:', error);
+    throw new Error('Failed to fetch latest boosted tokens.');
+  }
+}
