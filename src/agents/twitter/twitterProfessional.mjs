@@ -169,10 +169,10 @@ export async function generateAutoPostTweet() {
 export async function postToTwitter(tweet) {
   try {
     const client = new TwitterApi({
-      appKey: `${process.env.TWITTER_APP_KEY}`,
-      appSecret: `${process.env.TWITTER_APP_SECRET}`,
-      accessToken: `${process.env.TWITTER_ACCESS_TOKEN}`,
-      accessSecret: `${process.env.TWITTER_ACCESS_SECRET}`,
+      appKey: 'sdsBRwAaszBlinWwY1PSOpbhD',
+      appSecret: 'cFG6bUpxzNgdzZPmRF0QFIL2PhyTuqh2KhchMet6yim3v8Furu',
+      accessToken: '1879525759376830464-BFXyzSfOoAYmnzA9IR7y6lHQspXoUs',
+      accessSecret: 'AyuCWZuJywN3DbMs7pzjJsjXcPpJ0O1qBNvFaQptGMGcC',
     });
 
     const formattedTweet = tweet.replace(/\*\*/g, '').replace(/\\n/g, '\n').replace(/\s+/g, ' ').trim();
@@ -182,7 +182,11 @@ export async function postToTwitter(tweet) {
 
     return createdTweet;
   } catch (error) {
-    console.error('Error posting tweet:', error);
+    if (error.code === 401) {
+      console.error('Unauthorized: Check your Twitter API credentials.');
+    } else {
+      console.error('Error posting tweet:', error);
+    }
     throw new Error('Failed to post tweet.');
   }
 }
