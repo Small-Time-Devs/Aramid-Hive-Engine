@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export const config = {
-    
+
     llmSettings: {
 
         openAI: {
@@ -31,9 +31,7 @@ export const config = {
         },
         weather: {
             openWeatherMap: 'https://api.openweathermap.org/data/2.5/weather?q=London&appid=your_api_key',
-            // Add more weather-related APIs as needed
         },
-        // Add more API sections as needed
     },
 
     twitter: {

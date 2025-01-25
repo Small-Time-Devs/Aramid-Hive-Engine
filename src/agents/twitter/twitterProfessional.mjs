@@ -11,7 +11,7 @@ import readline from "readline";
 import { TwitterApi } from "twitter-api-v2";
 import { TwitterApiRateLimitPlugin } from '@twitter-api-v2/plugin-rate-limit';
 import { fetchLatestTokenProfiles, fetchLatestBoostedTokens, fetchTokenName, fetchTokenPrice } from "../../utils/apiUtils.mjs";
-import { checkRateLimit } from "../../utils/helpers.mjs";
+import { checkRateLimit, updateRateLimitInfo } from "../../utils/helpers.mjs";
 
 dotenv.config();
 
@@ -393,18 +393,21 @@ export async function postToTwitter(tweetData, client) {
     }
 
     const formattedTweet = tweetData.tweet.replace(/\*\*/g, '').replace(/\\n/g, '\n').replace(/\s+/g, ' ').trim();
-    const { data: createdTweet } = await client.v2.tweet(formattedTweet);
+    const { data: createdTweet, headers } = await client.v2.tweet(formattedTweet);
+    updateRateLimitInfo(headers);
     console.log('Tweet posted successfully:', createdTweet);
 
     if (tweetData.comment) {
       const formattedComment = tweetData.comment.replace(/\*\*/g, '').replace(/\\n/g, '\n').replace(/\s+/g, ' ').trim();
-      await client.v2.reply(formattedComment, createdTweet.id);
+      const { headers: commentHeaders } = await client.v2.reply(formattedComment, createdTweet.id);
+      updateRateLimitInfo(commentHeaders);
       console.log('Comment posted successfully:', formattedComment);
     }
 
     if (tweetData.hashtagsComment) {
       const formattedHashtagsComment = tweetData.hashtagsComment.replace(/\*\*/g, '').replace(/\\n/g, '\n').replace(/\s+/g, ' ').trim();
-      await client.v2.reply(formattedHashtagsComment, createdTweet.id);
+      const { headers: hashtagsHeaders } = await client.v2.reply(formattedHashtagsComment, createdTweet.id);
+      updateRateLimitInfo(hashtagsHeaders);
       console.log('Hashtags comment posted successfully:', formattedHashtagsComment);
     }
 
@@ -414,10 +417,14 @@ export async function postToTwitter(tweetData, client) {
       console.error('Unauthorized: Check your Twitter API credentials.');
     } else if (error.code === 403) {
       console.error('Forbidden: You do not have permission to perform this action. Check your Twitter API permissions.');
+    } else if (error.response && error.response.headers) {
+      updateRateLimitInfo(error.response.headers);
+      console.error('Error posting tweet:', error);
     } else {
       console.error('Error posting tweet:', error);
     }
-    throw new Error('Failed to post tweet.');
+    // Do not throw an error to keep the application running
+    console.log('Continuing execution despite the error.');
   }
 }
 
