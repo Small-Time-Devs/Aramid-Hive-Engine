@@ -116,16 +116,39 @@ export async function autoPostToTwitter() {
   const postsPerDay = config.postsPerDay;
   const maxPostsPerDay = Math.min(postsPerDay, Math.floor(maxPostsPerMonth / 30));
   const interval = 24 * 60 * 60 * 1000 / maxPostsPerDay; // Interval in milliseconds
+  const readInterval = config.timeToReadPostsOnPage * 60 * 1000; // Interval in milliseconds for reading posts
 
   for (let i = 0; i < maxPostsPerDay; i++) {
     setTimeout(async () => {
       try {
         const tweet = await twitterProfessional.generateAutoPostTweet();
-        console.log("Auto-posted Tweet:", tweet);
+        //console.log("Auto-posted Tweet:", tweet);
         await twitterProfessional.postToTwitter(tweet);
       } catch (error) {
         console.error("Error auto-posting to Twitter:", error);
       }
     }, i * interval);
   }
+
+  setInterval(async () => {
+    try {
+      await twitterProfessional.scanAndRespondToPosts();
+    } catch (error) {
+      console.error("Error scanning and responding to Twitter posts:", error);
+    }
+  }, readInterval);
+}
+
+export async function scanAndRespondToTwitterPosts() {
+  if (config.xAutoResponder === false) return;
+
+  const interval = config.timeToReadPostsOnPage * 60 * 1000; // Interval in milliseconds
+
+  setInterval(async () => {
+    try {
+      await twitterProfessional.scanAndRespondToPosts();
+    } catch (error) {
+      console.error("Error scanning and responding to Twitter posts:", error);
+    }
+  }, interval);
 }

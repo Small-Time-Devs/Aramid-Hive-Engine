@@ -17,7 +17,8 @@ export const config = {
     siteUrl: process.env.SITE_URL || 'http://localhost:5051', // Add site URL configuration
     runFrontend: 'false', // This will run the frontend by default if set to true and only run the backend if set to false
     xAutoPoster: true, // Set to true to enable auto-posting to Twitter/X
-    postsPerDay: 70, // Set the number of posts per day (max 50 to stay within 1500 posts/month limit)
+    xAutoResponder: false, // Set to true to enable auto-responding to Twitter posts
+    postsPerDay: 800, // Set the number of posts per day (max 50 to stay within 1500 posts/month limit) 1667
     timeToReadPostsOnPage: 2, // Set the time to read posts on the page
     postsPerMonth: 2500, // Set the maximum number of posts per month
     // Note: To stay within the free limit of 1500 posts per month, set postsPerDay <= 50
@@ -58,7 +59,7 @@ export const config = {
         crypto: {
             coinGecko: 'https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids=', // Update to accept a variable
             dexscreenerTokneProfilesUrl: 'https://api.dexscreener.com/token-profiles/latest/v1',
-            dexscreenerLatestBoostedUrl: 'https://api.dexscreener.com/token-boosts/latest/v1',
+            dexscreenerTopBoostedUrl: 'https://api.dexscreener.com/token-boosts/top/v1',
         },
         weather: {
             openWeatherMap: 'https://api.openweathermap.org/data/2.5/weather?q=London&appid=your_api_key',
@@ -72,6 +73,6 @@ export const config = {
         appSecret: process.env.TWITTER_API_SECRET,
         accessToken: process.env.TWITTER_ACCESS_TOKEN,
         accessSecret: process.env.TWITTER_ACCESS_SECRET,
-
+        twitterUserID: process.env.TWITTER_USER_ID,
     },
 };

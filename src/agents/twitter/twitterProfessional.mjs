@@ -71,26 +71,19 @@ export async function TWITTER_AGENT() {
 }
 */
 
-export async function INSPIRATIONAL_TWITTER_AGENT() {
+export async function MEME_GENERATOR_AGENT() {
   return `
-    ### Inspirational Twitter Content Strategist Prompt
+    ### Meme Generator Prompt
 
-    You are an uplifting and inspirational Twitter agent. Your role is to craft tweets that:
-    - Begin with a **motivational hook** or a positive affirmation to immediately inspire readers.
-    - Share a reflective, insightful, or encouraging thought that resonates universally.
-    - Use **emotionally impactful and creative language** to evoke feelings of hope, motivation, or positivity.
-    - Incorporate **visual cues like emojis** for warmth and engagement.
-    - Keep the tone **authentic, relatable, and uplifting** to spark connection with the audience.
-    - Stay concise and ensure the message fits within 280 characters, leaving room for engagement.
+    You are a creative and humorous meme generator. Your job is to create highly engaging and funny memes that capture attention and entertain the audience. 
+    Each meme must:
+    - Include a humorous caption that relates to current trends or popular culture.
+    - Use a popular meme format or create a new one.
+    - Be visually appealing and easy to understand.
+    - Optionally include hashtags for discoverability and emojis for personality.
 
-    Advanced Instructions:
-    - Write about whatever is on your "mind," focusing on themes of positivity, growth, and encouragement.
-    - Include rhetorical devices like metaphors, alliteration, or storytelling for depth.
-    - Use contextually relevant **trending hashtags** to amplify the reach.
-    - Speak to universal human emotions and aspirations, leaving the reader feeling inspired and valued.
-
-    Input: A mood, theme, or random inspiration.
-    Output: A tweet that radiates positivity, inspiration, and universal appeal.
+    Input: Topic or theme.
+    Output: A meme caption and description of the meme format. Keep the caption concise and under 280 characters.
   `;
 }
 
@@ -106,12 +99,10 @@ export async function SNARKY_TWITTER_AGENT() {
     - Include a disclaimer that clearly states not to buy the token.
     - Optionally include hashtags for discoverability and emojis for personality.
     - Make fun of the token and the project behind it.
-    - Keep the tweet concise and under 280 characters.
-    - tweet MUST be under 280 characters in length for the twitter api to handle it properly.
 
     Token Description: "{tokenDescription}"
 
-    Write a tweet based on the provided token description. Make fun of how stupid the token is. Keep the tone snarky, funny, and engaging. Include a disclaimer that clearly states not to buy the token.
+    Write a tweet based on the provided token description. Keep the tweet concise and under 280 characters. Make fun of how stupid the token is. Keep the tone snarky, funny, and engaging.
   `;
 }
 
@@ -126,12 +117,10 @@ export async function BOOSTED_TWITTER_AGENT() {
     - Use a humorous tone that captures attention and entertains the audience.
     - Include a disclaimer that clearly states not to buy the token.
     - Optionally include hashtags for discoverability and emojis for personality.
-    - Keep the tweet concise and under 280 characters.
-    - tweet MUST be under 280 characters in length for the twitter api to handle it properly.
 
     Token Description: "{tokenDescription}"
 
-    Write a tweet based on the provided token description. Make fun of how much the project paid to be boosted and how stupid the token is. Keep the tone snarky, funny, and engaging. Include a disclaimer that clearly states not to buy the token.
+    Write a tweet based on the provided token description. Keep the tweet concise and under 280 characters. Make fun of how much the project paid to be boosted and how stupid the token is. Keep the tone snarky, funny, and engaging.
   `;
 }
 
@@ -158,46 +147,12 @@ export async function TWITTER_AUTO_POSTER_AGENT() {
   `;
 }
 
-export async function generateTweet(input, specifications = "") {
-  const openai = new OpenAI();
-  const prompt = await INSPIRATIONAL_TWITTER_AGENT();
-
-  try {
-    const completion = await openai.chat.completions.create({
-      model: config.openAI.model,
-      messages: [
-        { role: "system", content: prompt },
-        {
-          role: "user",
-          content: `
-            ### Input
-            ${input}
-
-            ### Specifications
-            ${JSON.stringify(specifications)}
-          `,
-        },
-      ],
-    });
-    let tweet = completion.choices[0].message.content.trim();
-    tweet = tweet.replace(/\*\*/g, ''); // Remove Markdown bold formatting
-    tweet = tweet.replace(/\n/g, ' \\n '); // Replace newlines with escaped newlines
-    tweet = tweet.replace(/\s+/g, ' ').trim(); // Remove extra spaces
-    if (tweet.length > 280) {
-      tweet = tweet.substring(0, 277) + '...'; // Ensure tweet is within 280 characters
-    }
-    return tweet;
-  } catch (error) {
-    console.error("Error generating tweet:", error);
-    throw new Error("Failed to generate a tweet.");
-  }
-}
-
 export async function generateSnarkyTweet() {
   const openai = new OpenAI();
-  const tokenProfiles = await fetchLatestTokenProfiles();
+  const tokenProfiles = await fetchLatestBoostedTokens();
   const randomToken = tokenProfiles[Math.floor(Math.random() * tokenProfiles.length)];
-  const tokenDescription = randomToken.description;
+  const tokenDescription = randomToken.description || "No description available";
+  const tokenName = randomToken.name || randomToken.symbol || "Unnamed Token"; // Ensure token name is correctly extracted
 
   const prompt = await SNARKY_TWITTER_AGENT();
 
@@ -222,12 +177,10 @@ export async function generateSnarkyTweet() {
     if (tweet.length > 280) {
       tweet = tweet.substring(0, 277) + '...'; // Ensure tweet is within 280 characters
     }
-    const comment = 
-    `😂 They spent a total of ${randomToken.amount || randomToken.totalAmount} to boost this token. What a waste! \n` +
-    `CA: ${randomToken.tokenAddress} \n` +
-    `🚫 Disclaimer: Do not buy this token! It's a scam! \n` +
-    `🤣 #Crypto #ScamAlert #Token #Boosted`;
-    return { tweet, comment };
+    const amountSpent = randomToken.amount || randomToken.totalAmount;
+    const dollarsSpent = (amountSpent / 10) * 99;
+    const comment = await generateComment(amountSpent, dollarsSpent, randomToken.tokenAddress, tokenName, tokenDescription);
+    return { tweet, comment, tokenName, tokenDescription, amountSpent, dollarsSpent, tokenAddress: randomToken.tokenAddress };
   } catch (error) {
     console.error("Error generating snarky tweet:", error);
     throw new Error("Failed to generate a snarky tweet.");
@@ -238,7 +191,8 @@ export async function generateBoostedTweet() {
   const openai = new OpenAI();
   const boostedTokens = await fetchLatestBoostedTokens();
   const randomToken = boostedTokens[Math.floor(Math.random() * boostedTokens.length)];
-  const tokenDescription = randomToken.description;
+  const tokenDescription = randomToken.description || "No description available";
+  const tokenName = randomToken.name || randomToken.symbol || "Unnamed Token"; // Ensure token name is correctly extracted
 
   const prompt = await BOOSTED_TWITTER_AGENT();
 
@@ -263,20 +217,41 @@ export async function generateBoostedTweet() {
     if (tweet.length > 280) {
       tweet = tweet.substring(0, 277) + '...'; // Ensure tweet is within 280 characters
     }
-    const comment = `😂 They spent a total of ${randomToken.amount || randomToken.totalAmount} to boost this token. What a waste!`;
-    return { tweet, comment };
+    const amountSpent = randomToken.amount || randomToken.totalAmount;
+    const dollarsSpent = (amountSpent / 10) * 99;
+    const twitterUrl = Array.isArray(randomToken.links) ? randomToken.links.find(link => link.type === 'twitter')?.url : '';
+    const twitterHandle = twitterUrl ? twitterUrl.split('/').pop() : '';
+    const comment = await generateComment(amountSpent, dollarsSpent, randomToken.tokenAddress, tokenName, tokenDescription, twitterHandle);
+    return { tweet, comment, tokenName, tokenDescription, amountSpent, dollarsSpent, tokenAddress: randomToken.tokenAddress, twitterHandle };
   } catch (error) {
     console.error("Error generating boosted tweet:", error);
     throw new Error("Failed to generate a boosted tweet.");
   }
 }
 
-export async function generateProjectTweet() {
+export async function generateComment(amountSpent, dollarsSpent, tokenAddress, tokenName, tokenDescription, twitterHandle = '') {
   const openai = new OpenAI();
-  const projectDescriptions = config.projectDescriptions;
-  const randomDescription = projectDescriptions[Math.floor(Math.random() * projectDescriptions.length)];
+  const prompt = `
+    ### Comment Generator Prompt
 
-  const prompt = await TWITTER_AUTO_POSTER_AGENT();
+    You are a snarky, funny Twitter bot. Your job is to create a highly engaging and humorous comment based on the amount spent on boosts. 
+    Each comment must:
+    - Include a snarky, funny comment about how much the project paid to be boosted.
+    - Mention the token name and address.
+    - Use a humorous tone that captures attention and entertains the audience.
+    - Include a disclaimer that clearly states not to buy the token.
+    - Optionally include hashtags for discoverability and emojis for personality.
+    - Optionally tag the Twitter profile if provided.
+
+    Amount Spent: ${amountSpent}
+    Dollars Spent: $${dollarsSpent.toFixed(2)}
+    Token Name: ${tokenName}
+    Token Address: ${tokenAddress}
+    Token Description: ${tokenDescription}
+    Twitter Handle: ${twitterHandle}
+
+    Write a comment based on the provided information. Keep the comment concise and under 280 characters.
+  `;
 
   try {
     const completion = await openai.chat.completions.create({
@@ -286,39 +261,50 @@ export async function generateProjectTweet() {
         {
           role: "user",
           content: `
-            ### Project Description
-            ${randomDescription}
+            ### Amount Spent
+            ${amountSpent}
+
+            ### Dollars Spent
+            $${dollarsSpent.toFixed(2)}
+
+            ### Token Name
+            ${tokenName}
+
+            ### Token Address
+            ${tokenAddress}
+
+            ### Token Description
+            ${tokenDescription}
+
+            ### Twitter Handle
+            ${twitterHandle}
           `,
         },
       ],
     });
-    let tweet = completion.choices[0].message.content.trim();
-    tweet = tweet.replace(/\*\*/g, ''); // Remove Markdown bold formatting
-    tweet = tweet.replace(/\n/g, ' \\n '); // Replace newlines with escaped newlines
-    tweet = tweet.replace(/\s+/g, ' ').trim(); // Remove extra spaces
-    if (tweet.length > 280) {
-      tweet = tweet.substring(0, 277) + '...'; // Ensure tweet is within 280 characters
+    let comment = completion.choices[0].message.content.trim();
+    comment = comment.replace(/\*\*/g, ''); // Remove Markdown bold formatting
+    comment = comment.replace(/\n/g, ' \\n '); // Replace newlines with escaped newlines
+    comment = comment.replace(/\s+/g, ' ').trim(); // Remove extra spaces
+    if (comment.length > 280) {
+      comment = comment.substring(0, 277) + '...'; // Ensure comment is within 280 characters
     }
-    return { tweet };
+    return comment;
   } catch (error) {
-    console.error("Error generating project tweet:", error);
-    throw new Error("Failed to generate a project tweet.");
+    console.error("Error generating comment:", error);
+    throw new Error("Failed to generate a comment.");
   }
 }
 
 export async function generateAutoPostTweet() {
   try {
-    const randomChoice = Math.floor(Math.random() * 4);
+    const randomChoice = Math.floor(Math.random() * 2);
     let tweetData;
 
     if (randomChoice === 0) {
       tweetData = await generateSnarkyTweet();
-    } else if (randomChoice === 1) {
-      tweetData = await generateProjectTweet();
-    } else if (randomChoice === 2) {
-      tweetData = await generateBoostedTweet();
     } else {
-      tweetData = { tweet: await generateTweet("What's on your mind?") };
+      tweetData = await generateBoostedTweet();
     }
 
     console.log("Generated Tweet:", tweetData.tweet);
@@ -352,6 +338,8 @@ export async function postToTwitter(tweetData) {
   } catch (error) {
     if (error.code === 401) {
       console.error('Unauthorized: Check your Twitter API credentials.');
+    } else if (error.code === 403) {
+      console.error('Forbidden: You do not have permission to perform this action. Check your Twitter API permissions.');
     } else {
       console.error('Error posting tweet:', error);
     }
@@ -359,20 +347,9 @@ export async function postToTwitter(tweetData) {
   }
 }
 
-export async function createTwitterPost(input, specifications = "") {
-  try {
-    const tweet = await generateTweet(input, specifications);
-    //console.log("Generated Tweet:", tweet);
-    return tweet;
-  } catch (error) {
-    console.error("Error creating Twitter post:", error);
-    throw new Error("Failed to create Twitter post.");
-  }
-}
-
 export async function handleTwitterPost(question, specs = {}) {
   try {
-    const tweet = await generateTweet(question, specs);
+    const tweet = await generateSnarkyTweet(question, specs);
     console.log("Generated Tweet:", tweet);
     return tweet;
   } catch (error) {
@@ -410,4 +387,61 @@ export async function handleQuestion(question) {
     ### Tweet Response:
     ${tweetResponse}
   `;
+}
+
+export async function scanAndRespondToPosts() {
+  const client = new TwitterApi({
+    appKey: `${config.twitter.appKey}`,
+    appSecret: `${config.twitter.appSecret}`,
+    accessToken: `${config.twitter.accessToken}`,
+    accessSecret: `${config.twitter.accessSecret}`,
+  });
+
+  try {
+    const { data } = await client.v2.userTimeline(config.twitter.twitterUserID, { max_results: 5 }); // Set max_results to a valid value
+    const tweets = data.data;
+    for (const tweet of tweets) {
+      if (tweet.in_reply_to_user_id === null) {
+        const response = await generateResponseToTweet(tweet.text);
+        await client.v2.reply(response, tweet.id);
+        console.log('Replied to tweet:', tweet.id);
+      }
+    }
+  } catch (error) {
+    console.error('Error scanning and responding to posts:', error);
+  }
+}
+
+async function generateResponseToTweet(tweetText) {
+  const openai = new OpenAI();
+  const prompt = `
+    ### Twitter Response Generator
+
+    You are a highly engaging and professional Twitter bot. Your job is to create a thoughtful and engaging response to the following tweet:
+    
+    Tweet: "${tweetText}"
+
+    Response:
+  `;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: config.openAI.model,
+      messages: [
+        { role: "system", content: prompt },
+        { role: "user", content: tweetText }
+      ],
+    });
+    let response = completion.choices[0].message.content.trim();
+    response = response.replace(/\*\*/g, ''); // Remove Markdown bold formatting
+    response = response.replace(/\n/g, ' \\n '); // Replace newlines with escaped newlines
+    response = response.replace(/\s+/g, ' ').trim(); // Remove extra spaces
+    if (response.length > 280) {
+      response = response.substring(0, 277) + '...'; // Ensure response is within 280 characters
+    }
+    return response;
+  } catch (error) {
+    console.error("Error generating response to tweet:", error);
+    throw new Error("Failed to generate a response to the tweet.");
+  }
 }

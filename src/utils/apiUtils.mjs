@@ -58,7 +58,7 @@ export async function fetchLatestTokenProfiles() {
 
 export async function fetchLatestBoostedTokens() {
   try {
-    const response = await axios.get(config.apis.crypto.dexscreenerLatestBoostedUrl);
+    const response = await axios.get(config.apis.crypto.dexscreenerTopBoostedUrl);
     return response.data;
   } catch (error) {
     console.error('Error fetching latest boosted tokens:', error);
