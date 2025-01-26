@@ -67,10 +67,17 @@ export const config = {
                 'MikeDeanLive', 
                 'xenpub',
                 'KyeGomezB',
+                'REALISWORLDS',
+                'DEGENLABS_CO',
             ],
         },
 
         solanaProjectsToReveiw: {
+            percentageToTalkAbout: {
+                // Needs to be a 25% chance to talk about the below project
+                chance: 25,
+            },
+
             contractAddresses: {
                 swarms: '74SBV4zDXxTRgv1pEMoECskKBkZHc2yGPnc7GYVepump',
                 mcs: 'ALHFgnXSenUv17GMdf3dL9gtFW2KKQTz9avpM2Wypump',
