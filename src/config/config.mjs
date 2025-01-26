@@ -20,6 +20,15 @@ export const config = {
         
     },
 
+    solanaConstants: {
+        mainnet: {
+            name: 'solana',
+            rpcUrl: 'https://api.mainnet-beta.solana.com',
+            network: 'mainnet-beta',
+            tokenMintAddress: 'So11111111111111111111111111111111111111112'
+        }
+    },
+
     // Add API sections and their respective APIs
     apis:{
         crypto: {
@@ -51,5 +60,22 @@ export const config = {
             postsPerMonth: 3000, // Updated to reflect the new monthly limit
             timeToReadPostsOnPage: 2, // Set the time to read posts on the page
         },
+
+        influencers: {
+            twitterHandles: [
+                'CryptoAudiKing', 
+                'MikeDeanLive', 
+                'xenpub',
+                'KyeGomezB',
+            ],
+        },
+
+        solanaProjectsToReveiw: {
+            contractAddresses: {
+                swarms: '74SBV4zDXxTRgv1pEMoECskKBkZHc2yGPnc7GYVepump',
+                mcs: 'ALHFgnXSenUv17GMdf3dL9gtFW2KKQTz9avpM2Wypump',
+            },  
+        },
+
     },
 };
