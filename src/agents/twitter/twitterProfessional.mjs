@@ -84,7 +84,7 @@ async function generatePrompt(tokenData) {
     - Agent 1: Analytical, Crypto Analysis
     - Agent 2: If analysis of the project seems good be snarky funny but if it has a bad analysis be snarky and rude, Social Media Copywriting
     - Agent 3: If Agent 2s response is positive, be sarcastic and funny. If Agent 2s response is negative, be rude, cautious and informative, Social Media Copywriting
-    - Agent 4: Professional, Hashtags Generation that match the tone of the response and tags major relevant topics and crypto influencers.
+    - Agent 4: Professional, Hashtags Generation that match the tone of the response and tags major relevant topics and crypto influencers. The word Hashtag should not be in the agents name!
 
     Instead of having the agent name like "name": "Agent Analyser" i want each agent to have their own personality and specialty as their name like "name": "Dave" or something funny and creative.
 
@@ -122,7 +122,7 @@ export async function handleQuestion() {
 
   const projectLink = `https://dexscreener.com/solana/${tokenData.tokenAddress}`;
   let tweet = `${tweetAgent.name}:\n${tweetAgent.response.replace(tokenData.tokenName, `[${tokenData.tokenName}](${projectLink})`)}`;
-  let comment = `${commentAgent.name}:\n${tweetAgent.name} ${commentAgent.response.replace(tokenData.tokenName, `[${tokenData.tokenName}](${projectLink})`)}`;
+  let comment = `${commentAgent.name}:\n${commentAgent.response.replace(tokenData.tokenName)}`;
   let hashtagsComment = `${hashtagsAgent.name}:\n${hashtagsAgent.response}`;
 
   if (tweet.length > 280) {
