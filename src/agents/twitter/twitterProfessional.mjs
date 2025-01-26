@@ -89,6 +89,7 @@ async function fetchTokenData() {
   throw new Error('No valid token data found.');
 }
 
+/*
 async function generatePrompt(tokenData) {
   const { tokenName, tokenDescription, tokenAddress, tokenPrice, tokenPairs, tokenOrders, links } = tokenData;
   const influencers = config.twitter.influencers.twitterHandles;
@@ -122,6 +123,76 @@ async function generatePrompt(tokenData) {
 
     If the token seems like a good project to support, provide a positive and engaging response. If the token seems suspicious or risky, provide a cautious and informative response, be snarky and make fun of it in a hilarious manor. Include relevant hashtags and emojis to match the tone of the response.
     Each tweet should be under 280 characters since this will be posted via the twitter api and the twitter api can only handle tweets under 280 characters so the post can only be 280 characters long and the comment can only be 280 characters long as well as the hashtags comment.
+  `;
+}
+*/
+
+async function generatePrompt(tokenData) {
+  const { tokenName, tokenDescription, tokenAddress, tokenPrice, tokenPairs, tokenOrders, links } = tokenData;
+  const influencers = config.twitter.influencers.twitterHandles;
+  const randomInfluencer = influencers[Math.floor(Math.random() * influencers.length)];
+
+  function generateAgentName(baseName) {
+    const uniqueAdjectives = [
+      "Zesty", "Witty", "Quirky", "Bold", "Savage", "Clever", "Fiery", "Cheeky", "Snappy", "Sassy", "Energetic", "Daring", "Spicy", "Grumpy", "Jazzy", "Plucky", "Edgy", "Bubbly", "Bizarre", "Mellow", "Rogue", "Flashy", "Peppy", "Silly", "Eccentric", "Snooty", "Jumpy", "Rowdy", "Snazzy", "Sleek", "Whimsical", "Funky", "Gritty", "Brassy", "Loony", "Wacky", "Zany", "Hasty", "Kooky", "Rambunctious", "Dramatic", "Jaunty", "Feisty", "Crafty", "Nifty", "Spunky", "Nervy", "Goofy", "Thrilling", "Perky", "Swanky"
+    ];
+    const randomAdjective = uniqueAdjectives[Math.floor(Math.random() * uniqueAdjectives.length)];
+    return `${randomAdjective} ${baseName}`;
+  }
+
+  function extractTwitterHandle(links) {
+    if (Array.isArray(links)) {
+      const twitterLink = links.find(link => link.includes("twitter.com"));
+      if (twitterLink) {
+        const handleMatch = twitterLink.match(/twitter\.com\/(\w+)/);
+        return handleMatch ? `@${handleMatch[1]}` : null;
+      }
+    }
+    return null;
+  }
+
+  const projectTwitterHandle = extractTwitterHandle(links);
+
+  return `
+    Generate a tweet, comment, and hashtags for the following token:
+    - Token Name: ${tokenName}
+    - Token Description: ${tokenDescription}
+    - Token Address: ${tokenAddress}
+    - Token Price: ${tokenPrice}
+    - Token Pairs: ${JSON.stringify(tokenPairs)}
+    - Token Orders: ${JSON.stringify(tokenOrders)}
+    - Links: ${JSON.stringify(links)}
+
+    If any of those specifications are undefined or null, just exclude them from the tweet.
+
+    Each agent must respond individually and in this order:
+
+    1. **Analyst (Agent Name: ${generateAgentName("Analyst")})**
+       - Dive deep into the project—research its use case, team, roadmap, and tokenomics. 
+       - If it’s a solid project, highlight its strengths, potential entry points, and an ideal exit point.
+       - If it’s a bad project, unleash a savage takedown with biting sarcasm and ruthless humor. Ensure the tone is cutting but informative.
+
+    2. **Tweeter (Agent Name: ${generateAgentName("Tweeter")})**
+       - Craft a snarky and entertaining tweet based on the Analyst’s analysis.
+       - If the project is good, make the tweet witty and engaging.
+       - If it’s bad, be hilariously rude and cutting. Include the Token Name in the tweet.
+       - If the project has a Twitter link, tag the project’s Twitter account (${projectTwitterHandle}).
+
+    3. **Commentator (Agent Name: ${generateAgentName("Commentator")})**
+       - Feed off the Tweeter’s energy. If the tweet is positive, add a sarcastic but funny comment.
+       - If the tweet is negative, double down with a rude yet informative follow-up, referencing price details if available.
+
+    4. **Hashtag Specialist (Agent Name: ${generateAgentName("Hashtag Pro")})**
+       - Generate hashtags that match the tone and theme of the previous agents’ responses.
+       - Tag a random influencer from the list: ${influencers.join(", ")}.
+       - If the project has a Twitter link, tag the project’s Twitter account (${projectTwitterHandle}).
+       - Include the Dexscreener link for reference: https://dexscreener.com/solana/${tokenAddress}.
+
+    Guidelines:
+    - Ensure all responses are under 280 characters (tweets, comments, and hashtags).
+    - If the project is solid, keep the tone engaging, humorous, and informative.
+    - If the project is sketchy, be hilariously savage but still provide a clear reasoning behind the takedown.
+    - Make the agents’ personalities shine through their responses.
   `;
 }
 
