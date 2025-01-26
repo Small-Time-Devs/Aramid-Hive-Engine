@@ -45,7 +45,7 @@ export const config = {
 
         settings: {
             xAutoPoster: true, // Set to true to enable auto-posting to Twitter/X
-            devMode: true, // Set to true to enable development mode (generate tweets but do not post)
+            devMode: false, // Set to true to enable development mode (generate tweets but do not post)
             xAutoResponder: false, // Set to true to enable auto-responding to Twitter posts
             postsPerDay: 100, // Updated to reflect the user limit of 100 posts per day
             postsPerMonth: 3000, // Updated to reflect the new monthly limit

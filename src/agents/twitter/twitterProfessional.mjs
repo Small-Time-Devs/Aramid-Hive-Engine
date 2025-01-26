@@ -78,7 +78,7 @@ async function generatePrompt(tokenData) {
     The first agent should analyze the token and provide a positive or negative response.
     The second agent should generate a tweet based on the analysis. Include the Token Name in the tweet.
     The third agent should generate a comment based on second agents response and the analysis including the price if there is a price.
-    The fourth agent should generate hashtags based on the analysis.
+    The fourth agent should generate hashtags based on the analysis from the first agent and the tweet from the second agent and comment of the thrid agent.
 
     Each agent should have a specific personality and specialty:
     - Agent 1: Analytical, Crypto Analysis
@@ -121,21 +121,36 @@ export async function handleQuestion() {
   }
 
   const projectLink = `https://dexscreener.com/solana/${tokenData.tokenAddress}`;
-  const tweet = `${tweetAgent.name}:\n${tweetAgent.response.replace(tokenData.tokenName, `[${tokenData.tokenName}](${projectLink})`)}`;
-  const comment = `${commentAgent.name}:\n${commentAgent.response.replace(tokenData.tokenName, `[${tokenData.tokenName}](${projectLink})`)}`;
-  const hashtagsComment = `${hashtagsAgent.name}:\n${hashtagsAgent.response}`;
+  let tweet = `${tweetAgent.name}:\n${tweetAgent.response.replace(tokenData.tokenName, `[${tokenData.tokenName}](${projectLink})`)}`;
+  let comment = `${commentAgent.name}:\n${tweetAgent.name} ${commentAgent.response.replace(tokenData.tokenName, `[${tokenData.tokenName}](${projectLink})`)}`;
+  let hashtagsComment = `${hashtagsAgent.name}:\n${hashtagsAgent.response}`;
+
+  if (tweet.length > 280) {
+    tweet = tweet.substring(0, 277) + '...';
+  }
+  if (comment.length > 280) {
+    comment = comment.substring(0, 277) + '...';
+  }
+  if (hashtagsComment.length > 280) {
+    hashtagsComment = hashtagsComment.substring(0, 277) + '...';
+  }
 
   return {
-    tweet: tweet.length <= 280 ? tweet : null,
-    comment: comment.length <= 280 ? comment : null,
-    hashtagsComment: hashtagsComment.length <= 280 ? hashtagsComment : null,
+    tweet,
+    comment,
+    hashtagsComment,
     ...tokenData,
   };
 }
 
 export async function generateAutoPostTweet() {
+  let tweetData;
   try {
-    const tweetData = await handleQuestion();
+    tweetData = await handleQuestion();
+    while (!tweetData.tweet) {
+      console.log("Generated tweet is null, retrying...");
+      tweetData = await handleQuestion();
+    }
     console.log("Generated Tweet:", tweetData.tweet);
     return tweetData;
   } catch (error) {
