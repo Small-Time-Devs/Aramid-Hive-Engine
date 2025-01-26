@@ -87,3 +87,23 @@ export async function fetchTokenPrice(contractAddress) {
         console.error(`Error fetching token price for contract address ${contractAddress}`);
     }
 }
+
+export async function fetchTokenPairs(chainId, tokenAddress) {
+  try {
+    const response = await axios.get(`https://api.dexscreener.com/token-pairs/v1/${chainId}/${tokenAddress}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching token pairs for ${tokenAddress} on ${chainId}:`, error);
+    throw new Error(`Failed to fetch token pairs for ${tokenAddress} on ${chainId}.`);
+  }
+}
+
+export async function fetchTokenOrders(chainId, tokenAddress) {
+  try {
+    const response = await axios.get(`https://api.dexscreener.com/orders/v1/${chainId}/${tokenAddress}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching token orders for ${tokenAddress} on ${chainId}:`, error);
+    throw new Error(`Failed to fetch token orders for ${tokenAddress} on ${chainId}.`);
+  }
+}
