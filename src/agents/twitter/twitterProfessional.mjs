@@ -386,6 +386,11 @@ export async function generateAutoPostTweet() {
 
 export async function postToTwitter(tweetData, client) {
   try {
+    if (config.twitter.settings.devMode) {
+      console.log('Development mode is enabled. Not posting to twitter. Generated tweet data:', tweetData);
+      return tweetData;
+    }
+
     const canPost = await checkRateLimit(client);
     if (!canPost) {
       console.log('Skipping post due to rate limit.');
