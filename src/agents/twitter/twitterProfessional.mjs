@@ -394,12 +394,14 @@ export async function postToTwitter(tweetData, client) {
 
     const formattedTweet = tweetData.tweet.replace(/\*\*/g, '').replace(/\\n/g, '\n').replace(/\s+/g, ' ').trim();
     const { data: createdTweet, headers } = await client.v2.tweet(formattedTweet);
+    console.log('Tweet headers:', headers); // Log headers for debugging
     updateRateLimitInfo(headers);
     console.log('Tweet posted successfully:', createdTweet);
 
     if (tweetData.comment) {
       const formattedComment = tweetData.comment.replace(/\*\*/g, '').replace(/\\n/g, '\n').replace(/\s+/g, ' ').trim();
       const { headers: commentHeaders } = await client.v2.reply(formattedComment, createdTweet.id);
+      console.log('Comment headers:', commentHeaders); // Log headers for debugging
       updateRateLimitInfo(commentHeaders);
       console.log('Comment posted successfully:', formattedComment);
     }
@@ -407,6 +409,7 @@ export async function postToTwitter(tweetData, client) {
     if (tweetData.hashtagsComment) {
       const formattedHashtagsComment = tweetData.hashtagsComment.replace(/\*\*/g, '').replace(/\\n/g, '\n').replace(/\s+/g, ' ').trim();
       const { headers: hashtagsHeaders } = await client.v2.reply(formattedHashtagsComment, createdTweet.id);
+      console.log('Hashtags headers:', hashtagsHeaders); // Log headers for debugging
       updateRateLimitInfo(hashtagsHeaders);
       console.log('Hashtags comment posted successfully:', formattedHashtagsComment);
     }
@@ -418,6 +421,7 @@ export async function postToTwitter(tweetData, client) {
     } else if (error.code === 403) {
       console.error('Forbidden: You do not have permission to perform this action. Check your Twitter API permissions.');
     } else if (error.response && error.response.headers) {
+      console.log('Error headers:', error.response.headers); // Log headers for debugging
       updateRateLimitInfo(error.response.headers);
       console.error('Error posting tweet:', error);
     } else {

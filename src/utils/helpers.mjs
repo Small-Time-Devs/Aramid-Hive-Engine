@@ -38,6 +38,14 @@ export async function checkRateLimit(client) {
 }
 
 export function updateRateLimitInfo(headers) {
+  if (!headers) {
+    console.warn('No headers provided to update rate limit info. Assuming no active rate limit.');
+    rateLimitRemaining = null;
+    rateLimitResetTime = null;
+    userLimitResetTime = null;
+    return;
+  }
+  console.log('Rate limit headers:', headers); // Log headers for debugging
   if (headers['x-rate-limit-remaining'] !== undefined) {
     rateLimitRemaining = parseInt(headers['x-rate-limit-remaining'], 10);
   }
