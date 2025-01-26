@@ -1,381 +1,141 @@
 import OpenAI from "openai";
 import { config } from "../../config/config.mjs";
-import axios from "axios";
 import dotenv from "dotenv";
-import fetch from "node-fetch";
-import OAuth from "oauth-1.0a";
-import crypto from "crypto";
-import got from "got";
-import qs from "querystring";
-import readline from "readline";
 import { TwitterApi } from "twitter-api-v2";
-import { TwitterApiRateLimitPlugin } from '@twitter-api-v2/plugin-rate-limit';
-import { fetchLatestTokenProfiles, fetchLatestBoostedTokens, fetchTokenName, fetchTokenPrice } from "../../utils/apiUtils.mjs";
+import { fetchLatestTokenProfiles, fetchTokenName, fetchTokenPrice } from "../../utils/apiUtils.mjs";
 import { checkRateLimit, updateRateLimitInfo } from "../../utils/helpers.mjs";
+import { generateAgentConfigurations } from "../dynamic/dynamic.mjs";
 
 dotenv.config();
 
-/*
-export async function TWITTER_AGENT() {
-  return `
-    ### Master Twitter Marketing Genius Prompt
+const openai = new OpenAI();
 
-    You are a master Twitter marketing genius. Your job is to create highly engaging and professional tweets that drive followers, likes, and engagement for a business or product. 
-    Each tweet must:
-    - Capture attention immediately with a hook.
-    - Include valuable information or unique insights about the product or topic.
-    - Use a persuasive call-to-action (CTA) that encourages readers to engage or follow.
-    - Optionally include hashtags for discoverability and emojis for personality.
+class TwitterAgent {
+  constructor(name, personality, specialty) {
+    this.name = name;
+    this.personality = personality;
+    this.specialty = specialty;
+    this.history = [];
+  }
 
-    Write a tweet based on the provided specifications or topic. Keep the tone professional, yet approachable and exciting.
-  `;
-}
-
-export async function TWITTER_AUTO_POSTER_AGENT() {
-  return `
-    ### Automated Twitter Marketing Prompt
-
-    You are an automated Twitter marketing agent. Your job is to create highly engaging and professional tweets that drive followers, likes, and engagement for a business or product. 
-    Each tweet must:
-    - Capture attention immediately with a hook.
-    - Include valuable information or unique insights about the product or topic.
-    - Use a persuasive call-to-action (CTA) that encourages readers to engage or follow.
-    - Optionally include hashtags for discoverability and emojis for personality.
-
-    Write a tweet based on the provided specifications or topic. Keep the tone professional, yet approachable and exciting.
-    The specifications are predefined and should be used to tailor the tweet to the user's business needs.
-  `;
-}
-
-export async function TWITTER_AGENT() {
-  return `
-    ### Advanced Twitter Marketing Strategist Prompt
-
-    You are a world-class Twitter strategist specializing in creating **high-energy, detailed, and visually engaging tweets** for businesses and products. 
-    Your mission is to craft tweets that:
-    - Start with an **irresistible hook** or bold statement to grab attention.
-    - Clearly describe the product or service using **dynamic, action-oriented language**.
-    - Highlight the **most impressive and unique features**, focusing on benefits that resonate with the audience.
-    - Use **visual cues like emojis** to guide the reader and create excitement.
-    - Close with a powerful **call-to-action (CTA)** that drives clicks and engagement.
-    - Incorporate **trending hashtags** and contextually relevant keywords for discoverability.
-    - **Keep the tweet concise and within 230 characters** while maximizing impact.
-
-    Advanced Instructions:
-    - Use a mix of **powerful verbs**, bold claims, and creative hooks.
-    - Appeal to the target audience's goals and pain points.
-    - Frame the product as the **future of the industry** or a **must-have solution**.
-    - Keep the tweet concise and within 230 characters while maximizing impact.
-
-    Input: Topic, product, or specifications.
-    Output: A tweet that excites, informs, and drives engagement.
-  `;
-}
-*/
-
-export async function MEME_GENERATOR_AGENT() {
-  return `
-    ### Meme Generator Prompt
-
-    You are a creative and humorous meme generator. Your job is to create highly engaging and funny memes that capture attention and entertain the audience. 
-    Each meme must:
-    - Include a humorous caption that relates to current trends or popular culture.
-    - Use a popular meme format or create a new one.
-    - Be visually appealing and easy to understand.
-    - Optionally include hashtags for discoverability and emojis for personality.
-
-    Input: Topic or theme.
-    Output: A meme caption and description of the meme format. Keep the caption concise and under 280 characters.
-  `;
-}
-
-export async function SNARKY_TWITTER_AGENT() {
-  return `
-    ### Snarky Twitter Bot Prompt
-
-    You are a snarky, funny Twitter bot. Your job is to create highly engaging and humorous tweets based on the latest token profiles. 
-    Each tweet must:
-    - Include a snarky, funny comment about how stupid the token is.
-    - Mention the token name and a brief description.
-    - Use a humorous tone that captures attention and entertains the audience.
-    - Include a disclaimer that clearly states not to buy the token.
-    - Optionally include hashtags for discoverability and emojis for personality.
-    - Make fun of the token and the project behind it.
-
-    Token Description: "{tokenDescription}"
-
-    Write a tweet based on the provided token description. Keep the tweet concise and under 280 characters. Make fun of how stupid the token is. Keep the tone snarky, funny, and engaging.
-  `;
-}
-
-export async function BOOSTED_TWITTER_AGENT() {
-  return `
-    ### Snarky Twitter Bot Prompt for Boosted Tokens
-
-    You are a snarky, funny Twitter bot. Your job is to create highly engaging and humorous tweets based on the latest boosted token profiles. 
-    Each tweet must:
-    - Include a snarky, funny comment about how much the project paid to be boosted.
-    - Mention the token name and a brief description.
-    - Use a humorous tone that captures attention and entertains the audience.
-    - Include a disclaimer that clearly states not to buy the token.
-    - Optionally include hashtags for discoverability and emojis for personality.
-
-    Token Description: "{tokenDescription}"
-
-    Write a tweet based on the provided token description. Keep the tweet concise and under 280 characters. Make fun of how much the project paid to be boosted and how stupid the token is. Keep the tone snarky, funny, and engaging.
-  `;
-}
-
-export async function TWITTER_AUTO_POSTER_AGENT() {
-  return `
-    ### Automated Flashy Twitter Marketing Prompt
-
-    You are a high-energy Twitter automation agent designed to craft **attention-grabbing, detail-rich, and exciting tweets** for automated posting. Your job is to:
-    - Open with a **bold, eye-catching hook** or intriguing question.
-    - Describe the product in a way that feels **cutting-edge, exciting, and essential**, using emojis to emphasize key features.
-    - Highlight the **most valuable features and benefits** in bullet-point or line-break format for easy reading.
-    - Close with a **compelling CTA** that drives readers to click or learn more.
-    - Include **targeted hashtags** and use dynamic, conversational language.
-    - Keep the tweet concise and under 280 characters.
-    - tweet MUST be under 280 characters in length for the twitter api to handle it properly.
-
-    Key Features:
-    - Maximize engagement by using urgency, excitement, or curiosity in the opening.
-    - Integrate the product’s **unique features** seamlessly into the tweet flow.
-    - Ensure URLs and hashtags are strategically placed for visibility.
-
-    Input: Product details and specifications.
-    Output: A ready-to-post tweet with energy and impact, formatted to be passed through the Twitter API.
-  `;
-}
-
-export async function HASHTAGS_GENERATOR_AGENT() {
-  return `
-    ### Hashtags Generator Prompt
-
-    You are a social media expert. Your job is to create a list of relevant and trending hashtags for a given token. 
-    Each list must:
-    - Include hashtags that are relevant to the token and its description.
-    - Include hashtags that are trending in the crypto community.
-    - Optionally include hashtags for discoverability and engagement.
-
-    Token Name: "{tokenName}"
-    Token Description: "{tokenDescription}"
-
-    Write a list of hashtags based on the provided token name and description.
-  `;
-}
-
-export async function generateSnarkyTweet() {
-  const openai = new OpenAI();
-  const tokenProfiles = await fetchLatestBoostedTokens();
-  const randomToken = tokenProfiles[Math.floor(Math.random() * tokenProfiles.length)];
-  const tokenDescription = randomToken.description || "No description available";
-  const tokenAddress = randomToken.tokenAddress;
-  const tokenName = await fetchTokenName(tokenAddress) || randomToken.name || randomToken.symbol || "Unnamed Token"; // Ensure token name is correctly extracted
-
-  console.log("Token Name:", tokenName); // Debugging log
-
-  const prompt = await SNARKY_TWITTER_AGENT();
-
-  try {
-    const completion = await openai.chat.completions.create({
-      model: config.llmSettings.openAI.model,
-      messages: [
-        { role: "system", content: prompt.replace("{tokenDescription}", tokenDescription) },
-        {
-          role: "user",
-          content: `
-            ### Token Description
-            ${tokenDescription}
-          `,
-        },
-      ],
-    });
-    let tweet = completion.choices[0].message.content.trim();
-    tweet = tweet.replace(/\*\*/g, ''); // Remove Markdown bold formatting
-    tweet = tweet.replace(/\n/g, ' \\n '); // Replace newlines with escaped newlines
-    tweet = tweet.replace(/\s+/g, ' ').trim(); // Remove extra spaces
-    if (tweet.length > 280) {
-      tweet = tweet.substring(0, 277) + '...'; // Ensure tweet is within 280 characters
+  async generateResponse(input) {
+    const prompt = `${this.personality}\nUser: ${input}\n${this.name}:`;
+    try {
+      const completion = await openai.chat.completions.create({
+        model: config.llmSettings.openAI.model,
+        messages: [
+          { role: "system", content: this.personality },
+          { role: "user", content: input },
+        ],
+      });
+      const generatedResponse = completion.choices[0].message.content;
+      this.history.push(generatedResponse);
+      return generatedResponse;
+    } catch (error) {
+      console.error('Error connecting to OpenAI API:', error);
+      throw new Error('Failed to connect to OpenAI API.');
     }
-    const amountSpent = randomToken.amount || randomToken.totalAmount;
-    const dollarsSpent = (amountSpent / 10) * 99;
-    const comment = await generateComment(amountSpent, dollarsSpent, randomToken.tokenAddress, tokenName, tokenDescription);
-    const hashtagsComment = await generateHashtagsComment(tokenName, tokenDescription, randomToken.links);
-    return { tweet, comment, hashtagsComment, tokenName, tokenDescription, amountSpent, dollarsSpent, tokenAddress: randomToken.tokenAddress };
-  } catch (error) {
-    console.error("Error generating snarky tweet:", error);
-    throw new Error("Failed to generate a snarky tweet.");
   }
 }
 
-export async function generateBoostedTweet() {
-  const openai = new OpenAI();
-  const boostedTokens = await fetchLatestBoostedTokens();
-  const randomToken = boostedTokens[Math.floor(Math.random() * boostedTokens.length)];
-  const tokenDescription = randomToken.description || "No description available";
-  const tokenAddress = randomToken.tokenAddress;
-  const tokenName = await fetchTokenName(tokenAddress) || randomToken.name || randomToken.symbol || "Unnamed Token"; // Ensure token name is correctly extracted
-
-  console.log("Token Name:", tokenName); // Debugging log
-
-  const prompt = await BOOSTED_TWITTER_AGENT();
-
-  try {
-    const completion = await openai.chat.completions.create({
-      model: config.llmSettings.openAI.model,
-      messages: [
-        { role: "system", content: prompt.replace("{tokenDescription}", tokenDescription) },
-        {
-          role: "user",
-          content: `
-            ### Token Description
-            ${tokenDescription}
-          `,
-        },
-      ],
-    });
-    let tweet = completion.choices[0].message.content.trim();
-    tweet = tweet.replace(/\*\*/g, ''); // Remove Markdown bold formatting
-    tweet = tweet.replace(/\n/g, ' \\n '); // Replace newlines with escaped newlines
-    tweet = tweet.replace(/\s+/g, ' ').trim(); // Remove extra spaces
-    if (tweet.length > 280) {
-      tweet.substring(0, 277) + '...'; // Ensure tweet is within 280 characters
+async function fetchTokenData() {
+  const tokenProfiles = await fetchLatestTokenProfiles();
+  for (const randomToken of tokenProfiles) {
+    const tokenDescription = randomToken.description || "No description available";
+    const tokenAddress = randomToken.tokenAddress;
+    console.log("Fetching token data for:", tokenAddress);
+    const tokenName = await fetchTokenName(tokenAddress) || randomToken.name || randomToken.symbol || "Unnamed Token"; // Ensure token name is correctly extracted
+    try {
+      const tokenPrice = await fetchTokenPrice(tokenAddress);
+      return {
+        tokenName,
+        tokenDescription,
+        tokenAddress,
+        tokenPrice,
+        links: randomToken.links
+      };
+    } catch (error) {
+      console.warn(`Error fetching token price for ${tokenName}:`, error);
+      // Continue to the next token if the price is not found
     }
-    const amountSpent = randomToken.amount || randomToken.totalAmount;
-    const dollarsSpent = (amountSpent / 10) * 99;
-    const twitterUrl = Array.isArray(randomToken.links) ? randomToken.links.find(link => link.type === 'twitter')?.url : '';
-    const twitterHandle = twitterUrl ? `@${twitterUrl.split('/').pop()}` : '';
-    const comment = await generateComment(amountSpent, dollarsSpent, tokenAddress, tokenName, tokenDescription, twitterHandle);
-    const hashtagsComment = await generateHashtagsComment(tokenName, tokenDescription, randomToken.links);
-    return { tweet, comment, hashtagsComment, tokenName, tokenDescription, amountSpent, dollarsSpent, tokenAddress, twitterHandle };
-  } catch (error) {
-    console.error("Error generating boosted tweet:", error);
-    throw new Error("Failed to generate a boosted tweet.");
   }
+  throw new Error('No valid token data found.');
 }
 
-export async function generateComment(amountSpent, dollarsSpent, tokenAddress, tokenName, tokenDescription, twitterHandle = '') {
-  console.log("Generating comment for token:", tokenName); // Debugging log
+async function generatePrompt(tokenData) {
+  const { tokenName, tokenDescription, tokenAddress, tokenPrice, links, amountSpent, dollarsSpent } = tokenData;
+  return `
+    Generate a tweet, comment, and hashtags for the following token:
+    - Token Name: ${tokenName}
+    - Token Description: ${tokenDescription}
+    - Token Address: ${tokenAddress}
+    - Token Price: ${tokenPrice}
+    - Links: ${JSON.stringify(links)}
+    - Amount Spent: ${amountSpent}
+    - Dollars Spent: ${dollarsSpent}
 
-  const openai = new OpenAI();
-  const tokenPrice = await fetchTokenPrice(tokenAddress);
-  const prompt = `
-    ### Comment Generator Prompt
+    Each agent should only have one response.
+    The first agent should analyze the token and provide a positive or negative response.
+    The second agent should generate a tweet based on the analysis. Include the Token Name in the tweet.
+    The third agent should generate a comment based on second agents response and the analysis including the price if there is a price.
+    The fourth agent should generate hashtags based on the analysis.
 
-    You are a snarky, funny Twitter bot. Your job is to create a highly engaging and humorous comment based on the amount spent on boosts. 
-    Each comment must:
-    - Include a snarky, funny comment about how much the project paid to be boosted.
-    - Mention the token name, address, and current price.
-    - Use a humorous tone that captures attention and entertains the audience.
-    - Include a disclaimer that clearly states not to buy the token.
-    - Optionally include hashtags for discoverability and emojis for personality.
-    - Optionally tag the Twitter profile if provided.
+    Each agent should have a specific personality and specialty:
+    - Agent 1: Analytical, Crypto Analysis
+    - Agent 2: If analysis of the project seems good be snarky funny but if it has a bad analysis be snarky and rude, Social Media Copywriting
+    - Agent 3: If Agent 2s response is positive, be sarcastic and funny. If Agent 2s response is negative, be rude, cautious and informative, Social Media Copywriting
+    - Agent 4: Professional, Hashtags Generation that match the tone of the response and tags major relevant topics and crypto influencers.
 
-    Amount Spent: ${amountSpent}
-    Dollars Spent: $${dollarsSpent.toFixed(2)}
-    Token Name: ${tokenName}
-    Token Address: ${tokenAddress}
-    Token Description: ${tokenDescription}
-    Token Price: $${tokenPrice}
-    Twitter Handle: ${twitterHandle}
+    Instead of having the agent name like "name": "Agent Analyser" i want each agent to have their own personality and specialty as their name like "name": "Dave" or something funny and creative.
 
-    Write a comment based on the provided information. Keep the comment concise and under 280 characters.
+    If the token seems like a good project to support, provide a positive and engaging response. If the token seems suspicious or risky, provide a cautious and informative response, be snarky and make fun of it in a hilarious manor. Include relevant hashtags and emojis to match the tone of the response.
+    Each tweet should be under 280 characters since this will be posted via the twitter api and the twitter api can only handle tweets under 280 characters so the post can only be 280 characters long and the comment can only be 280 characters long as well as the hashtags comment.
   `;
-
-  try {
-    const completion = await openai.chat.completions.create({
-      model: config.llmSettings.openAI.model,
-      messages: [
-        { role: "system", content: prompt },
-        {
-          role: "user",
-          content: `
-            ### Amount Spent
-            ${amountSpent}
-
-            ### Dollars Spent
-            $${dollarsSpent.toFixed(2)}
-
-            ### Token Name
-            ${tokenName}
-
-            ### Token Address
-            ${tokenAddress}
-
-            ### Token Description
-            ${tokenDescription}
-
-            ### Token Price
-            $${tokenPrice}
-
-            ### Twitter Handle
-            ${twitterHandle}
-          `,
-        },
-      ],
-    });
-    let comment = completion.choices[0].message.content.trim();
-    comment = comment.replace(/\*\*/g, ''); // Remove Markdown bold formatting
-    comment = comment.replace(/\n/g, ' \\n '); // Replace newlines with escaped newlines
-    comment = comment.replace(/\s+/g, ' ').trim(); // Remove extra spaces
-    if (comment.length > 280) {
-      comment = comment.substring(0, 277) + '...'; // Ensure comment is within 280 characters
-    }
-    return comment;
-  } catch (error) {
-    console.error("Error generating comment:", error);
-    throw new Error("Failed to generate a comment.");
-  }
 }
 
-export async function generateHashtagsComment(tokenName, tokenDescription, links) {
-  const openai = new OpenAI();
-  const prompt = await HASHTAGS_GENERATOR_AGENT();
-
+export async function handleQuestion() {
+  let tokenData;
   try {
-    const completion = await openai.chat.completions.create({
-      model: config.llmSettings.openAI.model,
-      messages: [
-        { role: "system", content: prompt.replace("{tokenName}", tokenName).replace("{tokenDescription}", tokenDescription) },
-        {
-          role: "user",
-          content: `
-            ### Token Name
-            ${tokenName}
-
-            ### Token Description
-            ${tokenDescription}
-          `,
-        },
-      ],
-    });
-    let hashtagsComment = completion.choices[0].message.content.trim();
-    hashtagsComment = hashtagsComment.replace(/\*\*/g, ''); // Remove Markdown bold formatting
-    hashtagsComment = hashtagsComment.replace(/\n/g, ' \\n '); // Replace newlines with escaped newlines
-    hashtagsComment = hashtagsComment.replace(/\s+/g, ' ').trim(); // Remove extra spaces
-    if (hashtagsComment.length > 280) {
-      hashtagsComment = hashtagsComment.substring(0, 277) + '...'; // Ensure hashtags comment is within 280 characters
-    }
-    return hashtagsComment;
+    tokenData = await fetchTokenData();
   } catch (error) {
-    console.error("Error generating hashtags comment:", error);
-    throw new Error("Failed to generate hashtags comment.");
+    console.error("Error fetching token data:", error);
+    throw new Error("Failed to fetch valid token data.");
   }
+
+  const prompt = await generatePrompt(tokenData);
+
+  const agentConfigs = await generateAgentConfigurations(prompt);
+
+  const tweetAgent = agentConfigs[1];
+  const commentAgent = agentConfigs[2];
+  const hashtagsAgent = agentConfigs[3];
+
+  if (!tweetAgent || !tweetAgent.name || !tweetAgent.response) {
+    throw new Error("Invalid tweet agent response.");
+  }
+  if (!commentAgent || !commentAgent.name || !commentAgent.response) {
+    throw new Error("Invalid comment agent response.");
+  }
+  if (!hashtagsAgent || !hashtagsAgent.name || !hashtagsAgent.response) {
+    throw new Error("Invalid hashtags agent response.");
+  }
+
+  const projectLink = `https://dexscreener.com/solana/${tokenData.tokenAddress}`;
+  const tweet = `${tweetAgent.name}:\n${tweetAgent.response.replace(tokenData.tokenName, `[${tokenData.tokenName}](${projectLink})`)}`;
+  const comment = `${commentAgent.name}:\n${commentAgent.response.replace(tokenData.tokenName, `[${tokenData.tokenName}](${projectLink})`)}`;
+  const hashtagsComment = `${hashtagsAgent.name}:\n${hashtagsAgent.response}`;
+
+  return {
+    tweet: tweet.length <= 280 ? tweet : null,
+    comment: comment.length <= 280 ? comment : null,
+    hashtagsComment: hashtagsComment.length <= 280 ? hashtagsComment : null,
+    ...tokenData,
+  };
 }
 
 export async function generateAutoPostTweet() {
   try {
-    const randomChoice = Math.floor(Math.random() * 2);
-    let tweetData;
-
-    if (randomChoice === 0) {
-      tweetData = await generateSnarkyTweet();
-    } else {
-      tweetData = await generateBoostedTweet();
-    }
-
+    const tweetData = await handleQuestion();
     console.log("Generated Tweet:", tweetData.tweet);
     return tweetData;
   } catch (error) {
@@ -435,48 +195,6 @@ export async function postToTwitter(tweetData, client) {
     // Do not throw an error to keep the application running
     console.log('Continuing execution despite the error.');
   }
-}
-
-export async function handleTwitterPost(question, specs = {}) {
-  try {
-    const tweet = await generateSnarkyTweet(question, specs);
-    console.log("Generated Tweet:", tweet);
-    return tweet;
-  } catch (error) {
-    console.error("Error handling Twitter post:", error);
-    throw new Error("Failed to handle Twitter post.");
-  }
-}
-
-export async function handleQuestion(question) {
-  const openai = new OpenAI();
-
-  async function generateResponse(input, promptFunction, additionalContext = "") {
-    const personality = await promptFunction();
-    const prompt = `${personality}\n${additionalContext}\nUser: ${input}\nTwitterProfessional:`;
-    try {
-      const completion = await openai.chat.completions.create({
-        model: config.llmSettings.openAI.model,
-        messages: [
-          { role: "system", content: personality },
-          { role: "user", content: input },
-        ],
-      });
-      return completion.choices[0].message.content;
-    } catch (error) {
-      console.error("Error connecting to OpenAI API:", error);
-      throw new Error("Failed to connect to OpenAI API.");
-    }
-  }
-
-  // Generate tweet response
-  const tweetResponse = await generateResponse(question, TWITTER_AGENT);
-
-  // Final combined response
-  return `
-    ### Tweet Response:
-    ${tweetResponse}
-  `;
 }
 
 export async function scanAndRespondToPosts() {
