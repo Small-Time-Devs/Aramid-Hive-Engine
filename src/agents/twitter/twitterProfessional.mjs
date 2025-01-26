@@ -71,8 +71,8 @@ async function fetchTokenData() {
     const tokenDescription = randomToken.description || "No description available";
     const tokenAddress = randomToken.tokenAddress;
     console.log("Fetching token data for:", tokenAddress);
-    const tokenName = await fetchTokenName(tokenAddress) || randomToken.name || randomToken.symbol || "Unnamed Token"; // Ensure token name is correctly extracted
     try {
+      const tokenName = await fetchTokenName(tokenAddress) || randomToken.name || randomToken.symbol || "Unnamed Token"; // Ensure token name is correctly extracted
       const tokenPrice = await fetchTokenPrice(tokenAddress);
       return {
         tokenName,
@@ -82,8 +82,8 @@ async function fetchTokenData() {
         links: randomToken.links
       };
     } catch (error) {
-      console.warn(`Error fetching token price for ${tokenName}:`, error);
-      // Continue to the next token if the price is not found
+      console.warn(`Error fetching data for ${tokenAddress}:`, error);
+      // Continue to the next token if the name or price is not found
     }
   }
   throw new Error('No valid token data found.');
@@ -141,7 +141,7 @@ async function generatePrompt(tokenData) {
   }
 
   function extractTwitterHandle(links) {
-    if (Array.isArray(links)) {
+    if (Array.isArray(links) && links.every(link => typeof link === 'string')) {
       const twitterLink = links.find(link => link.includes("twitter.com"));
       if (twitterLink) {
         const handleMatch = twitterLink.match(/twitter\.com\/(\w+)/);
@@ -176,6 +176,7 @@ async function generatePrompt(tokenData) {
        - Craft a snarky and entertaining tweet based on the Analyst’s analysis.
        - If the project is good, make the tweet witty and engaging.
        - If it’s bad, be hilariously rude and cutting. Include the Token Name in the tweet.
+       - Don't include the dexscreener link in the tweet it will be handled in the Hashtag agent.
        - If the project has a Twitter link, tag the project’s Twitter account (${projectTwitterHandle}).
 
     3. **Commentator (Agent Name: ${generateAgentName("Commentator")})**
@@ -189,6 +190,7 @@ async function generatePrompt(tokenData) {
        - Include the Dexscreener link for reference: https://dexscreener.com/solana/${tokenAddress}.
 
     Guidelines:
+    - Analyst agent doesnt need to keep its response under 280 characters be as thorough as needed for the other agents to make a more consise.
     - Ensure all responses are under 280 characters (tweets, comments, and hashtags).
     - If the project is solid, keep the tone engaging, humorous, and informative.
     - If the project is sketchy, be hilariously savage but still provide a clear reasoning behind the takedown.
@@ -253,8 +255,8 @@ export async function generateAutoPostTweet() {
   let tweetData;
   try {
     tweetData = await handleQuestion();
-    while (!tweetData.tweet) {
-      console.log("Generated tweet is null, retrying...");
+    while (!tweetData.tweet || !tweetData.comment || !tweetData.hashtagsComment) {
+      console.log("Generated tweet is null or incomplete, retrying...");
       tweetData = await handleQuestion();
     }
     console.log("Generated Tweet:", tweetData.tweet);
