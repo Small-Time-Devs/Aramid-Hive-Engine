@@ -209,20 +209,31 @@ export async function handleQuestion() {
 
   const prompt = await generatePrompt(tokenData);
 
-  const agentConfigs = await generateAgentConfigurations(prompt);
+  let agentConfigs;
+  let tweetAgent, commentAgent, hashtagsAgent;
 
-  const tweetAgent = agentConfigs[1];
-  const commentAgent = agentConfigs[2];
-  const hashtagsAgent = agentConfigs[3];
+  while (true) {
+    try {
+      agentConfigs = await generateAgentConfigurations(prompt);
 
-  if (!tweetAgent || !tweetAgent.name || !tweetAgent.response) {
-    throw new Error("Invalid tweet agent response.");
-  }
-  if (!commentAgent || !commentAgent.name || !commentAgent.response) {
-    throw new Error("Invalid comment agent response.");
-  }
-  if (!hashtagsAgent || !hashtagsAgent.name || !hashtagsAgent.response) {
-    throw new Error("Invalid hashtags agent response.");
+      tweetAgent = agentConfigs[1];
+      commentAgent = agentConfigs[2];
+      hashtagsAgent = agentConfigs[3];
+
+      if (!tweetAgent || !tweetAgent.name || !tweetAgent.response) {
+        throw new Error("Invalid tweet agent response.");
+      }
+      if (!commentAgent || !commentAgent.name || !commentAgent.response) {
+        throw new Error("Invalid comment agent response.");
+      }
+      if (!hashtagsAgent || !hashtagsAgent.name || !hashtagsAgent.response) {
+        throw new Error("Invalid hashtags agent response.");
+      }
+
+      break; // Exit the loop if all responses are valid
+    } catch (error) {
+      console.error("Error generating agent responses, retrying...", error);
+    }
   }
 
   const projectLink = `https://dexscreener.com/solana/${tokenData.tokenAddress}`;
@@ -373,6 +384,5 @@ async function generateResponseToTweet(tweetText) {
     return response;
   } catch (error) {
     console.error("Error generating response to tweet:", error);
-    throw new Error("Failed to generate a response to the tweet.");
   }
 }
