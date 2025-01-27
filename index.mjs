@@ -9,6 +9,7 @@ import timeout from 'connect-timeout'; // Import the timeout middleware
 import { fileURLToPath } from 'url';
 import { startConversation, autoPostToTwitter } from './src/agents/orchestrator.mjs';
 import { config } from './src/config/config.mjs'; // Import the config
+import { generateAgentConfigurationsforTwitter } from './src/agents/dynamic/dynamic.mjs'; // Import the dynamic agent orchestrator
 
 dotenv.config();
 
@@ -164,6 +165,22 @@ app.post('/agent-chat', async (req, res) => {
         console.error("Agent Chat Error:", error);
         res.status(500).json({ agents: [], summary: "An error occurred while processing your request." });
     }
+});
+
+app.post('/twitter-agent-chat', async (req, res) => {
+  const { query } = req.body;
+
+  if (!query) {
+    return res.status(400).json({ error: "Query is required." });
+  }
+
+  try {
+    const agentResponses = await generateAgentConfigurationsforTwitter(query);
+    res.json({ agents: agentResponses });
+  } catch (error) {
+    console.error("Agent Chat Error:", error);
+    res.status(500).json({ agents: [], summary: "An error occurred while processing your request." });
+  }
 });
 
 // Helper to perform internet research using Google Custom Search API
