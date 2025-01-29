@@ -342,17 +342,19 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
             - Evaluate token price trends, market history, and current market conditions.
             - Provide an assessment of the project's strengths, potential entry/exit points, and future outlook.
             - If the token is super new proceed with caution and provide a detailed analysis.
+            - If the token has freeze authority avoid at all costs and if there is mint authority research into why the team needs that if there is a reason, provide a detailed analysis.
             - Deliver a detailed, concise, and informative analysis (no character limit).
 
         2. **Agent: Social Strategist**
         - **Name**: Randomly generated (e.g., "TweetWhiz," "WittyPro").
         - **Personality**: Witty, engaging.
         - **Task**: Craft a tweet based on the Analyst's findings **and the Investment Strategist's decision**.
+            - Include the Token Name in the tweet and the token Ticker and market cap if available and current .
             - If the **Investment Strategist** recommends "Invest," make the tweet positive, highlighting the project's strengths.
             - If the **Investment Strategist** recommends "Pass," craft a tweet with caution, highlighting risks and advising the audience to research further.
             - Include the Token Name in the tweet and tag the project’s Twitter account (if available).
             - Make sure to say Not Financial Advice.
-            - Ensure the response is under 280 characters.
+            - Ensure the response is under 2500 characters.
 
         3. **Agent: Sidekick**
         - **Name**: Randomly generated (e.g., "HypeHelper," "SnarkSidekick").
@@ -360,8 +362,7 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
         - **Task**: Build on the Social Strategist’s tweet **while aligning with the Investment Strategist's decision**.
             - If the tone is positive (Invest), reinforce the sentiment with supportive commentary and relevant price details.
             - If the tone is negative (Pass), double down with skepticism or caution.
-            - Make sure to say Not Financial Advice.
-            - Keep the response concise and under 280 characters.
+            - Keep the response concise and under 2500 characters.
 
         4. **Agent: Hashtag Wizard**
         - **Name**: Randomly generated (e.g., "TagMaster," "HashtagHero").
@@ -369,22 +370,24 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
         - **Task**: Generate hashtags and finalize the Twitter response **while aligning with the Investment Strategist's decision**.
             - For "Invest," create hashtags that are positive and engaging.
             - For "Pass," create hashtags that convey caution or neutrality.
-            - Include the Dexscreener link formatted as: https://dexscreener.com/solana/{Token Address}.
             - Tag the project’s Twitter account (if available).
-            - Keep the response concise and under 280 characters.
+            - Keep the response concise and under 500 characters.
 
         5. **Agent: Investment Strategist**
         - **Name**: Randomly generated (e.g., "ProfitPredictor," "RiskManager").
         - **Personality**: Strategic, risk-averse.
         - **Task**: Determine whether the bot should invest in this project.
-            - Based on the analysis provided by the Analyst, decide if the project is a good investment.
+            - Based on the analysis provided by the Analyst, decide if the project is a good investment, go into detail on the decision making process on your conclusion.
+            - If the project has freeze authority avoid investing.
+            - There is a 5000 character limit so break down all decision making processes involved and keep it under that character limit.
             - If the project is worth investing in, provide:
                 - A target percentage for gains to sell the investment in postive percentage format.
                 - A target percentage for losses to exit the investment in negative percentage format.
-            - If the project is deemed too risky but has potential for a quick profit, consider short-term investment:
+            - If the project is deemed risky but has potential for a quick profit, consider short-term investment:
                 - Provide modest target percentages for quick gains and controlled losses in percentage format.
-            - If the project is not a good investment, explain why and recommend avoiding it.
-            - Make sure to say Not Financial Advice.
+            - If the project is not a good investment, explain why in a savage and funny manor and recommend avoiding it.
+            - Make sure to say This is Not Financial Advice.
+            - Include the Dexscreener link formatted as: https://dexscreener.com/solana/{Token Address} at the end of the response.
             - Include a separate **decision** field:
                 - For a good long-term investment: (e.g. Invest: Gain +60%, Loss -50%).
                 - For a quick profit: "Quick Profit: (e.g. Gain +25%, Loss -30%). 
@@ -405,7 +408,7 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
             {
                 "name": "ProfitPredictor",
                 "personality": "Strategic, risk-averse",
-                "response": "Unitree H1's high volatility and equal market cap and FDV suggest a speculative investment opportunity with potential for quick gains. However, the low price and moderate liquidity underscore risk. Consider a calculated short-term play. Control risk with a target gain of +10% and a loss threshold of -5%.",
+                "response": "Unitree H1's high volatility and equal market cap and FDV suggest a speculative investment opportunity with potential for quick gains. However, the low price and moderate liquidity underscore risk. Consider a calculated short-term play. Control risk with a target gain of +10% and a loss threshold of -5%." 🚀 Check the pulse at: https://dexscreener.com/solana/VaEDXcwMC3xef56e1D4xEDTMy4LyGbw6zt95KHspump,
                 "decision": "Quick Profit: Gain +10%, Loss -5%"
             },
             {
@@ -421,7 +424,7 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
             {
                 "name": "TagMaster",
                 "personality": "Trend-savvy, creative",
-                "response": "#UnitreeH1 #Solana #CryptoThrills 🚀 Check the pulse at: https://dexscreener.com/solana/VaEDXcwMC3xef56e1D4xEDTMy4LyGbw6zt95KHspump @UnitreeRobotics"
+                "response": "#UnitreeH1 #Solana #CryptoThrills @UnitreeRobotics"
             }
         ]
     `;
