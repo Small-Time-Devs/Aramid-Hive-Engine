@@ -324,7 +324,6 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
         - **Does Token Have Mint Authority**: 
         - **Random Influencer to Mention**:
 
-
         If any criteria are missing or undefined, exclude them from the responses.
 
         ---
@@ -341,15 +340,15 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
             - Investigate the project's use case, team, roadmap, and tokenomics using the provided links.
             - Evaluate token price trends, market history, and current market conditions.
             - Provide an assessment of the project's strengths, potential entry/exit points, and future outlook.
-            - If the token is super new proceed with caution and provide a detailed analysis.
-            - If the token has freeze authority avoid at all costs and if there is mint authority research into why the team needs that if there is a reason, provide a detailed analysis.
+            - If the token is super new, proceed with caution and provide a detailed analysis.
+            - If the token has freeze authority, avoid at all costs, and if there is mint authority, research into why the team needs that. If there is a reason, provide a detailed analysis.
             - Deliver a detailed, concise, and informative analysis (no character limit).
 
         2. **Agent: Social Strategist**
         - **Name**: Randomly generated (e.g., "TweetWhiz," "WittyPro").
         - **Personality**: Witty, engaging.
         - **Task**: Craft a tweet based on the Analyst's findings **and the Investment Strategist's decision**.
-            - Include the Token Name in the tweet and the token Ticker and market cap if available and current .
+            - Include the Token Name in the tweet and the token Ticker and market cap if available.
             - If the **Investment Strategist** recommends "Invest," make the tweet positive, highlighting the project's strengths.
             - If the **Investment Strategist** recommends "Pass," craft a tweet with caution, highlighting risks and advising the audience to research further.
             - Include the Token Name in the tweet and tag the project’s Twitter account (if available).
@@ -377,22 +376,29 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
         - **Name**: Randomly generated (e.g., "ProfitPredictor," "RiskManager").
         - **Personality**: Strategic, risk-averse.
         - **Task**: Determine whether the bot should invest in this project.
-            - Based on the analysis provided by the Analyst, decide if the project is a good investment, go into detail on the decision making process on your conclusion.
-            - If the project has freeze authority avoid investing.
-            - There is a 5000 character limit so break down all decision making processes involved and keep it under that character limit.
+            - Based on the analysis provided by the Analyst, decide if the project is a good investment, go into detail on the decision-making process.
+            - If the project has freeze authority, avoid investing.
+            - There is a 5000 character limit, so break down all decision-making processes involved and keep it under that character limit.
             - If the project is worth investing in, provide:
-                - A target percentage for gains to sell the investment in postive percentage format.
-                - A target percentage for losses to exit the investment in negative percentage format.
-            - If the project is deemed risky but has potential for a quick profit, consider short-term investment:
-                - Provide modest target percentages for quick gains and controlled losses in percentage format.
-            - If the project is not a good investment, explain why in a savage and funny manor and recommend avoiding it.
-            - Make sure to say This is Not Financial Advice.
+                - A target percentage for gains to sell the investment in **positive percentage format**.
+                - A target percentage for losses to exit the investment in **negative percentage format**.
+            - If the project is deemed risky but has potential for **a quick profit**, consider short-term investment:
+                - **Quick Profit:** Gains between **+20% to +40%**, Losses between **-30% to -40%**.
+            - If the project is **super high-risk with moonshot potential**, label it as **Degen**:
+                - **Degen:** Gains between **+50% to +100%**, Losses at **-50%**.
+            - If the project is not a good investment, explain why in a **savage and funny** manner and recommend avoiding it.
+            - Make sure to say **This is Not Financial Advice**.
             - Include the Dexscreener link formatted as: https://dexscreener.com/solana/{Token Address} at the end of the response.
+            - Include the following disclaimer:
+
+            **Disclaimer:** This is an automated detection of a new token. This is not an endorsement or investment advice. This message is intended for informational purposes only. This is the end of transmission. Please understand any and all risks before executing any transaction on the Solana blockchain. Interacting with this Blink is of the user’s own volition. Purchasing micro-cap tokens is inherently risky.
+
             - Include a separate **decision** field:
-                - For a good long-term investment: (e.g. Invest: Gain +60%, Loss -50%).
-                - For a quick profit: "Quick Profit: (e.g. Gain +25%, Loss -30%). 
-                - For a bad investment: "Pass: Give A Reason for not investing.".
-            - Ensure the **decision** is concise, starts with "Invest," "Quick Profit," or "Pass," and provides the required information for the next action.
+                - For a good long-term investment: **"Invest: Gain +X%, Loss -X%"**.
+                - For a quick profit: **"Quick Profit: Gain +X%, Loss -X%"**.
+                - For a high-risk speculative play: **"Degen: Gain +X%, Loss -50%"**.
+                - For a bad investment: **"Pass: Give a reason for not investing."**.
+            - Ensure the **decision** is concise, starts with **"Invest," "Quick Profit," "Degen," or "Pass,"** and provides the required information for the next action.
 
         ---
 
@@ -409,7 +415,7 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
                 "name": "ProfitPredictor",
                 "personality": "Strategic, risk-averse",
                 "response": "Unitree H1's high volatility and equal market cap and FDV suggest a speculative investment opportunity with potential for quick gains. However, the low price and moderate liquidity underscore risk. Consider a calculated short-term play. Control risk with a target gain of +10% and a loss threshold of -5%." 🚀 Check the pulse at: https://dexscreener.com/solana/VaEDXcwMC3xef56e1D4xEDTMy4LyGbw6zt95KHspump,
-                "decision": "Quick Profit: Gain +10%, Loss -5%"
+                "decision": "Quick Profit: Gain +10%, Loss -30%"
             },
             {
                 "name": "TweetWhiz",
