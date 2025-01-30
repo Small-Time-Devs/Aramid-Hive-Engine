@@ -7,9 +7,10 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import timeout from 'connect-timeout'; // Import the timeout middleware
 import { fileURLToPath } from 'url';
-import { startConversation, autoPostToTwitter } from './src/agents/orchestrator.mjs';
+import { startConversation } from './src/agents/orchestrator.mjs';
 import { config } from './src/config/config.mjs'; // Import the config
-import { generateAgentConfigurationsforTwitter } from './src/agents/dynamic/dynamic.mjs'; // Import the dynamic agent orchestrator
+import { generateAgentConfigurationsforTwitter } from './src/agents/twitter/twitterProfessional.mjs';
+import { generateAgentConfigurationsforMasterTrader } from './src/agents/trading/masterTrader.mjs';
 
 dotenv.config();
 
@@ -183,6 +184,22 @@ app.post('/twitter-agent-chat', async (req, res) => {
   }
 });
 
+app.post('/trading-agent-chat', async (req, res) => {
+  const { query } = req.body;
+
+  if (!query) {
+    return res.status(400).json({ error: "Query is required." });
+  }
+
+  try {
+    const agentResponses = await generateAgentConfigurationsforMasterTrader(query);
+    res.json({ agents: agentResponses });
+  } catch (error) {
+    console.error("Agent Chat Error:", error);
+    res.status(500).json({ agents: [], summary: "An error occurred while processing your request." });
+  }
+});
+
 // Helper to perform internet research using Google Custom Search API
 async function internetResearch(query) {
     try {
@@ -196,42 +213,4 @@ async function internetResearch(query) {
     }
 }
 
-app.get('/twitter/callback', async (req, res) => {
-  const { code } = req.query;
-
-  if (!code) {
-    return res.status(400).send('Missing authorization code');
-  }
-
-  const client = new TwitterApi({
-    clientId: process.env.TWITTER_CLIENT_ID,
-    clientSecret: process.env.TWITTER_CLIENT_SECRET,
-  });
-
-  try {
-    const { client: loggedClient, accessToken, refreshToken } = await client.loginWithOAuth2({
-      code,
-      redirectUri: config.twitter.callbackUrl,
-    });
-
-    // Store the access token and refresh token securely
-    console.log('Access Token:', accessToken);
-    console.log('Refresh Token:', refreshToken);
-
-    // Save tokens to environment variables or a secure storage
-    process.env.TWITTER_ACCESS_TOKEN = accessToken;
-    process.env.TWITTER_REFRESH_TOKEN = refreshToken;
-
-    res.send('Twitter callback handled successfully.');
-  } catch (error) {
-    console.error('Error handling Twitter callback:', error);
-    res.status(500).send('Error handling Twitter callback.');
-  }
-});
-
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
-
-// Call autoPostToTwitter function if auto-posting is enabled
-if (config.twitter.settings.xAutoPoster) {
-    autoPostToTwitter();
-}

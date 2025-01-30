@@ -1,388 +1,212 @@
-import OpenAI from "openai";
-import { config } from "../../config/config.mjs";
-import dotenv from "dotenv";
-import { TwitterApi } from "twitter-api-v2";
-import { fetchLatestTokenProfiles, fetchTokenName, fetchTokenPrice, fetchTokenPairs, fetchTokenOrders } from "../../utils/apiUtils.mjs";
-import { checkRateLimit, updateRateLimitInfo } from "../../utils/helpers.mjs";
-import { generateAgentConfigurations } from "../dynamic/dynamic.mjs";
-
-dotenv.config();
+import OpenAI from 'openai';
+import { config } from '../../config/config.mjs';
 
 const openai = new OpenAI();
 
-class TwitterAgent {
-  constructor(name, personality, specialty) {
-    this.name = name;
-    this.personality = personality;
-    this.specialty = specialty;
-    this.history = [];
-  }
+export async function generateAgentConfigurationsforTwitter(userInput) {
+    const prompt = `
+        ### Dynamic Twitter Agent Orchestrator
 
-  async generateResponse(input) {
-    const prompt = `${this.personality}\nUser: ${input}\n${this.name}:`;
+        **User Input:** "${userInput}"
+
+        **Objective:** Based on the user's input, generate a set of dynamic Twitter agents to respond individually and systematically. Each agent should have a **randomly generated name** (e.g., "CryptoGuru," "MarketMaven") to add personality and variety. The names should align with their personalities and roles.
+
+        ---
+
+        #### Input Criteria
+        The user's input may include the following details:
+        - **Date Created**: 
+        - **Token Name**: 
+        - **Token Symbol**: 
+        - **Token Description**: 
+        - **Token Address**: 
+        - **Token Twitter URL**: 
+        - **Token Website URL**: 
+        - **Token Price in SOL**: 
+        - **Token Price in USD**: 
+        - **Token Volume (24h)**: 
+        - **Token Price Change (5m)**: 
+        - **Token Price Change (1h)**: 
+        - **Token Price Change (6h)**: 
+        - **Token Price Change (24h)**: 
+        - **Token Liquidity (USD)**: 
+        - **Token Liquidity (Base)**: 
+        - **Token Liquidity (Quote)**: 
+        - **Token FDV**: 
+        - **Token Market Cap**: 
+        - **Is Token Safe**: 
+        - **Does Token Have Freeze Authority**: 
+        - **Does Token Have Mint Authority**: 
+        - **Random Influencer to Mention**:
+
+        If any criteria are missing or undefined, exclude them from the responses.
+
+        ---
+
+        #### Agent Configuration
+        **Each agent should have:**
+        - **A unique, randomly generated name** that reflects their personality and task.
+        - **A distinct personality and role** as outlined below.
+
+        
+        #### Investment Strategy Rules:
+
+        - **If a token is super new AND has dropped more than 60% in price, avoid investing.**
+        - **If a token has liquidity below $20,000, do not invest.**
+        - **If the token has freeze authority, avoid at all costs.**
+        - **If the token has mint authority, investigate why before deciding.**        
+        - **If a twitter account is present it must have a following and not just a few follower to purchase.**
+        - **If your able to view locked liquidity investing in the proejct must have the liquidity locked.**
+
+        1. **Agent: Analyst**
+        - **Name**: Randomly generated (e.g., "DataDiver," "TokenSleuth").
+        - **Personality**: Analytical, data-driven.
+        - **Task**: Conduct in-depth research based on the provided input.
+            - Investigate the project's use case, team, roadmap, and tokenomics using the provided links.
+            - Evaluate token price trends, market history, and current market conditions.
+            - Provide an assessment of the project's strengths, potential entry/exit points, and future outlook.
+            - If the token is super new and has dropped over **60%**, immediately **recommend against investing**.
+            - If liquidity is **below $20,000**, immediately **recommend against investing**.
+            - Deliver a detailed, concise, and informative analysis (no character limit).
+
+        2. **Agent: Social Strategist**
+        - **Name**: Randomly generated (e.g., "TweetWhiz," "WittyPro").
+        - **Personality**: Witty, engaging.
+        - **Task**: Craft a tweet based on the Analyst's findings **and the Investment Strategist's decision**.
+            - Include the Token Name in the tweet and the token Ticker and market cap if available.
+            - If the **Investment Strategist** recommends "Invest," make the tweet positive, highlighting the project's strengths.
+            - If the **Investment Strategist** recommends "Pass," craft a tweet with caution, highlighting risks and advising the audience to research further.
+            - Include the Token Name in the tweet and tag the project’s Twitter account (if available).
+            - Make sure to say Not Financial Advice.
+            - Ensure the response is under 2500 characters.
+
+        3. **Agent: Sidekick**
+        - **Name**: Randomly generated (e.g., "HypeHelper," "SnarkSidekick").
+        - **Personality**: Reactive, dynamic.
+        - **Task**: Build on the Social Strategist’s tweet **while aligning with the Investment Strategist's decision**.
+            - If the tone is positive (Invest), reinforce the sentiment with supportive commentary and relevant price details.
+            - If the tone is negative (Pass), double down with skepticism or caution.
+            - Keep the response concise and under 2500 characters.
+
+        4. **Agent: Hashtag Wizard**
+        - **Name**: Randomly generated (e.g., "TagMaster," "HashtagHero").
+        - **Personality**: Trend-savvy, creative.
+        - **Task**: Generate hashtags and finalize the Twitter response **while aligning with the Investment Strategist's decision**.
+            - For "Invest," create hashtags that are positive and engaging.
+            - For "Pass," create hashtags that convey caution or neutrality.
+            - Tag the project’s Twitter account (if available).
+            - Keep the response concise and under 500 characters.
+
+        5. **Agent: Investment Strategist**
+        - **Name**: Randomly generated (e.g., "ProfitPredictor," "RiskManager").
+        - **Personality**: Strategic, risk-averse.
+        - **Task**: Determine whether the bot should invest in this project.
+           - **New tokens that have dipped more than 60% should be avoided.**
+            - **Tokens with liquidity below $20,000 should be avoided.**
+            - **Tokens that have freeze authority, avoid at all costs.**
+            - Provide clear reasons for the investment decision.
+            - If the project is worth investing in, provide:
+                - A target percentage for gains to sell the investment in **positive percentage format**.
+                - A target percentage for losses to exit the investment in **negative percentage format**.
+            - If the project is deemed risky but has potential for **a quick profit**, consider short-term investment:
+                - **Quick Profit:** Gains between **+20% to +40%**, Losses between **-30% to -40%**.
+            - If the project is not a good investment, explain why in a **savage and funny** manner and recommend avoiding it.
+            - Make sure to say **This is Not Financial Advice**.
+            - Include the Dexscreener link formatted as: https://dexscreener.com/solana/{Token Address} at the end of the response.
+            - Include the following disclaimer:
+
+            **Disclaimer:** This is an automated detection of a new token. This is not an endorsement or investment advice. This message is intended for informational purposes only. This is the end of transmission. Please understand any and all risks before executing any transaction on the Solana blockchain. Interacting with this Blink is of the user’s own volition. Purchasing micro-cap tokens is inherently risky.
+
+            - Include a separate **decision** field:
+                - For a good long-term investment: **"Invest: Gain +X%, Loss -X%"**.
+                - For a quick profit: **"Quick Profit: Gain +X%, Loss -X%"**.
+                - For a bad investment: **"Pass: Give a reason for not investing."**.
+            - Ensure the **decision** is concise, starts with **"Invest," "Quick Profit" or "Pass,"** and provides the required information for the next action.
+
+        ---
+
+        #### Output Format
+        Return a JSON array of objects, each representing an agent. Ensure the responses from Social Strategist, Sidekick, and Hashtag Wizard align with the Investment Strategist's decision. For example:
+
+        [
+            {
+                "name": "DataDiver",
+                "personality": "Analytical, data-driven",
+                "response": "Unitree H1 is the first humanoid token on Solana. The project appears very new, with a significant price change of 104% over 1h to 24h, indicating high volatility. Market cap and FDV are equal at $205,415, showing potential but also risk due to low light volume at $94,896.98. Liquidity in USD stands at $56,346.68, suggesting moderate capacity. Given this, the project may have potential upside but carries high risk. Caution advised until market stabilizes."
+            },
+            {
+                "name": "ProfitPredictor",
+                "personality": "Strategic, risk-averse",
+                "response": "Unitree H1's high volatility and equal market cap and FDV suggest a speculative investment opportunity with potential for quick gains. However, the low price and moderate liquidity underscore risk. Consider a calculated short-term play. Control risk with a target gain of +10% and a loss threshold of -5%." 🚀 Check the pulse at: https://dexscreener.com/solana/VaEDXcwMC3xef56e1D4xEDTMy4LyGbw6zt95KHspump,
+                "decision": "Quick Profit: Gain +10%, Loss -30%"
+            },
+            {
+                "name": "TweetWhiz",
+                "personality": "Witty, engaging",
+                "response": "Unitree H1 hitting the scene as the first humanoid? 🤖 With rapid moves and promising potential, it might be the short-term thrill you're looking for! Tagging @UnitreeRobotics to watch this space unfold. 📈"
+            },
+            {
+                "name": "HypeHelper",
+                "personality": "Reactive, dynamic",
+                "response": "Ready for some action on Solana? 🌊 Unitree H1's got the buzz and volatility for a quick ride! Keep your eyes on those charts! 🎢"
+            },
+            {
+                "name": "TagMaster",
+                "personality": "Trend-savvy, creative",
+                "response": "#UnitreeH1 #Solana #CryptoThrills @UnitreeRobotics"
+            }
+        ]
+    `;
+
     try {
-      const completion = await openai.chat.completions.create({
-        model: config.llmSettings.openAI.model,
-        messages: [
-          { role: "system", content: this.personality },
-          { role: "user", content: input },
-        ],
-      });
-      const generatedResponse = completion.choices[0].message.content;
-      this.history.push(generatedResponse);
-      return generatedResponse;
+        const completion = await openai.chat.completions.create({
+            model: config.llmSettings.openAI.model,
+            messages: [
+                { role: "system", content: prompt },
+                { role: "user", content: userInput }
+            ]
+        });
+
+        let responseText = completion.choices[0].message.content;
+        console.log("Response from OpenAI:", responseText); // Log the response for debugging
+
+        // Clean up the response text
+        responseText = responseText
+            .replace(/```json\n?/g, '') // Remove JSON code block markers
+            .replace(/```\n?/g, '') // Remove any remaining code block markers
+            .replace(/\\/g, ''); // Remove backslashes
+
+        // Clean up line breaks and whitespace
+        responseText = responseText.trim();
+        
+        // Ensure the response is valid JSON by wrapping non-array responses
+        if (!responseText.startsWith('[')) {
+            responseText = `[${responseText}]`;
+        }
+
+        try {
+            const agentConfigurations = JSON.parse(responseText);
+
+            // Validate the parsed configurations
+            if (!Array.isArray(agentConfigurations)) {
+                throw new Error('Response is not an array');
+            }
+
+            // Ensure each configuration has required fields
+            agentConfigurations.forEach((config, index) => {
+                if (!config.name || !config.personality || !config.response) {
+                    throw new Error(`Invalid configuration at index ${index}`);
+                }
+            });
+
+            return agentConfigurations;
+        } catch (parseError) {
+            console.error("JSON Parse Error:", parseError);
+            console.error("Attempted to parse:", responseText);
+            throw new Error(`Failed to parse agent configurations: ${parseError.message}`);
+        }
     } catch (error) {
-      console.error('Error connecting to OpenAI API:', error);
-      throw new Error('Failed to connect to OpenAI API.');
+        console.error("Error generating agent configurations:", error);
+        throw new Error(`Failed to generate agent configurations: ${error.message}`);
     }
-  }
-}
-
-async function fetchTokenData() {
-  const tokenProfiles = await fetchLatestTokenProfiles();
-  const contractAddresses = config.twitter.solanaProjectsToReveiw?.contractAddresses ? Object.values(config.twitter.solanaProjectsToReveiw.contractAddresses) : [];
-  const useConfigAddress = Math.random() < (config.twitter.solanaProjectsToReveiw.percentageToTalkAbout.chance / 100); // Use percentage chance
-
-  if (useConfigAddress && contractAddresses.length > 0) {
-    const randomAddress = contractAddresses[Math.floor(Math.random() * contractAddresses.length)];
-    console.log("Fetching token data for:", randomAddress);
-
-    try {
-      const tokenName = await fetchTokenName(randomAddress) || "Unnamed Token";
-      const tokenPrice = await fetchTokenPrice(randomAddress);
-      const tokenPairs = await fetchTokenPairs('solana', randomAddress);
-      const tokenOrders = await fetchTokenOrders('solana', randomAddress);
-
-      return {
-        tokenName,
-        tokenDescription: "No description available",
-        tokenAddress: randomAddress,
-        tokenPrice,
-        tokenPairs,
-        tokenOrders,
-        links: []
-      };
-    } catch (error) {
-      console.warn(`Error fetching data for ${randomAddress}:`, error);
-    }
-  }
-
-  for (const randomToken of tokenProfiles) {
-    const tokenDescription = randomToken.description || "No description available";
-    const tokenAddress = randomToken.tokenAddress;
-    console.log("Fetching token data for:", tokenAddress);
-    try {
-      const tokenName = await fetchTokenName(tokenAddress) || randomToken.name || randomToken.symbol || "Unnamed Token"; // Ensure token name is correctly extracted
-      const tokenPrice = await fetchTokenPrice(tokenAddress);
-      return {
-        tokenName,
-        tokenDescription,
-        tokenAddress,
-        tokenPrice,
-        links: randomToken.links
-      };
-    } catch (error) {
-      console.warn(`Error fetching data for ${tokenAddress}:`, error);
-      // Continue to the next token if the name or price is not found
-    }
-  }
-  throw new Error('No valid token data found.');
-}
-
-/*
-async function generatePrompt(tokenData) {
-  const { tokenName, tokenDescription, tokenAddress, tokenPrice, tokenPairs, tokenOrders, links } = tokenData;
-  const influencers = config.twitter.influencers.twitterHandles;
-  const randomInfluencer = influencers[Math.floor(Math.random() * influencers.length)];
-
-  return `
-    Generate a tweet, comment, and hashtags for the following token:
-    - Token Name: ${tokenName}
-    - Token Description: ${tokenDescription}
-    - Token Address: ${tokenAddress}
-    - Token Price: ${tokenPrice}
-    - Token Pairs: ${JSON.stringify(tokenPairs)}
-    - Token Orders: ${JSON.stringify(tokenOrders)}
-    - Links: ${JSON.stringify(links)}
-
-    If any of those specifications are undefined or null just dont include them in the tweet.
-
-    Each agent should only have one response.
-    The first agent should analyze the token and provide a positive or negative response.
-    The second agent should generate a tweet based on the analysis. Include the Token Name in the tweet.
-    The third agent should generate a comment based on second agents response and the analysis including the price if there is a price.
-    The fourth agent should generate hashtags based on the analysis from the first agent and the tweet from the second agent and comment of the thrid agent. Tag a random influencer from the list: ${influencers.join(', ')}. Include the Dexscreener link for people to reference if they want: https://dexscreener.com/solana/${tokenAddress}.
-
-    Each agent should have a specific personality and specialty:
-    - Agent 1: Analytical, Crypto Analysis
-    - Agent 2: If analysis of the project seems good be snarky funny but if it has a bad analysis be snarky and rude, Social Media Copywriting
-    - Agent 3: If Agent 2s response is positive, be sarcastic and funny. If Agent 2s response is negative, be rude, cautious and informative, Social Media Copywriting
-    - Agent 4: Professional, Hashtags Generation that match the tone of the response and tags major relevant topics and crypto influencers. The word Hashtag should not be in the agents name!
-
-    Instead of having the agent name like "name": "Agent Analyser" i want each agent to have their own personality and specialty as their name like "Dave" or something funny and creative.
-
-    If the token seems like a good project to support, provide a positive and engaging response. If the token seems suspicious or risky, provide a cautious and informative response, be snarky and make fun of it in a hilarious manor. Include relevant hashtags and emojis to match the tone of the response.
-    Each tweet should be under 280 characters since this will be posted via the twitter api and the twitter api can only handle tweets under 280 characters so the post can only be 280 characters long and the comment can only be 280 characters long as well as the hashtags comment.
-  `;
-}
-*/
-
-async function generatePrompt(tokenData) {
-  const { tokenName, tokenDescription, tokenAddress, tokenPrice, tokenPairs, tokenOrders, links } = tokenData;
-  const influencers = config.twitter.influencers.twitterHandles;
-  const randomInfluencer = influencers[Math.floor(Math.random() * influencers.length)];
-
-  function generateAgentName(baseName) {
-    const uniqueAdjectives = [
-      "Zesty", "Witty", "Quirky", "Bold", "Savage", "Clever", "Fiery", "Cheeky", "Snappy", "Sassy", "Energetic", "Daring", "Spicy", "Grumpy", "Jazzy", "Plucky", "Edgy", "Bubbly", "Bizarre", "Mellow", "Rogue", "Flashy", "Peppy", "Silly", "Eccentric", "Snooty", "Jumpy", "Rowdy", "Snazzy", "Sleek", "Whimsical", "Funky", "Gritty", "Brassy", "Loony", "Wacky", "Zany", "Hasty", "Kooky", "Rambunctious", "Dramatic", "Jaunty", "Feisty", "Crafty", "Nifty", "Spunky", "Nervy", "Goofy", "Thrilling", "Perky", "Swanky"
-    ];
-    const randomAdjective = uniqueAdjectives[Math.floor(Math.random() * uniqueAdjectives.length)];
-    return `${randomAdjective} ${baseName}`;
-  }
-
-  function extractTwitterHandle(links) {
-    if (Array.isArray(links) && links.every(link => typeof link === 'string')) {
-      const twitterLink = links.find(link => link.includes("twitter.com"));
-      if (twitterLink) {
-        const handleMatch = twitterLink.match(/twitter\.com\/(\w+)/);
-        return handleMatch ? `@${handleMatch[1]}` : null;
-      }
-    }
-    return null;
-  }
-
-  const projectTwitterHandle = extractTwitterHandle(links);
-
-  return `
-    Generate a tweet, comment, and hashtags for the following token:
-    - Token Name: ${tokenName}
-    - Token Description: ${tokenDescription}
-    - Token Address: ${tokenAddress}
-    - Token Price: ${tokenPrice}
-    - Token Pairs: ${JSON.stringify(tokenPairs)}
-    - Token Orders: ${JSON.stringify(tokenOrders)}
-    - Links: ${JSON.stringify(links)}
-
-    If any of those specifications are undefined or null, just exclude them from the tweet.
-
-    Each agent must respond individually and in this order:
-
-    1. **Analyst (Agent Name: ${generateAgentName("Analyst")})**
-       - Dive deep into the project—research its use case, team, roadmap, and tokenomics. 
-       - If it’s a solid project, highlight its strengths, potential entry points, and an ideal exit point.
-       - If it’s a bad project, unleash a savage takedown with biting sarcasm and ruthless humor. Ensure the tone is cutting but informative.
-
-    2. **Tweeter (Agent Name: ${generateAgentName("Tweeter")})**
-       - Craft a snarky and entertaining tweet based on the Analyst’s analysis.
-       - If the project is good, make the tweet witty and engaging.
-       - If it’s bad, be hilariously rude and cutting. Include the Token Name in the tweet.
-       - Don't include the dexscreener link in the tweet it will be handled in the Hashtag agent.
-       - If the project has a Twitter link, tag the project’s Twitter account (${projectTwitterHandle}).
-
-    3. **Commentator (Agent Name: ${generateAgentName("Commentator")})**
-       - Feed off the Tweeter’s energy. If the tweet is positive, add a sarcastic but funny comment.
-       - If the tweet is negative, double down with a rude yet informative follow-up, referencing price details if available.
-
-    4. **Hashtag Specialist (Agent Name: ${generateAgentName("Hashtag Pro")})**
-       - Generate hashtags that match the tone and theme of the previous agents’ responses.
-       - Tag a random influencer from the list: ${influencers.join(", ")}.
-       - If the project has a Twitter link, tag the project’s Twitter account (${projectTwitterHandle}).
-       - Include the Dexscreener link for reference: https://dexscreener.com/solana/${tokenAddress}.
-
-    Guidelines:
-    - Analyst agent doesnt need to keep its response under 280 characters be as thorough as needed for the other agents to make a more consise.
-    - Ensure all responses are under 280 characters (tweets, comments, and hashtags).
-    - If the project is solid, keep the tone engaging, humorous, and informative.
-    - If the project is sketchy, be hilariously savage but still provide a clear reasoning behind the takedown.
-    - Make the agents’ personalities shine through their responses.
-  `;
-}
-
-export async function handleQuestion() {
-  let tokenData;
-  try {
-    tokenData = await fetchTokenData();
-  } catch (error) {
-    console.error("Error fetching token data:", error);
-    throw new Error("Failed to fetch valid token data.");
-  }
-
-  const prompt = await generatePrompt(tokenData);
-
-  let agentConfigs;
-  let tweetAgent, commentAgent, hashtagsAgent;
-
-  while (true) {
-    try {
-      agentConfigs = await generateAgentConfigurations(prompt);
-
-      tweetAgent = agentConfigs[1];
-      commentAgent = agentConfigs[2];
-      hashtagsAgent = agentConfigs[3];
-
-      if (!tweetAgent || !tweetAgent.name || !tweetAgent.response) {
-        throw new Error("Invalid tweet agent response.");
-      }
-      if (!commentAgent || !commentAgent.name || !commentAgent.response) {
-        throw new Error("Invalid comment agent response.");
-      }
-      if (!hashtagsAgent || !hashtagsAgent.name || !hashtagsAgent.response) {
-        throw new Error("Invalid hashtags agent response.");
-      }
-
-      break; // Exit the loop if all responses are valid
-    } catch (error) {
-      console.error("Error generating agent responses, retrying...", error);
-    }
-  }
-
-  const projectLink = `https://dexscreener.com/solana/${tokenData.tokenAddress}`;
-  const influencers = config.twitter.influencers.twitterHandles;
-  const randomInfluencer = influencers[Math.floor(Math.random() * influencers.length)];
-
-  let tweet = `${tweetAgent.name}:\n${tweetAgent.response.replace(tokenData.tokenName, `[${tokenData.tokenName}](${projectLink})`)}`;
-  let comment = `${commentAgent.name}:\n${commentAgent.response.replace(tokenData.tokenName, `[${tokenData.tokenName}](${projectLink})`)}`;
-  let hashtagsComment = `${hashtagsAgent.name}:\n${hashtagsAgent.response.replace('${randomInfluencer}', randomInfluencer)}\n`;
-
-  if (tweet.length > 280) {
-    tweet = tweet.substring(0, 277) + '...';
-  }
-  if (comment.length > 280) {
-    comment = comment.substring(0, 277) + '...';
-  }
-  if (hashtagsComment.length > 280) {
-    hashtagsComment = hashtagsComment.substring(0, 277) + '...';
-  }
-
-  return {
-    tweet,
-    comment,
-    hashtagsComment,
-    ...tokenData,
-  };
-}
-
-export async function generateAutoPostTweet() {
-  let tweetData;
-  try {
-    tweetData = await handleQuestion();
-    while (!tweetData.tweet || !tweetData.comment || !tweetData.hashtagsComment) {
-      console.log("Generated tweet is null or incomplete, retrying...");
-      tweetData = await handleQuestion();
-    }
-    console.log("Generated Tweet:", tweetData.tweet);
-    return tweetData;
-  } catch (error) {
-    console.error("Error generating auto-post tweet:", error);
-    throw new Error("Failed to generate an auto-post tweet.");
-  }
-}
-
-export async function postToTwitter(tweetData, client) {
-  try {
-    if (config.twitter.settings.devMode) {
-      console.log('Development mode is enabled. Not posting to twitter. Generated tweet data:', tweetData);
-      return tweetData;
-    }
-
-    const canPost = await checkRateLimit(client);
-    if (!canPost) {
-      console.log('Skipping post due to rate limit.');
-      return;
-    }
-
-    const formattedTweet = tweetData.tweet.replace(/\*\*/g, '').replace(/\\n/g, '\n').replace(/\s+/g, ' ').trim();
-    const { data: createdTweet, headers } = await client.v2.tweet(formattedTweet);
-    console.log('Tweet headers:', headers); // Log headers for debugging
-    updateRateLimitInfo(headers);
-    console.log('Tweet posted successfully:', createdTweet);
-
-    if (tweetData.comment) {
-      const formattedComment = tweetData.comment.replace(/\*\*/g, '').replace(/\\n/g, '\n').replace(/\s+/g, ' ').trim();
-      const { headers: commentHeaders } = await client.v2.reply(formattedComment, createdTweet.id);
-      console.log('Comment headers:', commentHeaders); // Log headers for debugging
-      updateRateLimitInfo(commentHeaders);
-      console.log('Comment posted successfully:', formattedComment);
-    }
-
-    if (tweetData.hashtagsComment) {
-      const formattedHashtagsComment = tweetData.hashtagsComment.replace(/\*\*/g, '').replace(/\\n/g, '\n').replace(/\s+/g, ' ').trim();
-      const { headers: hashtagsHeaders } = await client.v2.reply(formattedHashtagsComment, createdTweet.id);
-      console.log('Hashtags headers:', hashtagsHeaders); // Log headers for debugging
-      updateRateLimitInfo(hashtagsHeaders);
-      console.log('Hashtags comment posted successfully:', formattedHashtagsComment);
-    }
-
-    return createdTweet;
-  } catch (error) {
-    if (error.code === 401) {
-      console.error('Unauthorized: Check your Twitter API credentials.');
-    } else if (error.code === 403) {
-      console.error('Forbidden: You do not have permission to perform this action. Check your Twitter API permissions.');
-    } else if (error.response && error.response.headers) {
-      console.log('Error headers:', error.response.headers); // Log headers for debugging
-      updateRateLimitInfo(error.response.headers);
-      console.error('Error posting tweet:', error);
-    } else {
-      console.error('Error posting tweet:', error);
-    }
-    // Do not throw an error to keep the application running
-    console.log('Continuing execution despite the error.');
-  }
-}
-
-export async function scanAndRespondToPosts() {
-  const client = new TwitterApi({
-    appKey: `${config.twitter.keys.appKey}`,
-    appSecret: `${config.twitter.keys.appSecret}`,
-    accessToken: `${config.twitter.keys.accessToken}`,
-    accessSecret: `${config.twitter.keys.accessSecret}`,
-  });
-
-  try {
-    const { data } = await client.v2.userTimeline(config.twitter.twitterUserID, { max_results: 5 }); // Set max_results to a valid value
-    const tweets = data.data;
-    for (const tweet of tweets) {
-      if (tweet.in_reply_to_user_id === null) {
-        const response = await generateResponseToTweet(tweet.text);
-        await client.v2.reply(response, tweet.id);
-        console.log('Replied to tweet:', tweet.id);
-      }
-    }
-  } catch (error) {
-    console.error('Error scanning and responding to posts:', error);
-  }
-}
-
-async function generateResponseToTweet(tweetText) {
-  const openai = new OpenAI();
-  const prompt = `
-    ### Twitter Response Generator
-
-    You are a highly engaging and professional Twitter bot. Your job is to create a thoughtful and engaging response to the following tweet:
-    
-    Tweet: "${tweetText}"
-
-    Response:
-  `;
-
-  try {
-    const completion = await openai.chat.completions.create({
-      model: config.llmSettings.openAI.model,
-      messages: [
-        { role: "system", content: prompt },
-        { role: "user", content: tweetText }
-      ],
-    });
-    let response = completion.choices[0].message.content.trim();
-    response = response.replace(/\*\*/g, ''); // Remove Markdown bold formatting
-    response = response.replace(/\n/g, ' \\n '); // Replace newlines with escaped newlines
-    response = response.replace(/\s+/g, ' ').trim(); // Remove extra spaces
-    if (response.length > 280) {
-      response = response.substring(0, 277) + '...'; // Ensure response is within 280 characters
-    }
-    return response;
-  } catch (error) {
-    console.error("Error generating response to tweet:", error);
-  }
 }
