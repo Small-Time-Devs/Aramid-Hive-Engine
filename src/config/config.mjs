@@ -23,7 +23,7 @@ export const config = {
     solanaConstants: {
         mainnet: {
             name: 'solana',
-            rpcUrl: 'https://api.mainnet-beta.solana.com',
+            rpcNode: process.env.HELIUS_RPC_NODE,
             network: 'mainnet-beta',
             tokenMintAddress: 'So11111111111111111111111111111111111111112'
         }
@@ -32,11 +32,16 @@ export const config = {
     // Add API sections and their respective APIs
     apis:{
         crypto: {
-            coinGecko: 'https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids=', // Update to accept a variable
+            coinGecko: 'https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids=',
             dexscreenerTokneProfilesUrl: 'https://api.dexscreener.com/token-profiles/latest/v1',
-            dexscreenerTopBoostedUrl: 'https://api.dexscreener.com/token-boosts/top/v1',
-            raydiumTokenNameUrl: 'https://api-v3.raydium.io/mint/ids?mints=',
-            raydiumTokenPriceUrl: 'https://api-v3.raydium.io/mint/price?mints=',
+            dexscreenerLatestBoostedUrl: 'https://api.dexscreener.com/token-boosts/latest/v1',
+            dexscreenerMostActiveBoostsUrl: 'https://api.dexscreener.com/token-boosts/top/v1',
+            raydiumMintIds: 'https://api-v3.raydium.io/mint/ids?mints=',
+            raydiumMintPrice: 'https://api-v3.raydium.io/mint/price?mints=',
+            meteoraPairs: 'https://dlmm-api.meteora.ag/pair/all_with_pagination',
+            meteoraPairsLimit: 15000,
+            meteoraPairsOrderBy: 'desc',
+            meteoraPairsHideLowTvl: 30000,
         },
         weather: {
             openWeatherMap: 'https://api.openweathermap.org/data/2.5/weather?q=London&appid=your_api_key',

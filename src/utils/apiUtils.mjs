@@ -1,5 +1,7 @@
 import axios from 'axios';
 import { config } from '../config/config.mjs';
+import { Connection, PublicKey } from '@solana/web3.js';
+import { getMint } from '@solana/spl-token';
 
 export async function fetchCryptoData(cryptoName) {
     try {
@@ -66,44 +68,201 @@ export async function fetchLatestBoostedTokens() {
   }
 }
 
-export async function fetchTokenName(contractAddress) {
-    try {
-        const response = await axios.get(`${config.apis.crypto.raydiumTokenNameUrl}${contractAddress}`);
-        if (response.data && response.data.success && response.data.data.length > 0) {
-            return response.data.data[0].name;
-        }
-    } catch (error) {
-        console.error(`Error fetching token name for contract address ${contractAddress}`);
-    }
+export async function fetchMostActiveBoostedTokens() {
+  try {
+    const response = await axios.get(config.apis.crypto.dexscreenerTopBoostedUrl);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching latest boosted tokens:', error);
+    throw new Error('Failed to fetch latest boosted tokens.');
+  }
 }
 
-export async function fetchTokenPrice(contractAddress) {
-    try {
-        const response = await axios.get(`${config.apis.crypto.raydiumTokenPriceUrl}${contractAddress}`);
-        if (response.data && response.data.success && response.data.data[contractAddress]) {
-            return response.data.data[contractAddress];
-        }
-    } catch (error) {
-        console.error(`Error fetching token price for contract address ${contractAddress}`);
-    }
+// Base Solana Token Data Fetching
+
+// Step 1 - Fetch Token Name and Symbol
+export async function fetchTokenNameAndSymbol(contractAddress) {
+  try {
+      const response = await axios.get(`${config.apis.crypto.raydiumMintIds}${contractAddress}`);
+      if (response.data && response.data.success && response.data.data.length > 0) {
+          return {
+              tokenName: response.data.data[0].name,
+              tokenSymbol: response.data.data[0].symbol,
+              decimals: response.data.data[0].decimals,
+          };
+      }
+  } catch (error) {
+      console.error(`Error fetching token name for contract address ${contractAddress}`);
+  }
 }
 
-export async function fetchTokenPairs(chainId, tokenAddress) {
+// Step 2 - Fetch Token Authority Info
+export async function checkTokenAuthority(mintAddress) {
+  try {
+    const connection = new Connection(config.solanaConstants.rpcNode);
+    const mintPublicKey = new PublicKey(mintAddress);
+    
+    const mintInfo = await getMint(connection, mintPublicKey);
+    
+    const hasFreeze = mintInfo.freezeAuthority !== null;
+    const hasMint = mintInfo.mintAuthority !== null;
+    
+    return {
+      safe: !hasFreeze && !hasMint,
+      hasFreeze,
+      hasMint,
+    };
+  } catch (error) {
+    console.error('Error checking token authority:', error);
+    throw error;
+  }
+}
+
+// Step 3 - Fetch Token Pair Data
+export async function fetchTokenPairs(chainId, dexID, quoteTokenSymbol, tokenAddress) {
   try {
     const response = await axios.get(`https://api.dexscreener.com/token-pairs/v1/${chainId}/${tokenAddress}`);
-    return response.data;
+    const tokenPairs = response.data;
+
+    // Filter to exclude the dexID passed and the quote token symbol
+    const filteredPair = tokenPairs.find(pair => pair.dexId == dexID && pair.quoteToken.symbol == quoteTokenSymbol);
+
+    if (!filteredPair) {
+      throw new Error("No valid token pairs found");
+    }
+
+    // Extract required values
+    const result = {
+      tokenName: filteredPair.baseToken.name,
+      tokenSymbol: filteredPair.baseToken.symbol,
+      timeCreated: filteredPair.pairCreatedAt,
+
+      priceNative: filteredPair.priceNative, // SOL price
+      priceUsd: filteredPair.priceUsd, // USD price
+
+      txns5m: filteredPair.txns.m5,
+      txns1h: filteredPair.txns.h1,
+      txns6h: filteredPair.txns.h6,
+      txns24h: filteredPair.txns.h24,
+
+      volume5m: filteredPair.volume.m5,
+      volume1h: filteredPair.volume.h1,
+      volume6h: filteredPair.volume.h6,
+      volume24h: filteredPair.volume.h24,
+
+      priceChange5m: filteredPair.priceChange.m5,
+      priceChange1h: filteredPair.priceChange.h1,
+      priceChange6h: filteredPair.priceChange.h6,
+      priceChange24h: filteredPair.priceChange.h24,
+
+      liquidityUsd: filteredPair.liquidity.usd,
+      liquidityBase: filteredPair.liquidity.base,
+      liquidityQuote: filteredPair.liquidity.quote,
+
+      fdv: filteredPair.fdv,
+      marketCap: filteredPair.marketCap,
+
+      info: {
+        websites: filteredPair.info?.websites || [],
+        socials: filteredPair.info?.socials || [],
+        imageUrl: filteredPair.info?.imageUrl,
+        header: filteredPair.info?.header,
+        openGraph: filteredPair.info?.openGraph
+      }
+    };
+
+    return result;
   } catch (error) {
     console.error(`Error fetching token pairs for ${tokenAddress} on ${chainId}:`, error);
     throw new Error(`Failed to fetch token pairs for ${tokenAddress} on ${chainId}.`);
   }
 }
 
-export async function fetchTokenOrders(chainId, tokenAddress) {
+// Not used currently 
+export async function fetchTokenPrice(contractAddress) {
   try {
-    const response = await axios.get(`https://api.dexscreener.com/orders/v1/${chainId}/${tokenAddress}`);
-    return response.data;
+      const response = await axios.get(`${config.apis.crypto.raydiumMintPrice}${contractAddress}`);
+      if (response.data && response.data.success && response.data.data[contractAddress]) {
+          return response.data.data[contractAddress];
+      }
   } catch (error) {
-    console.error(`Error fetching token orders for ${tokenAddress} on ${chainId}:`, error);
-    throw new Error(`Failed to fetch token orders for ${tokenAddress} on ${chainId}.`);
+      console.error(`Error fetching token price for contract address ${contractAddress}`);
+  }
+}
+
+export async function fetchPoolInfo(contractAddress) {
+  try {
+    const mint1 = 'So11111111111111111111111111111111111111112'; // Default SOL mint address
+    const url = `${globalURLS.raydiumMintAPI}?mint1=${mint1}&mint2=${contractAddress}&poolType=standard&poolSortField=default&sortType=desc&pageSize=1&page=1`;
+
+    console.log(`Fetching token details from: ${url}`);
+
+    const response = await axios.get(url);
+    if (config.twitter.settings.devMode) {
+      console.log('Full response from Raydium API:', JSON.stringify(response.data, null, 2));
+    }
+
+    if (response.status === 200 && response.data?.data?.data?.length > 0) {
+      return response.data.data.data[0]; // Adjusted to match nested data structure
+    }
+
+    console.error(`Token details not found for mint address: ${contractAddress}`);
+    return null;
+  } catch (error) {
+    console.error(`Error fetching token details for ${contractAddress}:`, error.message);
+    return null;
+  }
+}
+
+export async function fetchMeteoraPoolInfo() {
+  try {
+    const response = await axios.get('https://dlmm-api.meteora.ag/pair/all_with_pagination?limit=10000&order_by=desc&hide_low_tvl=30000');
+    
+    if (!response.data || !response.data.pairs) {
+      throw new Error('Invalid response from Meteora API');
+    }
+
+    return response.data.pairs.map(pair => ({
+      poolAddress: pair.address,
+      poolName: pair.name,
+      tokenXMint: pair.mint_x,
+      tokenYMint: pair.mint_y,
+      tokenXReserveAddress: pair.reserve_x,
+      tokenYReserveAddress: pair.reserve_y,
+      tokenXReserveAmount: pair.reserve_x_amount,
+      tokenYReserveAmount: pair.reserve_y_amount,
+      binStep: pair.bin_step,
+      baseFeePercent: pair.base_fee_percentage,
+      maxFeePercent: pair.max_fee_percentage,
+      protocolFeePercent: pair.protocol_fee_percentage,
+      liquidity: pair.liquidity,
+      rewardTokenXMint: pair.reward_mint_x,
+      rewardTokenYMint: pair.reward_mint_y,
+      fees24h: pair.fees_24h,
+      todayFees: pair.today_fees,
+      volume24h: pair.trade_volume_24h, 
+      cumulativeVolume: pair.cumulative_trade_volume,
+      cumulativeFees: pair.cumulative_fee_volume,
+      currentPrice: pair.current_price,
+      apr: pair.apr,
+      apy: pair.apy,
+      farmApr: pair.farm_apr,
+      farmApy: pair.farm_apy,
+      isHidden: pair.hide,
+      // Add these additional fields
+      rewardTokenXPriceInSOL: pair.reward_x_price,
+      rewardTokenYPriceInSOL: pair.reward_y_price,
+      rewardTokenXPriceInUSD: pair.reward_x_price_usd,
+      rewardTokenYPriceInUSD: pair.reward_y_price_usd,
+      totalTradingFeesUSD: pair.total_trading_fees_usd,
+      pairCreatedAt: pair.created_at,
+      updatedAt: pair.updated_at,
+      // Return the original API fields as well
+      raw: pair
+    }));
+
+  } catch (error) {
+    console.error('Error fetching Meteora pool info:', error);
+    throw new Error('Failed to fetch Meteora pool information');
   }
 }

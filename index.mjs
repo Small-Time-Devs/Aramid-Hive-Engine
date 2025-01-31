@@ -11,6 +11,7 @@ import { startConversation } from './src/agents/orchestrator.mjs';
 import { config } from './src/config/config.mjs'; // Import the config
 import { generateAgentConfigurationsforTwitter } from './src/agents/twitter/twitterProfessional.mjs';
 import { generateAgentConfigurationsforMasterTrader } from './src/agents/trading/masterTrader.mjs';
+import { gatherAllTokenData } from './src/agents/trading/dataCollector.mjs';
 
 dotenv.config();
 
@@ -193,6 +194,22 @@ app.post('/trading-agent-chat', async (req, res) => {
 
   try {
     const agentResponses = await generateAgentConfigurationsforMasterTrader(query);
+    res.json({ agents: agentResponses });
+  } catch (error) {
+    console.error("Agent Chat Error:", error);
+    res.status(500).json({ agents: [], summary: "An error occurred while processing your request." });
+  }
+});
+
+app.post('/autoTrading-agent-chat', async (req, res) => {
+  const { chain, contractAddress } = req.body;
+
+  if (!chain || !contractAddress) {
+    return res.status(400).json({ error: "Chain or Contract Address Missing on input!" });
+  }
+
+  try {
+    const tokenData = await gatherAllTokenData(chain, contractAddress);
     res.json({ agents: agentResponses });
   } catch (error) {
     console.error("Agent Chat Error:", error);

@@ -89,7 +89,8 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
         - **Personality**: Witty, engaging.
         - **Task**: Craft a tweet based on the Analyst's findings **and the Investment Strategist's decision**.
             - Include the Token Name in the tweet and the token Ticker and market cap if available.
-            - If the **Investment Strategist** recommends "Invest," make the tweet positive, highlighting the project's strengths.
+            - If the **Investment Strategist** recommends "Invest," make the tweet positive, highlighting the project's strengths and long-term potential.
+            - If the **Investment Strategist** recommends "Quick Profit," make the tweet positive but emphasize the short-term opportunity.
             - If the **Investment Strategist** recommends "Pass," craft a tweet with caution, highlighting risks and advising the audience to research further.
             - Include the Token Name in the tweet and tag the project’s Twitter account (if available).
             - Make sure to say **Not Financial Advice**.
@@ -99,7 +100,7 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
         - **Name**: Randomly generated (e.g., "HypeHelper," "SnarkSidekick").
         - **Personality**: Reactive, dynamic.
         - **Task**: Build on the Social Strategist’s tweet **while aligning with the Investment Strategist's decision**.
-            - If the tone is positive (Invest), reinforce the sentiment with supportive commentary and relevant price details.
+            - If the tone is positive (Invest or Quick Profit), reinforce the sentiment with supportive commentary and relevant price details.
             - If the tone is negative (Pass), double down with skepticism or caution.
             - Keep the response concise and under 2500 characters.
 
@@ -107,7 +108,8 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
         - **Name**: Randomly generated (e.g., "TagMaster," "HashtagHero").
         - **Personality**: Trend-savvy, creative.
         - **Task**: Generate hashtags and finalize the Twitter response **while aligning with the Investment Strategist's decision**.
-            - For "Invest," create hashtags that are positive and engaging.
+            - For "Invest," create hashtags that are positive and emphasize long-term potential.
+            - For "Quick Profit," create hashtags that are positive and emphasize short-term opportunities.
             - For "Pass," create hashtags that convey caution or neutrality.
             - Tag the project’s Twitter account (if available).
             - Keep the response concise and under 500 characters.
@@ -121,11 +123,14 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
             - **Tokens that have freeze authority or mint authority should be avoided unless they are well-established and widely recognized (e.g., JLP).**
             - **Evaluate Meteora pool fees, APR, and APY to confirm trading activity and profitability.**
             - Provide clear reasons for the investment decision.
-            - If the project is worth investing in, provide:
+            - If the project is worth investing in for the **long term**, provide:
                 - A target percentage for gains to sell the investment in **positive percentage format**.
                 - A target percentage for losses to exit the investment in **negative percentage format**.
-            - If the project is deemed risky but has potential for **a quick profit**, consider short-term investment:
-                - **Quick Profit:** Gains between **+20% to +40%**, Losses between **-30% to -40%**.
+                - Example: **"Invest: Gain +50%, Loss -20%"**.
+            - If the project is deemed suitable for a **quick profit**, provide:
+                - A target percentage for gains to sell the investment in **positive percentage format**.
+                - A target percentage for losses to exit the investment in **negative percentage format**.
+                - Example: **"Quick Profit: Gain +20%, Loss -30%"**.
             - If the project is not a good investment, explain why in a **savage and funny** manner and recommend avoiding it.
             - Make sure to say **This is Not Financial Advice**.
             - Include the Dexscreener link formatted as: https://dexscreener.com/solana/{Token Address} at the end of the response.
@@ -153,18 +158,18 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
             {
                 "name": "ProfitPredictor",
                 "personality": "Strategic, risk-averse",
-                "response": "Melania Meme (MELANIA) has moderate liquidity and trading activity, but the recent price drop and low pool APR indicate limited short-term upside. The Meteora pool fees suggest some trading activity, but the APY is too low to justify a long-term hold. Consider a quick flip with tight risk management: Target Gain +10%, Stop-Loss -15%. 🚀 Check the pulse at: https://dexscreener.com/solana/FUAfBo2jgks6gB4Z4LfZkqSZgzNucisEHqnNebaRxM1P",
-                "decision": "Quick Profit: Gain +10%, Loss -15%"
+                "response": "Melania Meme (MELANIA) has moderate liquidity and trading activity, but the recent price drop and low pool APR indicate limited short-term upside. However, the project's fundamentals and community support suggest potential for long-term growth. Consider a long-term investment with a target gain of +50% and a stop-loss of -20%. 🚀 Check the pulse at: https://dexscreener.com/solana/FUAfBo2jgks6gB4Z4LfZkqSZgzNucisEHqnNebaRxM1P",
+                "decision": "Invest: Gain +50%, Loss -20%"
             },
             {
                 "name": "TweetWhiz",
                 "personality": "Witty, engaging",
-                "response": "Melania Meme (MELANIA) is making waves on Solana! 🌊 With moderate liquidity and some trading activity, it might be worth a quick flip. Not financial advice, but keep an eye on this one! 🚀 @MELANIATRUMP"
+                "response": "Melania Meme (MELANIA) is making waves on Solana! 🌊 With moderate liquidity and strong community support, it might be worth a long-term hold. Not financial advice, but keep an eye on this one! 🚀 @MELANIATRUMP"
             },
             {
                 "name": "HypeHelper",
                 "personality": "Reactive, dynamic",
-                "response": "Melania Meme (MELANIA) is showing some action on Solana! 🎢 With a recent price drop, it could be a quick opportunity. Always DYOR! 🧐"
+                "response": "Melania Meme (MELANIA) is showing some action on Solana! 🎢 With a recent price drop, it could be a long-term opportunity. Always DYOR! 🧐"
             },
             {
                 "name": "TagMaster",
