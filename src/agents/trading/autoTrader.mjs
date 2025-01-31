@@ -3,7 +3,7 @@ import { config } from '../../config/config.mjs';
 
 const openai = new OpenAI();
 
-export async function generateAgentConfigurationsforMasterTrader(userInput) {
+export async function generateAgentConfigurationsforAutoTrader(userInput) {
     const prompt = `
         ### 🔹 Dynamic Master Crypto Coin Trader Agent Orchestrator 🔹
 

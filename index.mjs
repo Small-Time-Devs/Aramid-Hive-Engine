@@ -11,6 +11,7 @@ import { startConversation } from './src/agents/orchestrator.mjs';
 import { config } from './src/config/config.mjs'; // Import the config
 import { generateAgentConfigurationsforTwitter } from './src/agents/twitter/twitterProfessional.mjs';
 import { generateAgentConfigurationsforMasterTrader } from './src/agents/trading/masterTrader.mjs';
+import { generateAgentConfigurationsforAutoTrader } from './src/agents/trading/autoTrader.mjs';
 import { gatherAllTokenData } from './src/agents/trading/dataCollector.mjs';
 
 dotenv.config();
@@ -210,6 +211,7 @@ app.post('/autoTrading-agent-chat', async (req, res) => {
 
   try {
     const tokenData = await gatherAllTokenData(chain, contractAddress);
+    const agentResponses = await generateAgentConfigurationsforAutoTrader(tokenData);
     res.json({ agents: agentResponses });
   } catch (error) {
     console.error("Agent Chat Error:", error);
