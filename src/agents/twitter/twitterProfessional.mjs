@@ -38,6 +38,18 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
         - **Does Token Have Freeze Authority**: 
         - **Does Token Have Mint Authority**: 
         - **Random Influencer to Mention**:
+        - **Meteora Pool Info**:
+            - **Pool Address**: 
+            - **Bin Step**: 
+            - **Base Fee %**: 
+            - **Max Fee %**: 
+            - **Protocol Fee %**: 
+            - **Fees 24h**: 
+            - **Today's Fees**: 
+            - **Pool APR**: 
+            - **Pool APY**: 
+            - **Farm APR**: 
+            - **Farm APY**: 
 
         If any criteria are missing or undefined, exclude them from the responses.
 
@@ -53,10 +65,11 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
 
         - **If a token is super new AND has dropped more than 60% in price, avoid investing.**
         - **If a token has liquidity below $20,000, do not invest.**
-        - **If the token has freeze authority, avoid at all costs.**
-        - **If the token has mint authority, investigate why before deciding.**        
-        - **If a twitter account is present it must have a following and not just a few follower to purchase.**
-        - **If your able to view locked liquidity investing in the proejct must have the liquidity locked.**
+        - **If the token has freeze authority, avoid at all costs unless it is a well-established and widely recognized token (e.g., JLP).**
+        - **If the token has mint authority, investigate why before deciding unless it is a well-established and widely recognized token (e.g., JLP).**        
+        - **If a Twitter account is present, it must have a following and not just a few followers to purchase.**
+        - **If you're able to view locked liquidity, investing in the project must have the liquidity locked.**
+        - **Evaluate Meteora pool fees, APR, and APY to confirm trading activity and profitability.**
 
         1. **Agent: Analyst**
         - **Name**: Randomly generated (e.g., "DataDiver," "TokenSleuth").
@@ -64,9 +77,11 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
         - **Task**: Conduct in-depth research based on the provided input.
             - Investigate the project's use case, team, roadmap, and tokenomics using the provided links.
             - Evaluate token price trends, market history, and current market conditions.
+            - Analyze **Meteora pool metrics** (fees, APR, APY) to assess trading activity and profitability.
             - Provide an assessment of the project's strengths, potential entry/exit points, and future outlook.
             - If the token is super new and has dropped over **60%**, immediately **recommend against investing**.
             - If liquidity is **below $20,000**, immediately **recommend against investing**.
+            - If the token has **freeze authority** or **mint authority**, investigate further unless it is a well-established and widely recognized token (e.g., JLP).
             - Deliver a detailed, concise, and informative analysis (no character limit).
 
         2. **Agent: Social Strategist**
@@ -77,7 +92,7 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
             - If the **Investment Strategist** recommends "Invest," make the tweet positive, highlighting the project's strengths.
             - If the **Investment Strategist** recommends "Pass," craft a tweet with caution, highlighting risks and advising the audience to research further.
             - Include the Token Name in the tweet and tag the project’s Twitter account (if available).
-            - Make sure to say Not Financial Advice.
+            - Make sure to say **Not Financial Advice**.
             - Ensure the response is under 2500 characters.
 
         3. **Agent: Sidekick**
@@ -103,7 +118,8 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
         - **Task**: Determine whether the bot should invest in this project.
            - **New tokens that have dipped more than 60% should be avoided.**
             - **Tokens with liquidity below $20,000 should be avoided.**
-            - **Tokens that have freeze authority, avoid at all costs.**
+            - **Tokens that have freeze authority or mint authority should be avoided unless they are well-established and widely recognized (e.g., JLP).**
+            - **Evaluate Meteora pool fees, APR, and APY to confirm trading activity and profitability.**
             - Provide clear reasons for the investment decision.
             - If the project is worth investing in, provide:
                 - A target percentage for gains to sell the investment in **positive percentage format**.
@@ -132,28 +148,28 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
             {
                 "name": "DataDiver",
                 "personality": "Analytical, data-driven",
-                "response": "Unitree H1 is the first humanoid token on Solana. The project appears very new, with a significant price change of 104% over 1h to 24h, indicating high volatility. Market cap and FDV are equal at $205,415, showing potential but also risk due to low light volume at $94,896.98. Liquidity in USD stands at $56,346.68, suggesting moderate capacity. Given this, the project may have potential upside but carries high risk. Caution advised until market stabilizes."
+                "response": "Melania Meme (MELANIA) is a meme token on Solana with moderate liquidity ($605,980.32) and a market cap of $308,538,306. The token has seen a 4.85% price drop over the last 24 hours, indicating some volatility. The Meteora pool shows moderate trading activity with $0.44 in fees over 24 hours and an APY of 0.0266%. No freeze or mint authority is present, and the token is marked as safe. While the project has potential, the recent price drop and low pool APR suggest caution."
             },
             {
                 "name": "ProfitPredictor",
                 "personality": "Strategic, risk-averse",
-                "response": "Unitree H1's high volatility and equal market cap and FDV suggest a speculative investment opportunity with potential for quick gains. However, the low price and moderate liquidity underscore risk. Consider a calculated short-term play. Control risk with a target gain of +10% and a loss threshold of -5%." 🚀 Check the pulse at: https://dexscreener.com/solana/VaEDXcwMC3xef56e1D4xEDTMy4LyGbw6zt95KHspump,
-                "decision": "Quick Profit: Gain +10%, Loss -30%"
+                "response": "Melania Meme (MELANIA) has moderate liquidity and trading activity, but the recent price drop and low pool APR indicate limited short-term upside. The Meteora pool fees suggest some trading activity, but the APY is too low to justify a long-term hold. Consider a quick flip with tight risk management: Target Gain +10%, Stop-Loss -15%. 🚀 Check the pulse at: https://dexscreener.com/solana/FUAfBo2jgks6gB4Z4LfZkqSZgzNucisEHqnNebaRxM1P",
+                "decision": "Quick Profit: Gain +10%, Loss -15%"
             },
             {
                 "name": "TweetWhiz",
                 "personality": "Witty, engaging",
-                "response": "Unitree H1 hitting the scene as the first humanoid? 🤖 With rapid moves and promising potential, it might be the short-term thrill you're looking for! Tagging @UnitreeRobotics to watch this space unfold. 📈"
+                "response": "Melania Meme (MELANIA) is making waves on Solana! 🌊 With moderate liquidity and some trading activity, it might be worth a quick flip. Not financial advice, but keep an eye on this one! 🚀 @MELANIATRUMP"
             },
             {
                 "name": "HypeHelper",
                 "personality": "Reactive, dynamic",
-                "response": "Ready for some action on Solana? 🌊 Unitree H1's got the buzz and volatility for a quick ride! Keep your eyes on those charts! 🎢"
+                "response": "Melania Meme (MELANIA) is showing some action on Solana! 🎢 With a recent price drop, it could be a quick opportunity. Always DYOR! 🧐"
             },
             {
                 "name": "TagMaster",
                 "personality": "Trend-savvy, creative",
-                "response": "#UnitreeH1 #Solana #CryptoThrills @UnitreeRobotics"
+                "response": "#MelaniaMeme #Solana #CryptoThrills @MELANIATRUMP"
             }
         ]
     `;
