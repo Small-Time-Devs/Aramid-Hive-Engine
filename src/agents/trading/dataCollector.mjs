@@ -68,54 +68,49 @@ export async function gatherAllTokenData(chain, contractAddress)  {
     const OpenGraph = RaydiumTokenPairData.info.openGraph || "No Open Graph Displayed From Dexscreener Pair Data";
     
     const TokenData = {
-        BaseInfo: {
-            TokenName,
-            TokenSymbol,
-            TokenDecimals,
-        },
 
-        AuthorityData: {
-            isTokenSafe,
-            hasFreeze,
-            hasMint,
-        },
+        TokenName,
+        TokenSymbol,
+        TokenDecimals,
 
-        PairData: {
-            RaydiumTokenPairDataTokenName,
-            RaydiumTokenPairDataTokenSymbol,
-            TimeCreated,
+        isTokenSafe,
+        hasFreeze,
+        hasMint,
 
-            PriceNative,
-            PriceUSD,
+        RaydiumTokenPairDataTokenName,
+        RaydiumTokenPairDataTokenSymbol,
+        TimeCreated,
 
-            Transactions5m,
-            Transactions1h,
-            Transactions6h,
-            Transactions24h,
+        PriceNative,
+        PriceUSD,
 
-            volume5m,
-            volume1h,
-            volume6h,
-            Volume24h,
+        Transactions5m,
+        Transactions1h,
+        Transactions6h,
+        Transactions24h,
 
-            PriceChange5m,
-            PriceChange1h,
-            PriceChange6h,
-            PriceChange24h,
+        volume5m,
+        volume1h,
+        volume6h,
+        Volume24h,
 
-            LiquidityUSD,
-            LiquidityBase,
-            LiquidityQuote,
+        PriceChange5m,
+        PriceChange1h,
+        PriceChange6h,
+        PriceChange24h,
 
-            FDV,
-            MarketCap,
-            
-            Websites,
-            Socials,
-            ImageURL,
-            Header,
-            OpenGraph,
-        },
+        LiquidityUSD,
+        LiquidityBase,
+        LiquidityQuote,
+
+        FDV,
+        MarketCap,
+        
+        Websites,
+        Socials,
+        ImageURL,
+        Header,
+        OpenGraph,
     }
 
     return TokenData;

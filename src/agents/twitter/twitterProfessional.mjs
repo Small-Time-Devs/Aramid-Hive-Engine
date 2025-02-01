@@ -4,10 +4,13 @@ import { config } from '../../config/config.mjs';
 const openai = new OpenAI();
 
 export async function generateAgentConfigurationsforTwitter(userInput) {
+    // Convert userInput object to string if it's an object
+    const userInputString = typeof userInput === 'object' ? 
+        JSON.stringify(userInput, null, 2) : 
+        String(userInput);
+
     const prompt = `
         ### Dynamic Twitter Agent Orchestrator
-
-        **User Input:** "${userInput}"
 
         **Objective:** Based on the user's input, generate a set of dynamic Twitter agents to respond individually and systematically. Each agent should have a **randomly generated name** (e.g., "CryptoGuru," "MarketMaven") to add personality and variety. The names should align with their personalities and roles.
 
@@ -15,41 +18,40 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
 
         #### Input Criteria
         The user's input may include the following details:
-        - **Date Created**: 
-        - **Token Name**: 
-        - **Token Symbol**: 
-        - **Token Description**: 
-        - **Token Address**: 
-        - **Token Twitter URL**: 
-        - **Token Website URL**: 
-        - **Token Price in SOL**: 
-        - **Token Price in USD**: 
-        - **Token Volume (24h)**: 
-        - **Token Price Change (5m)**: 
-        - **Token Price Change (1h)**: 
-        - **Token Price Change (6h)**: 
-        - **Token Price Change (24h)**: 
-        - **Token Liquidity (USD)**: 
-        - **Token Liquidity (Base)**: 
-        - **Token Liquidity (Quote)**: 
-        - **Token FDV**: 
-        - **Token Market Cap**: 
-        - **Is Token Safe**: 
-        - **Does Token Have Freeze Authority**: 
-        - **Does Token Have Mint Authority**: 
-        - **Random Influencer to Mention**:
-        - **Meteora Pool Info**:
-            - **Pool Address**: 
-            - **Bin Step**: 
-            - **Base Fee %**: 
-            - **Max Fee %**: 
-            - **Protocol Fee %**: 
-            - **Fees 24h**: 
-            - **Today's Fees**: 
-            - **Pool APR**: 
-            - **Pool APY**: 
-            - **Farm APR**: 
-            - **Farm APY**: 
+        Token Name: ${userInput.TokenName || userInput.RaydiumTokenPairDataTokenName}
+        Token Symbol: ${userInput.TokenSymbol || userInput.RaydiumTokenPairDataTokenSymbol}
+        Time Created: ${userInput.TimeCreated}
+        Token Decimals: ${userInput.TokenDecimals}
+
+        Is Token safe: ${userInput.isTokenSafe}
+        Has Freeze Authority: ${userInput.hasFreeze}
+        Has Mint Authority: ${userInput.hasMint}
+
+        Native Price: ${userInput.PriceNative}
+        USD Price: ${userInput.PriceUSD}
+
+        5 Minute Transactions: ${userInput.Transactions5m}
+        1 Hour Transactions: ${userInput.Transactions1h}
+        6 Minute Transactions: ${userInput.Transactions6h}
+        24 Minute Transactions: ${userInput.Transactions24h}
+
+        5 Minute Price Change: ${userInput.PriceChange5m}
+        1 Hour Price Change: ${userInput.PriceChange1h}
+        6 Hour Price Change: ${userInput.PriceChange6h}
+        24 Hour Price Change: ${userInput.PriceChange24h}
+
+        Liquidity USD: ${userInput.LiquidityUSD}
+        Liquidity Base Token: ${userInput.LiquidityBase}
+        Liquidity Quote SOL: ${userInput.LiquidityQuote}
+
+        Fully Dilutated Value: ${userInput.FDV}
+        Market Cap: ${userInput.MarketCap}
+        
+        Websites: ${userInput.Websites}
+        Socials: ${userInput.Socials}
+        Image URL: ${userInput.ImageURL}
+        DexScreener Header Image: ${userInput.Header}
+        Open Graph Image: ${userInput.OpenGraph}
 
         If any criteria are missing or undefined, exclude them from the responses.
 
@@ -69,7 +71,6 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
         - **If the token has mint authority, investigate why before deciding unless it is a well-established and widely recognized token (e.g., JLP).**        
         - **If a Twitter account is present, it must have a following and not just a few followers to purchase.**
         - **If you're able to view locked liquidity, investing in the project must have the liquidity locked.**
-        - **Evaluate Meteora pool fees, APR, and APY to confirm trading activity and profitability.**
 
         1. **Agent: Analyst**
         - **Name**: Randomly generated (e.g., "DataDiver," "TokenSleuth").
@@ -77,7 +78,6 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
         - **Task**: Conduct in-depth research based on the provided input.
             - Investigate the project's use case, team, roadmap, and tokenomics using the provided links.
             - Evaluate token price trends, market history, and current market conditions.
-            - Analyze **Meteora pool metrics** (fees, APR, APY) to assess trading activity and profitability.
             - Provide an assessment of the project's strengths, potential entry/exit points, and future outlook.
             - If the token is super new and has dropped over **60%**, immediately **recommend against investing**.
             - If liquidity is **below $20,000**, immediately **recommend against investing**.
@@ -136,7 +136,7 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
             - Include the Dexscreener link formatted as: https://dexscreener.com/solana/{Token Address} at the end of the response.
             - Include the following disclaimer:
 
-            **Disclaimer:** This is an automated detection of a new token. This is not an endorsement or investment advice. This message is intended for informational purposes only. This is the end of transmission. Please understand any and all risks before executing any transaction on the Solana blockchain. Interacting with this Blink is of the user’s own volition. Purchasing micro-cap tokens is inherently risky.
+            **Disclaimer:** This is an automated detection of a new token. This is not an endorsement or investment advice. This message is intended for informational purposes only. Please understand any and all risks before executing any transaction on the Solana blockchain. Purchasing micro-cap tokens is inherently risky.
 
             - Include a separate **decision** field:
                 - For a good long-term investment: **"Invest: Gain +X%, Loss -X%"**.
@@ -184,7 +184,7 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
             model: config.llmSettings.openAI.model,
             messages: [
                 { role: "system", content: prompt },
-                { role: "user", content: userInput }
+                { role: "user", content: userInputString } // Now sending string instead of object
             ]
         });
 

@@ -7,9 +7,6 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
     const prompt = `
         ### 🔹 Dynamic Master Crypto Coin Trader Agent Orchestrator 🔹
 
-        #### **📝 User Input:**  
-        > **"${userInput}"**
-
         #### **🎯 Objective:**  
         Each agent must evaluate the project based on the user's input and generate a **professional yet concise** decision. To add personality, every agent will have a **randomly generated name** (e.g., "CryptoGuru," "MarketMaven"), ensuring diversity and engagement.
 
@@ -17,40 +14,41 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
 
         ### **📌 Input Criteria**
         The provided input may include any of the following details:
+
+        Token Name: ${userInput.TokenName || userInput.RaydiumTokenPairDataTokenName}
+        Token Symbol: ${userInput.TokenSymbol || userInput.RaydiumTokenPairDataTokenSymbol}
+        Time Created: ${userInput.TimeCreated}
+        Token Decimals: ${userInput.TokenDecimals}
+
+        Is Token safe: ${userInput.isTokenSafe}
+        Has Freeze Authority: ${userInput.hasFreeze}
+        Has Mint Authority: ${userInput.hasMint}
+
+        Native Price: ${userInput.PriceNative}
+        USD Price: ${userInput.PriceUSD}
+
+        5 Minute Transactions: ${userInput.Transactions5m}
+        1 Hour Transactions: ${userInput.Transactions1h}
+        6 Minute Transactions: ${userInput.Transactions6h}
+        24 Minute Transactions: ${userInput.Transactions24h}
+
+        5 Minute Price Change: ${userInput.PriceChange5m}
+        1 Hour Price Change: ${userInput.PriceChange1h}
+        6 Hour Price Change: ${userInput.PriceChange6h}
+        24 Hour Price Change: ${userInput.PriceChange24h}
+
+        Liquidity USD: ${userInput.LiquidityUSD}
+        Liquidity Base Token: ${userInput.LiquidityBase}
+        Liquidity Quote SOL: ${userInput.LiquidityQuote}
+
+        Fully Dilutated Value: ${userInput.FDV}
+        Market Cap: ${userInput.MarketCap}
         
-        Token Data: {
-        BaseInfo: { TokenName: 'SOLIZARD', TokenSymbol: 'LIZARD', TokenDecimals: 6 },
-        AuthorityData: { isTokenSafe: true, hasFreeze: false, hasMint: false },
-        PairData: {
-            RaydiumTokenPairDataTokenName: 'SOLIZARD',
-            RaydiumTokenPairDataTokenSymbol: 'LIZARD',
-            TimeCreated: 1738422590000,
-            PriceNative: '0.0000001593',
-            PriceUSD: '0.00003608',
-            Transactions5m: { buys: 101, sells: 75 },
-            Transactions1h: { buys: 1063, sells: 570 },
-            Transactions6h: { buys: 1063, sells: 570 },
-            Transactions24h: { buys: 1063, sells: 570 },
-            volume5m: 13221.9,
-            volume1h: 128143.06,
-            volume6h: 128143.06,
-            Volume24h: 128143.06,
-            PriceChange5m: 1.24,
-            PriceChange1h: 1126,
-            PriceChange6h: 1126,
-            PriceChange24h: 1126,
-            LiquidityUSD: 10196.12,
-            LiquidityBase: 141151831,
-            LiquidityQuote: 22.5393,
-            FDV: 36083,
-            MarketCap: 36083,
-            Websites: [ [Object] ],
-            Socials: [ [Object], [Object] ],
-            ImageURL: 'https://dd.dexscreener.com/ds-data/tokens/solana/EwvwumdXnJrsvwXwa7SeDMGr7dsdwPWY2raWZ14Lpump.png?key=b71fe9',
-            Header: 'https://dd.dexscreener.com/ds-data/tokens/solana/EwvwumdXnJrsvwXwa7SeDMGr7dsdwPWY2raWZ14Lpump/header.png?key=b71fe9',
-            OpenGraph: 'https://cdn.dexscreener.com/token-images/og/solana/EwvwumdXnJrsvwXwa7SeDMGr7dsdwPWY2raWZ14Lpump?timestamp=1738424700000'
-        }
-        }
+        Websites: ${userInput.Websites}
+        Socials: ${userInput.Socials}
+        Image URL: ${userInput.ImageURL}
+        DexScreener Header Image: ${userInput.Header}
+        Open Graph Image: ${userInput.OpenGraph}
 
         🔹 If any data points are missing or undefined, exclude them from the analysis.
 

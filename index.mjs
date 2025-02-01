@@ -8,9 +8,7 @@ import bodyParser from 'body-parser';
 import timeout from 'connect-timeout'; // Import the timeout middleware
 import { fileURLToPath } from 'url';
 import { startConversation } from './src/agents/orchestrator.mjs';
-import { config } from './src/config/config.mjs'; // Import the config
 import { generateAgentConfigurationsforTwitter } from './src/agents/twitter/twitterProfessional.mjs';
-import { generateAgentConfigurationsforMasterTrader } from './src/agents/trading/masterTrader.mjs';
 import { generateAgentConfigurationsforAutoTrader } from './src/agents/trading/autoTrader.mjs';
 import { gatherAllTokenData } from './src/agents/trading/dataCollector.mjs';
 
@@ -171,30 +169,16 @@ app.post('/agent-chat', async (req, res) => {
 });
 
 app.post('/twitter-agent-chat', async (req, res) => {
-  const { query } = req.body;
+  const { chain, contractAddress } = req.body;
 
-  if (!query) {
-    return res.status(400).json({ error: "Query is required." });
+  if (!chain || !contractAddress) {
+    return res.status(400).json({ error: "Chain info or contract address missing." });
   }
 
   try {
-    const agentResponses = await generateAgentConfigurationsforTwitter(query);
-    res.json({ agents: agentResponses });
-  } catch (error) {
-    console.error("Agent Chat Error:", error);
-    res.status(500).json({ agents: [], summary: "An error occurred while processing your request." });
-  }
-});
-
-app.post('/trading-agent-chat', async (req, res) => {
-  const { query } = req.body;
-
-  if (!query) {
-    return res.status(400).json({ error: "Query is required." });
-  }
-
-  try {
-    const agentResponses = await generateAgentConfigurationsforMasterTrader(query);
+    const tokenData = await gatherAllTokenData(chain, contractAddress);
+    console.log("Token Data:", tokenData);
+    const agentResponses = await generateAgentConfigurationsforTwitter(tokenData);
     res.json({ agents: agentResponses });
   } catch (error) {
     console.error("Agent Chat Error:", error);
