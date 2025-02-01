@@ -205,6 +205,9 @@ app.post('/trading-agent-chat', async (req, res) => {
 app.post('/autoTrading-agent-chat', async (req, res) => {
   const { chain, contractAddress } = req.body;
 
+  console.log("Chain:", chain);
+  console.log("Contract Address:", contractAddress);
+
   if (!chain || !contractAddress) {
     return res.status(400).json({ error: "Chain or Contract Address Missing on input!" });
   }
