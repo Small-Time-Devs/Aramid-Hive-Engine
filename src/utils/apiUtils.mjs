@@ -99,7 +99,7 @@ export async function fetchTokenNameAndSymbol(contractAddress) {
 // Step 2 - Fetch Token Authority Info
 export async function checkTokenAuthority(mintAddress) {
   try {
-    const connection = new Connection(config.solanaConstants.rpcNode);
+    const connection = new Connection(config.solanaConstants.mainnet.rpcNode, 'confirmed');
     const mintPublicKey = new PublicKey(mintAddress);
     
     const mintInfo = await getMint(connection, mintPublicKey);

@@ -55,8 +55,14 @@ export async function gatherAllTokenData(chain, contractAddress)  {
     const FDV = RaydiumTokenPairData.fdv || "No FDV Displayed From Dexscreener Pair Data";
     const MarketCap = RaydiumTokenPairData.marketCap || "No Market Cap Displayed From Dexscreener Pair Data";
 
-    const Websites = RaydiumTokenPairData.info.websites || "No Websites Displayed From Dexscreener Pair Data";
-    const Socials = RaydiumTokenPairData.info.socials || "No Socials Displayed From Dexscreener Pair Data";
+    const Websites = RaydiumTokenPairData.info.websites ? 
+        JSON.stringify(RaydiumTokenPairData.info.websites) : 
+        "No Websites Displayed From Dexscreener Pair Data";
+    
+    const Socials = RaydiumTokenPairData.info.socials ? 
+        JSON.stringify(RaydiumTokenPairData.info.socials) : 
+        "No Socials Displayed From Dexscreener Pair Data";
+
     const ImageURL = RaydiumTokenPairData.info.imageUrl || "No Image URL Displayed From Dexscreener Pair Data";
     const Header = RaydiumTokenPairData.info.header || "No Header Displayed From Dexscreener Pair Data";
     const OpenGraph = RaydiumTokenPairData.info.openGraph || "No Open Graph Displayed From Dexscreener Pair Data";

@@ -214,6 +214,7 @@ app.post('/autoTrading-agent-chat', async (req, res) => {
 
   try {
     const tokenData = await gatherAllTokenData(chain, contractAddress);
+    console.log("Token Data:", tokenData);
     const agentResponses = await generateAgentConfigurationsforAutoTrader(tokenData);
     res.json({ agents: agentResponses });
   } catch (error) {

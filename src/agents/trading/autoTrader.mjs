@@ -16,55 +16,41 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
         ---
 
         ### **📌 Input Criteria**
-        The provided input may include any of the following details:  
-        BaseInfo: {
-            TokenName,
-            TokenSymbol,
-            TokenDecimals,
-        },
-
-        AuthorityData: {
-            isTokenSafe,
-            hasFreeze,
-            hasMint,
-        },
-
+        The provided input may include any of the following details:
+        
+        Token Data: {
+        BaseInfo: { TokenName: 'SOLIZARD', TokenSymbol: 'LIZARD', TokenDecimals: 6 },
+        AuthorityData: { isTokenSafe: true, hasFreeze: false, hasMint: false },
         PairData: {
-            RaydiumTokenPairDataTokenName,
-            RaydiumTokenPairDataTokenSymbol,
-            TimeCreated,
-
-            PriceNative,
-            PriceUSD,
-
-            Transactions5m,
-            Transactions1h,
-            Transactions6h,
-            Transactions24h,
-
-            volume5m,
-            volume1h,
-            volume6h,
-            Volume24h,
-
-            PriceChange5m,
-            PriceChange1h,
-            PriceChange6h,
-            PriceChange24h,
-
-            LiquidityUSD,
-            LiquidityBase,
-            LiquidityQuote,
-
-            FDV,
-            MarketCap,
-            
-            Websites,
-            Socials,
-            ImageURL,
-            Header,
-            OpenGraph,
-        },
+            RaydiumTokenPairDataTokenName: 'SOLIZARD',
+            RaydiumTokenPairDataTokenSymbol: 'LIZARD',
+            TimeCreated: 1738422590000,
+            PriceNative: '0.0000001593',
+            PriceUSD: '0.00003608',
+            Transactions5m: { buys: 101, sells: 75 },
+            Transactions1h: { buys: 1063, sells: 570 },
+            Transactions6h: { buys: 1063, sells: 570 },
+            Transactions24h: { buys: 1063, sells: 570 },
+            volume5m: 13221.9,
+            volume1h: 128143.06,
+            volume6h: 128143.06,
+            Volume24h: 128143.06,
+            PriceChange5m: 1.24,
+            PriceChange1h: 1126,
+            PriceChange6h: 1126,
+            PriceChange24h: 1126,
+            LiquidityUSD: 10196.12,
+            LiquidityBase: 141151831,
+            LiquidityQuote: 22.5393,
+            FDV: 36083,
+            MarketCap: 36083,
+            Websites: [ [Object] ],
+            Socials: [ [Object], [Object] ],
+            ImageURL: 'https://dd.dexscreener.com/ds-data/tokens/solana/EwvwumdXnJrsvwXwa7SeDMGr7dsdwPWY2raWZ14Lpump.png?key=b71fe9',
+            Header: 'https://dd.dexscreener.com/ds-data/tokens/solana/EwvwumdXnJrsvwXwa7SeDMGr7dsdwPWY2raWZ14Lpump/header.png?key=b71fe9',
+            OpenGraph: 'https://cdn.dexscreener.com/token-images/og/solana/EwvwumdXnJrsvwXwa7SeDMGr7dsdwPWY2raWZ14Lpump?timestamp=1738424700000'
+        }
+        }
 
         🔹 If any data points are missing or undefined, exclude them from the analysis.
 
