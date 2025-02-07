@@ -99,7 +99,8 @@ export async function generateAgentConfigurationsforMasterTrader(userInput) {
 
         #### **📌 Responsibilities:**  
         - **Review the Analyst’s findings** and determine if investing is a good decision.  
-        - **Check for red flags** (liquidity, price drops, authority settings).  
+        - **Check for red flags** (liquidity, price drops, authority settings).
+        - **Check Mint Time** Make the decision based on the mint time, the closer to the mint time of the purchase the better and safer the investment will be.
         - **Evaluate Meteora pool fees and volume** to confirm trading activity and potential profitability.  
         - If **worth investing for the long term**, provide:  
             - **✅ Target Gain %** → When to take profit.  
