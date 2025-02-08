@@ -82,6 +82,8 @@ export async function fetchMostActiveBoostedTokens() {
 
 // Step 1 - Fetch Token Name and Symbol
 export async function fetchTokenNameAndSymbol(contractAddress) {
+
+  /*
   try {
       const response = await axios.get(`${config.apis.crypto.raydiumMintIds}${contractAddress}`);
       if (response.data && response.data.success && response.data.data.length > 0) {
@@ -91,8 +93,20 @@ export async function fetchTokenNameAndSymbol(contractAddress) {
               decimals: response.data.data[0].decimals,
           };
       }
+          */
+  try {
+    const response = await axios.get(`${config.apis.crypto.jupTokenLookup}${contractAddress}`);
+    if (response.data) {
+      return {
+        tokenName: response.data.name,
+        tokenSymbol: response.data.symbol,
+        decimals: response.data.decimals,
+      };
+    }
+    throw new Error('Invalid response format');
   } catch (error) {
-      console.error(`Error fetching token name for contract address ${contractAddress}`);
+    console.error(`Error fetching token name for contract address ${contractAddress}:`, error);
+    throw error; // Re-throw the error to handle it in the calling function
   }
 }
 
@@ -119,55 +133,82 @@ export async function checkTokenAuthority(mintAddress) {
 }
 
 // Step 3 - Fetch Token Pair Data
-export async function fetchTokenPairs(chainId, dexID, quoteTokenSymbol, tokenAddress) {
+export async function fetchTokenPairs(chainId, quoteTokenSymbol, tokenAddress) {
   try {
     const response = await axios.get(`https://api.dexscreener.com/token-pairs/v1/${chainId}/${tokenAddress}`);
-    const tokenPairs = response.data;
-
-    // Filter to exclude the dexID passed and the quote token symbol
-    const filteredPair = tokenPairs.find(pair => pair.dexId == dexID && pair.quoteToken.symbol == quoteTokenSymbol);
-
-    if (!filteredPair) {
-      throw new Error("No valid token pairs found");
+    
+    if (!Array.isArray(response.data) || response.data.length === 0) {
+      throw new Error("No pairs found in response");
     }
 
-    // Extract required values
+    // Filter pairs by quote token symbol first
+    const pairsWithMatchingQuote = response.data.filter(
+      pair => pair.quoteToken.symbol === quoteTokenSymbol
+    );
+
+    if (pairsWithMatchingQuote.length === 0) {
+      throw new Error(`No pairs found with quote token symbol ${quoteTokenSymbol}`);
+    }
+
+    // First try to find a Raydium pair
+    let selectedPair = pairsWithMatchingQuote.find(
+      pair => pair.dexId.toLowerCase() === 'raydium'
+    );
+
+    // If no Raydium pair exists, try popular DEXes in order of preference
+    if (!selectedPair) {
+      const preferredDexes = ['pumpfun', 'moonshot', 'meteora', 'orca'];
+      for (const dex of preferredDexes) {
+        selectedPair = pairsWithMatchingQuote.find(
+          pair => pair.dexId.toLowerCase() === dex
+        );
+        if (selectedPair) break;
+      }
+    }
+
+    // If still no pair found, use the first available pair
+    if (!selectedPair) {
+      selectedPair = pairsWithMatchingQuote[0];
+      console.log(`Using ${selectedPair.dexId} pair as no preferred DEX pairs found`);
+    }
+
     const result = {
-      tokenName: filteredPair.baseToken.name,
-      tokenSymbol: filteredPair.baseToken.symbol,
-      timeCreated: filteredPair.pairCreatedAt,
+      dexId: selectedPair.dexId,
+      tokenName: selectedPair.baseToken?.name || 'Token name not available',
+      tokenSymbol: selectedPair.baseToken?.symbol || 'Token symbol not available',
+      timeCreated: selectedPair?.pairCreatedAt || 'PumpFun does not provide creation time',
 
-      priceNative: filteredPair.priceNative, // SOL price
-      priceUsd: filteredPair.priceUsd, // USD price
+      priceNative: selectedPair?.priceNative || 'Native price not showing',
+      priceUsd: selectedPair?.priceUsd || 'USD Price not showing',
 
-      txns5m: filteredPair.txns.m5,
-      txns1h: filteredPair.txns.h1,
-      txns6h: filteredPair.txns.h6,
-      txns24h: filteredPair.txns.h24,
+      txns5m: selectedPair.txns?.m5 || 'PumpFun does not have 5m txn info',
+      txns1h: selectedPair.txns?.h1 || 'PumpFun does not have 1h txn info',
+      txns6h: selectedPair.txns?.h6 || 'PumpFun does not have 6h txn info',
+      txns24h: selectedPair.txns?.h24 || 'PumpFun does not have 24h txn info',
 
-      volume5m: filteredPair.volume.m5,
-      volume1h: filteredPair.volume.h1,
-      volume6h: filteredPair.volume.h6,
-      volume24h: filteredPair.volume.h24,
+      volume5m: selectedPair.volume?.m5 || 'PumpFun does not have 5m volume info',
+      volume1h: selectedPair.volume?.h1 || 'PumpFun does not have 1h volume info',
+      volume6h: selectedPair.volume?.h6 || 'PumpFun does not have 6h volume info',
+      volume24h: selectedPair.volume?.h24 || 'PumpFun does not have 24h volume info',
 
-      priceChange5m: filteredPair.priceChange.m5,
-      priceChange1h: filteredPair.priceChange.h1,
-      priceChange6h: filteredPair.priceChange.h6,
-      priceChange24h: filteredPair.priceChange.h24,
+      priceChange5m: selectedPair.priceChange?.m5 || 'PumpFun does not have 5m price change info',
+      priceChange1h: selectedPair.priceChange?.h1 || 'PumpFun does not have 1h price change info',
+      priceChange6h: selectedPair.priceChange?.h6 || 'PumpFun does not have 6h price change info',
+      priceChange24h: selectedPair.priceChange?.h24 || 'PumpFun does not have 24h price change info',
 
-      liquidityUsd: filteredPair.liquidity.usd,
-      liquidityBase: filteredPair.liquidity.base,
-      liquidityQuote: filteredPair.liquidity.quote,
+      liquidityUsd: selectedPair.liquidity?.usd || 'PumpFun does not provide liquidity info',
+      liquidityBase: selectedPair.liquidity?.base || 'PumpFun does not provide base liquidity info',
+      liquidityQuote: selectedPair.liquidity?.quote || 'PumpFun does not provide quote liquidity info',
 
-      fdv: filteredPair.fdv,
-      marketCap: filteredPair.marketCap,
+      fdv: selectedPair?.fdv || 'PumpFun does not provide FDV info',
+      marketCap: selectedPair?.marketCap || 'PumpFun does not provide market cap info',
 
       info: {
-        websites: filteredPair.info?.websites || [],
-        socials: filteredPair.info?.socials || [],
-        imageUrl: filteredPair.info?.imageUrl,
-        header: filteredPair.info?.header,
-        openGraph: filteredPair.info?.openGraph
+        websites: selectedPair.info?.websites || 'PumpFun does not provide website info',
+        socials: selectedPair.info?.socials || 'PumpFun does not provide social media info',
+        imageUrl: selectedPair.info?.imageUrl || 'PumpFun does not provide image URL',
+        header: selectedPair.info?.header || 'PumpFun does not provide header info',
+        openGraph: selectedPair.info?.openGraph || 'PumpFun does not provide OpenGraph info'
       }
     };
 

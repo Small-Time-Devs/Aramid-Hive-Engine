@@ -69,6 +69,10 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
         ❌ The token has **mint authority** (investigate before deciding).  
         ❌ If liquidity is locked, ensure it remains locked before investing.  
 
+        **Note for PumpFun Tokens:**  
+        - If the token's dexID is **pumpfun**, liquidity metrics (such as Liquidity USD, Liquidity Base Token, and Liquidity Quote SOL) may not be representative since PumpFun tokens are newly launched and liquidity is assessed based on market cap.  
+        - In such cases, **do not strictly enforce the $20,000 liquidity rule**. Instead, evaluate the token based on its **market cap** and confirm that there is active trading activity—ensuring that both buy and sell transactions are taking place.
+
         ---
 
         ## **🕵️‍♂️ Agent 1: Analyst**  

@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { config } from '../../config/config.mjs';
+import { config } from '../../../config/config.mjs';
 
 const openai = new OpenAI();
 

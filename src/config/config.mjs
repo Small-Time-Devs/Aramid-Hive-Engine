@@ -36,6 +36,7 @@ export const config = {
             dexscreenerTokneProfilesUrl: 'https://api.dexscreener.com/token-profiles/latest/v1',
             dexscreenerLatestBoostedUrl: 'https://api.dexscreener.com/token-boosts/latest/v1',
             dexscreenerMostActiveBoostsUrl: 'https://api.dexscreener.com/token-boosts/top/v1',
+            jupTokenLookup: 'https://api.jup.ag/tokens/v1/token/',
             raydiumMintIds: 'https://api-v3.raydium.io/mint/ids?mints=',
             raydiumMintPrice: 'https://api-v3.raydium.io/mint/price?mints=',
             meteoraPairs: 'https://dlmm-api.meteora.ag/pair/all_with_pagination',

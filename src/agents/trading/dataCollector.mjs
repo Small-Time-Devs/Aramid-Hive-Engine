@@ -21,51 +21,50 @@ export async function gatherAllTokenData(chain, contractAddress)  {
     const hasFreeze = TokenAuthorityData.hasFreeze;
     const hasMint = TokenAuthorityData.hasMint;
 
-    // Step 3 - Gather The Token Pair Data for Raydium
-    const dexID = 'raydium';
+    // Step 3 - Gather The Token Pair Data from the different dexIds
     const quoteTokenSymbol = 'SOL';
-    const RaydiumTokenPairData = await fetchTokenPairs(chain, dexID, quoteTokenSymbol, contractAddress);
+    const TokenPairData = await fetchTokenPairs(chain, quoteTokenSymbol, contractAddress);
 
-    const RaydiumTokenPairDataTokenName = RaydiumTokenPairData.tokenName || "No Token Name Displayed From Dexscreener Pair Data";
-    const RaydiumTokenPairDataTokenSymbol = RaydiumTokenPairData.tokenSymbol || "No Token Symbol Displayed From Dexscreener Pair Data";
-    const TimeCreated = RaydiumTokenPairData.timeCreated || "No Time Created Displayed From Dexscreener Pair Data";
+    const RaydiumTokenPairDataTokenName = TokenPairData.tokenName || "No Token Name Displayed From Dexscreener Pair Data";
+    const RaydiumTokenPairDataTokenSymbol = TokenPairData.tokenSymbol || "No Token Symbol Displayed From Dexscreener Pair Data";
+    const TimeCreated = TokenPairData.timeCreated || "No Time Created Displayed From Dexscreener Pair Data";
 
-    const PriceNative = RaydiumTokenPairData.priceNative || "No Price Native Displayed From Dexscreener Pair Data";
-    const PriceUSD = RaydiumTokenPairData.priceUsd || "No Price USD Displayed From Dexscreener Pair Data";
+    const PriceNative = TokenPairData.priceNative || "No Price Native Displayed From Dexscreener Pair Data";
+    const PriceUSD = TokenPairData.priceUsd || "No Price USD Displayed From Dexscreener Pair Data";
 
-    const Transactions5m = RaydiumTokenPairData.txns5m || "No Transactions 5m Displayed From Dexscreener Pair Data";
-    const Transactions1h = RaydiumTokenPairData.txns1h || "No Transactions 1h Displayed From Dexscreener Pair Data";
-    const Transactions6h = RaydiumTokenPairData.txns6h || "No Transactions 6h Displayed From Dexscreener Pair Data";
-    const Transactions24h = RaydiumTokenPairData.txns24h || "No Transactions 24h Displayed From Dexscreener Pair Data";
+    const Transactions5m = TokenPairData.txns5m || "No Transactions 5m Displayed From Dexscreener Pair Data";
+    const Transactions1h = TokenPairData.txns1h || "No Transactions 1h Displayed From Dexscreener Pair Data";
+    const Transactions6h = TokenPairData.txns6h || "No Transactions 6h Displayed From Dexscreener Pair Data";
+    const Transactions24h = TokenPairData.txns24h || "No Transactions 24h Displayed From Dexscreener Pair Data";
 
-    const volume5m = RaydiumTokenPairData.volume5m || "No Volume 5m Displayed From Dexscreener Pair Data";
-    const volume1h = RaydiumTokenPairData.volume1h || "No Volume 1h Displayed From Dexscreener Pair Data";
-    const volume6h = RaydiumTokenPairData.volume6h || "No Volume 6h Displayed From Dexscreener Pair Data";
-    const Volume24h = RaydiumTokenPairData.volume24h || "No Volume 24h Displayed From Dexscreener Pair Data";
+    const volume5m = TokenPairData.volume5m || "No Volume 5m Displayed From Dexscreener Pair Data";
+    const volume1h = TokenPairData.volume1h || "No Volume 1h Displayed From Dexscreener Pair Data";
+    const volume6h = TokenPairData.volume6h || "No Volume 6h Displayed From Dexscreener Pair Data";
+    const Volume24h = TokenPairData.volume24h || "No Volume 24h Displayed From Dexscreener Pair Data";
 
-    const PriceChange5m = RaydiumTokenPairData.priceChange5m || "No Price Change 5m Displayed From Dexscreener Pair Data";
-    const PriceChange1h = RaydiumTokenPairData.priceChange1h || "No Price Change 1h Displayed From Dexscreener Pair Data";
-    const PriceChange6h = RaydiumTokenPairData.priceChange6h || "No Price Change 6h Displayed From Dexscreener Pair Data";
-    const PriceChange24h = RaydiumTokenPairData.priceChange24h || "No Price Change 24h Displayed From Dexscreener Pair Data";
+    const PriceChange5m = TokenPairData.priceChange5m || "No Price Change 5m Displayed From Dexscreener Pair Data";
+    const PriceChange1h = TokenPairData.priceChange1h || "No Price Change 1h Displayed From Dexscreener Pair Data";
+    const PriceChange6h = TokenPairData.priceChange6h || "No Price Change 6h Displayed From Dexscreener Pair Data";
+    const PriceChange24h = TokenPairData.priceChange24h || "No Price Change 24h Displayed From Dexscreener Pair Data";
 
-    const LiquidityUSD = RaydiumTokenPairData.liquidityUsd || "No Liquidity USD Displayed From Dexscreener Pair Data";
-    const LiquidityBase = RaydiumTokenPairData.liquidityBase || "No Liquidity Base Displayed From Dexscreener Pair Data";
-    const LiquidityQuote = RaydiumTokenPairData.liquidityQuote || "No Liquidity Quote Displayed From Dexscreener Pair Data";
+    const LiquidityUSD = TokenPairData.liquidityUsd || "No Liquidity USD Displayed From Dexscreener Pair Data";
+    const LiquidityBase = TokenPairData.liquidityBase || "No Liquidity Base Displayed From Dexscreener Pair Data";
+    const LiquidityQuote = TokenPairData.liquidityQuote || "No Liquidity Quote Displayed From Dexscreener Pair Data";
 
-    const FDV = RaydiumTokenPairData.fdv || "No FDV Displayed From Dexscreener Pair Data";
-    const MarketCap = RaydiumTokenPairData.marketCap || "No Market Cap Displayed From Dexscreener Pair Data";
+    const FDV = TokenPairData.fdv || "No FDV Displayed From Dexscreener Pair Data";
+    const MarketCap = TokenPairData.marketCap || "No Market Cap Displayed From Dexscreener Pair Data";
 
-    const Websites = RaydiumTokenPairData.info.websites ? 
-        JSON.stringify(RaydiumTokenPairData.info.websites) : 
+    const Websites = TokenPairData.info.websites ? 
+        JSON.stringify(TokenPairData.info.websites) : 
         "No Websites Displayed From Dexscreener Pair Data";
     
-    const Socials = RaydiumTokenPairData.info.socials ? 
-        JSON.stringify(RaydiumTokenPairData.info.socials) : 
+    const Socials = TokenPairData.info.socials ? 
+        JSON.stringify(TokenPairData.info.socials) : 
         "No Socials Displayed From Dexscreener Pair Data";
 
-    const ImageURL = RaydiumTokenPairData.info.imageUrl || "No Image URL Displayed From Dexscreener Pair Data";
-    const Header = RaydiumTokenPairData.info.header || "No Header Displayed From Dexscreener Pair Data";
-    const OpenGraph = RaydiumTokenPairData.info.openGraph || "No Open Graph Displayed From Dexscreener Pair Data";
+    const ImageURL = TokenPairData.info.imageUrl || "No Image URL Displayed From Dexscreener Pair Data";
+    const Header = TokenPairData.info.header || "No Header Displayed From Dexscreener Pair Data";
+    const OpenGraph = TokenPairData.info.openGraph || "No Open Graph Displayed From Dexscreener Pair Data";
     
     const TokenData = {
 
