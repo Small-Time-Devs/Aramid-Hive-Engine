@@ -97,12 +97,12 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
         #### **📌 Responsibilities:**
         - **Review the Analyst’s findings** and determine if investing is a good decision based on both quantitative data and meme culture sentiment.
         - **Check for red flags** (liquidity, price drops, authority settings, trading volume, and social media hype).
-        - If **worth investing for a medium duration (e.g., 3 hours) to meet target gains or stop-loss**, provide:  
+        - If **worth investing for a medium duration (e.g., 1 hours) to meet target gains or stop-loss**, provide:  
             - **✅ Target Gain %** → When to take profit.
             - **❌ Stop-Loss %** → When to exit to minimize losses.
             - Example: **"Invest: Gain +50%, Loss -30%"**.
-        - If **risky but suitable for a quick flip (within 60 minutes)** to meet target gains or stop-loss, provide:  
-            - **"Quick Profit": Gain **+20%**, Loss **-30%**.
+        - If **risky but suitable for a quick flip (within 20 minutes)** to meet target gains or stop-loss, provide:  
+            - Example: **"Quick Profit": Gain **+15%**, Loss **-20%**.
         - If **not worth investing,** state:
             - **"Pass": Explain why.**
         - Provide a **clear, actionable, and meme-savvy decision** that leverages both market data and viral potential.
