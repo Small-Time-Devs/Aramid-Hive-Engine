@@ -49,6 +49,8 @@ Target Loss: ${targetPercentageLoss}%
 
 Based on previous decisions for the current Target Gain and Target Loss, advise if I should sell this trade immediately, adjust the trade's profit and loss targets, or hold the current settings.
 Determine the current price change based on the current price and the entry price in SOL.
+Take into account on the decision that the api charges a 1% fee on the solana amount and the priority fee max amount is 0.001000000 SOL so it can range from very low to the 0.001000000 SOL.
+The priority fee is the fee that the user is willing to pay to get the transaction done faster.
 
 **Important:** Your answer must be **exactly one** of the following (case sensitive, with no additional text or punctuation):
 - "Sell Now"
