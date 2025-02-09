@@ -8,8 +8,11 @@ import bodyParser from 'body-parser';
 import timeout from 'connect-timeout'; // Import the timeout middleware
 import { fileURLToPath } from 'url';
 import { startConversation } from './src/agents/orchestrator.mjs';
+
+import { startAutoTradingChat, startAutoTradingAdvice } from './src/agents/trading/tradeOrchestrator.mjs';
+
 import { generateAgentConfigurationsforTwitter } from './src/agents/twitter/twitterProfessional.mjs';
-import { generateAgentConfigurationsforAutoTrader } from './src/agents/trading/autoTrader.mjs';
+//import { generateAgentConfigurationsforAutoTrader } from './src/agents/trading/autoTrader.mjs';
 import { gatherAllTokenData } from './src/agents/trading/dataCollector.mjs';
 
 dotenv.config();
@@ -186,6 +189,7 @@ app.post('/twitter-agent-chat', async (req, res) => {
   }
 });
 
+/*
 app.post('/autoTrading-agent-chat', async (req, res) => {
   const { chain, contractAddress } = req.body;
 
@@ -201,6 +205,45 @@ app.post('/autoTrading-agent-chat', async (req, res) => {
     console.log("Token Data:", tokenData);
     const agentResponses = await generateAgentConfigurationsforAutoTrader(tokenData);
     res.json({ agents: agentResponses });
+  } catch (error) {
+    console.error("Agent Chat Error:", error);
+    res.status(500).json({ agents: [], summary: "An error occurred while processing your request." });
+  }
+});
+*/
+
+app.post('/autoTrading-agent-chat', async (req, res) => {
+  const { chain, contractAddress } = req.body;
+
+  console.log("Chain:", chain);
+  console.log("Contract Address:", contractAddress);
+
+  if (!chain || !contractAddress) {
+    return res.status(400).json({ error: "Chain or Contract Address Missing on input!" });
+  }
+
+  try {
+    const agentResponses = await startAutoTradingChat(chain, contractAddress);
+    res.json({ agents: agentResponses });
+  } catch (error) {
+    console.error("Agent Chat Error:", error);
+    res.status(500).json({ agents: [], summary: "An error occurred while processing your request." });
+  }
+});
+
+app.post('/autoTrading-agent-advice', async (req, res) => {
+  const { 
+    chain, 
+    contractAddress,
+    entryPriceSOL,
+    targetPercentageGain,
+    targetPercentageLoss
+   } = req.body;
+
+   try {
+    const agentResponse = await startAutoTradingAdvice(chain, contractAddress, entryPriceSOL, targetPercentageGain, targetPercentageLoss);
+    console.log("Agent Response:", agentResponse);
+    res.json({ agents: agentResponse });
   } catch (error) {
     console.error("Agent Chat Error:", error);
     res.status(500).json({ agents: [], summary: "An error occurred while processing your request." });
