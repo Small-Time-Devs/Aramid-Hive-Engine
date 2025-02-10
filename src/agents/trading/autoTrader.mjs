@@ -23,6 +23,7 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
         Is Token safe: ${userInput.isTokenSafe}
         Has Freeze Authority: ${userInput.hasFreeze}
         Has Mint Authority: ${userInput.hasMint}
+        RugCheck Risk: ${userInput.rugCheckRisk}
 
         Native Price: ${userInput.PriceNative}
         USD Price: ${userInput.PriceUSD}
@@ -54,25 +55,14 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
 
         ---
         
-        ### **⚙️ Agent Configurations**
-        Each agent must:  
-        ✅ Have a **unique, randomly generated name** that aligns with its role.  
-        ✅ Follow the investment strategy rules outlined below while incorporating a memecoin trading mindset.
-
-        ---
-        
         ### **📊 Investment Strategy Rules**
-        🚨 **Red Flags – DO NOT INVEST IF:**  
+        🚨 **Red Flags – DO NOT INVEST IF ANY OF THE FOLLOWING IS TRUE:**  
         ❌ The token has dropped **more than 60%** in price.  
-        ❌ The token has liquidity **below $20,000** (unless it’s a pumpfun token, where market cap and active trading are considered).  
+        ❌ The token has liquidity **below \$20,000**.  
         ❌ The token has **freeze authority**.  
         ❌ The token has **mint authority** (investigate before deciding).  
-        ❌ If liquidity is locked, ensure it remains locked before investing.
-        ❌ **Lack of Meme Potential:** For memecoin trading, a token should show signs of vibrant meme culture, social media buzz, or viral potential. A project with little-to-no community hype may not be ideal for a memecoin flip.
-
-        **Note for PumpFun Tokens:**  
-        - If the token's dexID is **pumpfun**, liquidity metrics (such as Liquidity USD, Liquidity Base Token, and Liquidity Quote SOL) may not be representative since PumpFun tokens are newly launched and liquidity is assessed based on market cap.  
-        - In such cases, **do not strictly enforce the $20,000 liquidity rule**. Instead, evaluate the token based on its **market cap**, viral potential, and confirm that there is active trading activity—ensuring both buy and sell transactions are taking place.
+        ❌ The token has **Large Amount of LP Unlocked**.
+        ❌ **IMPORTANT:** Analyze each provided risk factor (from rugCheckRisks). If any risk is labeled with a level of **"danger"** (for example, "Large Amount of LP Unlocked" with level "danger"), treat it as an immediate red flag—this indicates an extremely high risk of a rug pull and potential complete loss of funds.
 
         ---
         
@@ -96,8 +86,9 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
 
         #### **📌 Responsibilities:**
         - **Review the Analyst’s findings** and determine if investing is a good decision based on both quantitative data and meme culture sentiment.
-        - **Check for red flags** (liquidity, price drops, authority settings, trading volume, and social media hype).
-        - If **worth investing for a medium duration (e.g., 1 hours) to meet target gains or stop-loss**, provide:  
+        - **Check for red flags** (liquidity, price drops, authority settings, trading volume, and social media hype).  
+          **Important:** If any red flag is triggered—even more so if any risk is marked as "danger"—the decision must be **"Pass"** with a brief explanation.
+        - If **worth investing for a medium duration (e.g., 1 hour) to meet target gains or stop-loss**, provide:  
             - **✅ Target Gain %** → When to take profit.
             - **❌ Stop-Loss %** → When to exit to minimize losses.
             - Example: **"Invest: Gain +50%, Loss -30%"**.
@@ -117,23 +108,23 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
             {
                 "name": "DataDiver",
                 "personality": "Analytical, data-driven, meme-savvy",
-                "response": "Melania Meme (MELANIA) is a meme token on Solana with moderate liquidity ($605,980.32) and a market cap of $308,538,306. The token has seen a 4.85% price drop over the last 24 hours, indicating some volatility. The Meteora pool shows moderate trading activity with $0.44 in fees over 24 hours and an APY of 0.0266%. No freeze or mint authority is present, and the token is marked as safe. While the project has potential, the recent price drop, low pool APR, and limited meme buzz suggest caution."
+                "response": "Your detailed analysis here..."
             },
             {
                 "name": "ProfitPredictor",
                 "personality": "Strategic, risk-averse, meme-attuned",
-                "response": "Melania Meme (MELANIA) has moderate liquidity and trading activity, but the recent price drop and low pool APR indicate limited short-term upside. However, its meme potential and community engagement hint at long-term gains. Consider a long-term investment with a target gain of +50% and a stop-loss of -20%. 🚀 Keep an eye on the social sentiment and viral trends for confirmation.",
-                "decision": "Invest: Gain +50%, Loss -20%"
+                "response": "Your decision and rationale here...",
+                "decision": "Invest: Gain +X%, Loss -Y%" // or "Quick Profit": Gain +A%, Loss -B%" or "Pass": Explanation here...
             }
         ]
         \\\
-        `;
+    `;
 
     try {
         const completion = await openai.chat.completions.create({
             model: config.llmSettings.openAI.model,
             messages: [
-                { role: "system", content: "You are a professional trading AI assistant." },
+                { role: "system", content: "You are a professional trading AI assistant with expertise in both traditional and memecoin markets." },
                 { role: "user", content: prompt }
             ]
         });

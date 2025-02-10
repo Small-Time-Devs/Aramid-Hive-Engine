@@ -5,58 +5,65 @@ const openai = new OpenAI();
 
 export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPercentageGain, targetPercentageLoss) {
   const prompt = `
-You are a financial trading advisor. You are provided with the following trade details:
+You are a highly analytical financial trading advisor with expertise in crypto and token risk management. You are provided with the following trade details:
 
 Token Name: ${userInput.TokenName || userInput.RaydiumTokenPairDataTokenName}
 Token Symbol: ${userInput.TokenSymbol || userInput.RaydiumTokenPairDataTokenSymbol}
 Time Created: ${userInput.TimeCreated}
 Token Decimals: ${userInput.TokenDecimals}
 
-Is Token safe: ${userInput.isTokenSafe}
+Is Token Safe: ${userInput.isTokenSafe}
 Has Freeze Authority: ${userInput.hasFreeze}
 Has Mint Authority: ${userInput.hasMint}
+Rug Check Risk: ${userInput.rugCheckRisk}
 
-Native Price: ${userInput.PriceNative}
+Native Price (SOL): ${userInput.PriceNative}
 USD Price: ${userInput.PriceUSD}
 
-5 Minute Transactions: ${userInput.Transactions5m}
-1 Hour Transactions: ${userInput.Transactions1h}
-6 Minute Transactions: ${userInput.Transactions6h}
-24 Minute Transactions: ${userInput.Transactions24h}
+Transactions:
+- 5 Minute: ${userInput.Transactions5m}
+- 1 Hour: ${userInput.Transactions1h}
+- 6 Hour: ${userInput.Transactions6h}
+- 24 Hour: ${userInput.Transactions24h}
 
-5 Minute Price Change: ${userInput.PriceChange5m}
-1 Hour Price Change: ${userInput.PriceChange1h}
-6 Hour Price Change: ${userInput.PriceChange6h}
-24 Hour Price Change: ${userInput.PriceChange24h}
+Price Changes:
+- 5 Minute: ${userInput.PriceChange5m}
+- 1 Hour: ${userInput.PriceChange1h}
+- 6 Hour: ${userInput.PriceChange6h}
+- 24 Hour: ${userInput.PriceChange24h}
 
-Liquidity USD: ${userInput.LiquidityUSD}
-Liquidity Base Token: ${userInput.LiquidityBase}
-Liquidity Quote SOL: ${userInput.LiquidityQuote}
+Liquidity:
+- USD: ${userInput.LiquidityUSD}
+- Base Token: ${userInput.LiquidityBase}
+- Quote SOL: ${userInput.LiquidityQuote}
 
-Fully Dilutated Value: ${userInput.FDV}
-Market Cap: ${userInput.MarketCap}
-    
+Market Metrics:
+- Fully Diluted Value: ${userInput.FDV}
+- Market Cap: ${userInput.MarketCap}
+
+Additional Info:
 Websites: ${userInput.Websites}
 Socials: ${userInput.Socials}
 Image URL: ${userInput.ImageURL}
-DexScreener Header Image: ${userInput.Header}
+DexScreener Header: ${userInput.Header}
 Open Graph Image: ${userInput.OpenGraph}
 
 My Current Trade Position:
-Entry Price (SOL): ${entryPriceSOL}
-Target Gain: ${targetPercentageGain}%
-Target Loss: ${targetPercentageLoss}%
+- Entry Price (SOL): ${entryPriceSOL}
+- Target Gain: ${targetPercentageGain}%
+- Target Loss: ${targetPercentageLoss}%
 
-Based on previous decisions for the current Target Gain and Target Loss, advise if I should sell this trade immediately, adjust the trade's profit and loss targets, or hold the current settings.
-Determine the current price change based on the current price and the entry price in SOL.
-Take into account on the decision that the api charges a 1% fee on the solana amount and the priority fee max amount is 0.001000000 SOL so it can range from very low to the 0.001000000 SOL.
-The priority fee is the fee that the user is willing to pay to get the transaction done faster.
+Instructions:
+1. Calculate the percentage change from the Entry Price (SOL) to the current Native Price (PriceNative).
+2. If the calculated price change is greater than or equal to the Target Gain, advise "Sell Now".
+3. If any risk indicators (e.g. token safety is false, issues with freeze/mint authority, or a rug check risk that implies high holder correlation) suggest the token is unsafe, advise "Sell Now".
+4. Otherwise, if market conditions imply that a change in trade parameters would improve your risk/reward profile, advise an adjustment using the exact format: "Adjust Trade: targetPercentageGain: X, targetPercentageLoss: Y" (replace X and Y with the new suggested percentages).
+5. If no adjustment is necessary, advise "Hold".
 
-**Important:** Your answer must be **exactly one** of the following (case sensitive, with no additional text or punctuation):
+**Important:** Your answer must be **exactly one** of the following outputs (case sensitive, with no additional text or punctuation):
 - "Sell Now"
 - "Hold"
-- "Adjust Trade: targetPercentageGain: X, targetPercentageLoss: Y"  
-(Replace X and Y with the new suggested percentages.)
+- "Adjust Trade: targetPercentageGain: X, targetPercentageLoss: Y"
 `;
 
   try {
@@ -65,21 +72,21 @@ The priority fee is the fee that the user is willing to pay to get the transacti
       messages: [
         {
           role: 'system',
-          content: 'You are a helpful financial trading advisor. Answer strictly with one of the three allowed outputs and nothing else.'
+          content: 'You are a helpful and precise financial trading advisor. Provide only one of the three allowed responses without any additional commentary.'
         },
         { role: 'user', content: prompt }
       ],
-      temperature: 0,  // Use a temperature of 0 for deterministic responses
-      max_tokens: 20,
+      temperature: 0,
+      max_tokens: 50,
     });
 
     const advice = response.choices[0].message.content.trim();
 
-    // Validate that the advice matches the allowed outputs
+    // Validate that the advice matches one of the allowed outputs
     if (
       advice !== 'Sell Now' &&
       advice !== 'Hold' &&
-      !advice.startsWith('Adjust Trade:')
+      !/^Adjust Trade: targetPercentageGain: .+, targetPercentageLoss: .+$/.test(advice)
     ) {
       console.warn('Invalid response format from OpenAI:', advice);
       return 'Hold';

@@ -307,3 +307,26 @@ export async function fetchMeteoraPoolInfo() {
     throw new Error('Failed to fetch Meteora pool information');
   }
 }
+
+export async function fetchRugcheckSummary(tokenAddress) {
+  try {
+    const response = await axios.get(`${config.apis.crypto.rugcheckApi}${tokenAddress}/report/summary`);
+    if (response.data) {
+      return {
+        tokenProgram: response.data.tokenProgram,
+        tokenType: response.data.tokenType,
+        risks: response.data.risks,
+        score: response.data.score
+      };
+    }
+    throw new Error('Invalid response format from rugcheck API');
+  } catch (error) {
+    console.error(`Error fetching rugcheck summary for ${tokenAddress}:`, error);
+    return {
+      tokenProgram: '',
+      tokenType: '',
+      risks: [],
+      score: 0
+    };
+  }
+}

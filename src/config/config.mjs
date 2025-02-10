@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { fetchRugcheckSummary } from '../utils/apiUtils.mjs';
 
 dotenv.config();
 
@@ -36,6 +37,7 @@ export const config = {
             dexscreenerTokneProfilesUrl: 'https://api.dexscreener.com/token-profiles/latest/v1',
             dexscreenerLatestBoostedUrl: 'https://api.dexscreener.com/token-boosts/latest/v1',
             dexscreenerMostActiveBoostsUrl: 'https://api.dexscreener.com/token-boosts/top/v1',
+            rugcheckApi: 'https://api.rugcheck.xyz/v1/tokens/',
             jupTokenLookup: 'https://api.jup.ag/tokens/v1/token/',
             raydiumMintIds: 'https://api-v3.raydium.io/mint/ids?mints=',
             raydiumMintPrice: 'https://api-v3.raydium.io/mint/price?mints=',

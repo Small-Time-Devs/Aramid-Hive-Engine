@@ -3,6 +3,7 @@ import {
     fetchTokenNameAndSymbol,
     checkTokenAuthority,
     fetchTokenPairs,
+    fetchRugcheckSummary,
 } from '../../utils/apiUtils.mjs';
 
 export async function gatherAllTokenData(chain, contractAddress)  {
@@ -66,6 +67,22 @@ export async function gatherAllTokenData(chain, contractAddress)  {
     const Header = TokenPairData.info.header || "No Header Displayed From Dexscreener Pair Data";
     const OpenGraph = TokenPairData.info.openGraph || "No Open Graph Displayed From Dexscreener Pair Data";
     
+    // Add Rugcheck Summary Data
+    const rugcheckData = await fetchRugcheckSummary(contractAddress);
+    
+    // Process rugcheck risks into separate fields
+    const rugcheckRisks = rugcheckData.risks || [];
+    const processedRisks = {};
+    
+    rugcheckRisks.forEach((risk, index) => {
+        const riskPrefix = `risk${index + 1}`;
+        processedRisks[`${riskPrefix}Name`] = risk.name || '';
+        processedRisks[`${riskPrefix}Value`] = risk.value || '';
+        processedRisks[`${riskPrefix}Description`] = risk.description || '';
+        processedRisks[`${riskPrefix}Score`] = risk.score || 0;
+        processedRisks[`${riskPrefix}Level`] = risk.level || '';
+    });
+
     const TokenData = {
 
         TokenName,
@@ -75,6 +92,13 @@ export async function gatherAllTokenData(chain, contractAddress)  {
         isTokenSafe,
         hasFreeze,
         hasMint,
+        
+        // Add processed rugcheck risks
+        rugcheckTotalRisks: rugcheckRisks.length,
+        ...processedRisks,
+
+        // Original rugcheck data as JSON string for backwards compatibility
+        rugCheckRisks: JSON.stringify(rugcheckRisks),
 
         RaydiumTokenPairDataTokenName,
         RaydiumTokenPairDataTokenSymbol,
@@ -110,6 +134,8 @@ export async function gatherAllTokenData(chain, contractAddress)  {
         ImageURL,
         Header,
         OpenGraph,
+
+
     }
 
     return TokenData;
