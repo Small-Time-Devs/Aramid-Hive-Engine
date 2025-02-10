@@ -66,7 +66,7 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
         ❌ The token has liquidity **below \$20,000**.  
         ❌ The token has **freeze authority**.  
         ❌ The token has **mint authority** (investigate before deciding).  
-        ❌ The token has **Large Amount of LP Unlocked**.
+        ❌ The token has **Large Amount of LP Unlocked** (if the risk value is above 95%).  
         ❌ **IMPORTANT:** Analyze each provided risk factor (from rugCheckRisks). If any risk is labeled with a level of **"danger"** (for example, "Large Amount of LP Unlocked" with level "danger"), treat it as an immediate red flag—this indicates an extremely high risk of a rug pull and potential complete loss of funds.
 
         ---
@@ -92,13 +92,13 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
         #### **📌 Responsibilities:**
         - **Review the Analyst’s findings** and determine if investing is a good decision based on both quantitative data and meme culture sentiment.
         - **Check for red flags** (liquidity, price drops, authority settings, trading volume, and social media hype).  
-          **Important:** If any red flag is triggered—even more so if any risk is marked as "danger"—the decision must be **"Pass"** with a brief explanation.
+          **Important:** If any red flag is triggered—even more so if any risk is marked as "danger" or if the token has "Large Amount of LP Unlocked" with a risk value above 95%—the decision must be **"Pass"** with a brief explanation.
         - If **worth investing for a medium duration (e.g., 1 hour) to meet target gains or stop-loss**, provide:  
             - **✅ Target Gain %** → When to take profit.
             - **❌ Stop-Loss %** → When to exit to minimize losses.
             - Example: **"Invest: Gain +50%, Loss -30%"**.
         - If **risky but suitable for a quick flip (within 20 minutes)** to meet target gains or stop-loss, provide:  
-            - Example: **"Quick Profit": Gain **+15%**, Loss **-60%**.
+            - Example: **"Quick Profit": Gain +15%, Loss -60%**.
         - If **not worth investing,** state:
             - **"Pass": Explain why.**
         - Provide a **clear, actionable, and meme-savvy decision** that leverages both market data and viral potential.
@@ -124,7 +124,6 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
         ]
         \\\
     `;
-
     try {
         const completion = await openai.chat.completions.create({
             model: config.llmSettings.openAI.model,

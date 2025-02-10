@@ -59,6 +59,7 @@ Instructions:
 3. Check all risk indicators:
    - If token safety is false, or if freeze or mint authority is present, advise "Sell Now".
    - If any provided rug check risk factor is marked with a "danger" level, advise "Sell Now".
+   - **If any risk indicator shows "Large Amount of LP Unlocked" with a value near 100% (e.g., above 95%), advise "Sell Now".**
 4. Analyze price movement trends:
    - If the price is falling steadily (for example, if price changes over 5 minute, 1 hour, and 6 hour intervals are consistently negative with no sign of stabilization), advise "Sell Now" to cut losses.
 5. Otherwise, if market conditions suggest that adjusting trade parameters could improve the risk/reward profile, advise an adjustment using the exact format: "Adjust Trade: targetPercentageGain: X, targetPercentageLoss: Y" (replace X and Y with the new suggested percentages).
