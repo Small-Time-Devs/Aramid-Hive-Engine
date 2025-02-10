@@ -56,9 +56,13 @@ My Current Trade Position:
 Instructions:
 1. Calculate the percentage change from the Entry Price (SOL) to the current Native Price (PriceNative).
 2. If the calculated price change is greater than or equal to the Target Gain, advise "Sell Now".
-3. If any risk indicators (e.g. token safety is false, issues with freeze/mint authority, or a rug check risk that implies high holder correlation) suggest the token is unsafe, advise "Sell Now".
-4. Otherwise, if market conditions imply that a change in trade parameters would improve your risk/reward profile, advise an adjustment using the exact format: "Adjust Trade: targetPercentageGain: X, targetPercentageLoss: Y" (replace X and Y with the new suggested percentages).
-5. If no adjustment is necessary, advise "Hold".
+3. Check all risk indicators:
+   - If token safety is false, or if freeze or mint authority is present, advise "Sell Now".
+   - If any provided rug check risk factor is marked with a "danger" level, advise "Sell Now".
+4. Analyze price movement trends:
+   - If the price is falling steadily (for example, if price changes over 5 minute, 1 hour, and 6 hour intervals are consistently negative with no sign of stabilization), advise "Sell Now" to cut losses.
+5. Otherwise, if market conditions suggest that adjusting trade parameters could improve the risk/reward profile, advise an adjustment using the exact format: "Adjust Trade: targetPercentageGain: X, targetPercentageLoss: Y" (replace X and Y with the new suggested percentages).
+6. If no adjustment is necessary, advise "Hold".
 
 **Important:** Your answer must be **exactly one** of the following outputs (case sensitive, with no additional text or punctuation):
 - "Sell Now"

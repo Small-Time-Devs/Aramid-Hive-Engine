@@ -1,4 +1,4 @@
-import { gatherAllTokenData } from './dataCollector.mjs';
+import { gatherAllTokenData } from '../../utils/dataCollector.mjs';
 import { generateAgentConfigurationsforAutoTrader } from './autoTrader.mjs';
 import { getCurrentTradeAdvice } from './tradeAdvice.mjs';
 

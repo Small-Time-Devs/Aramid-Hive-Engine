@@ -20,35 +20,40 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
         Time Created: ${userInput.TimeCreated}
         Token Decimals: ${userInput.TokenDecimals}
 
-        Is Token safe: ${userInput.isTokenSafe}
+        Is Token Safe: ${userInput.isTokenSafe}
         Has Freeze Authority: ${userInput.hasFreeze}
         Has Mint Authority: ${userInput.hasMint}
-        RugCheck Risk: ${userInput.rugCheckRisk}
+        Rug Check Risk: ${userInput.rugCheckRisk}
 
-        Native Price: ${userInput.PriceNative}
+        Native Price (SOL): ${userInput.PriceNative}
         USD Price: ${userInput.PriceUSD}
 
-        5 Minute Transactions: ${userInput.Transactions5m}
-        1 Hour Transactions: ${userInput.Transactions1h}
-        6 Minute Transactions: ${userInput.Transactions6h}
-        24 Minute Transactions: ${userInput.Transactions24h}
+        Transactions:
+        - 5 Minute: ${userInput.Transactions5m}
+        - 1 Hour: ${userInput.Transactions1h}
+        - 6 Hour: ${userInput.Transactions6h}
+        - 24 Hour: ${userInput.Transactions24h}
 
-        5 Minute Price Change: ${userInput.PriceChange5m}
-        1 Hour Price Change: ${userInput.PriceChange1h}
-        6 Hour Price Change: ${userInput.PriceChange6h}
-        24 Hour Price Change: ${userInput.PriceChange24h}
+        Price Changes:
+        - 5 Minute: ${userInput.PriceChange5m}
+        - 1 Hour: ${userInput.PriceChange1h}
+        - 6 Hour: ${userInput.PriceChange6h}
+        - 24 Hour: ${userInput.PriceChange24h}
 
-        Liquidity USD: ${userInput.LiquidityUSD}
-        Liquidity Base Token: ${userInput.LiquidityBase}
-        Liquidity Quote SOL: ${userInput.LiquidityQuote}
+        Liquidity:
+        - USD: ${userInput.LiquidityUSD}
+        - Base Token: ${userInput.LiquidityBase}
+        - Quote SOL: ${userInput.LiquidityQuote}
 
-        Fully Dilutated Value: ${userInput.FDV}
-        Market Cap: ${userInput.MarketCap}
-        
+        Market Metrics:
+        - Fully Diluted Value: ${userInput.FDV}
+        - Market Cap: ${userInput.MarketCap}
+
+        Additional Info:
         Websites: ${userInput.Websites}
         Socials: ${userInput.Socials}
         Image URL: ${userInput.ImageURL}
-        DexScreener Header Image: ${userInput.Header}
+        DexScreener Header: ${userInput.Header}
         Open Graph Image: ${userInput.OpenGraph}
 
         🔹 If any data points are missing or undefined, exclude them from the analysis.
@@ -93,7 +98,7 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
             - **❌ Stop-Loss %** → When to exit to minimize losses.
             - Example: **"Invest: Gain +50%, Loss -30%"**.
         - If **risky but suitable for a quick flip (within 20 minutes)** to meet target gains or stop-loss, provide:  
-            - Example: **"Quick Profit": Gain **+15%**, Loss **-20%**.
+            - Example: **"Quick Profit": Gain **+15%**, Loss **-60%**.
         - If **not worth investing,** state:
             - **"Pass": Explain why.**
         - Provide a **clear, actionable, and meme-savvy decision** that leverages both market data and viral potential.

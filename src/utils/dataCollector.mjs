@@ -1,10 +1,10 @@
-import { config } from '../../config/config.mjs';
+import { config } from '../config/config.mjs';
 import {
     fetchTokenNameAndSymbol,
     checkTokenAuthority,
     fetchTokenPairs,
     fetchRugcheckSummary,
-} from '../../utils/apiUtils.mjs';
+} from './apiUtils.mjs';
 
 export async function gatherAllTokenData(chain, contractAddress)  {
 
