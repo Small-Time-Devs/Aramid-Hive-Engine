@@ -4,14 +4,29 @@ import { config } from '../../config/config.mjs';
 const openai = new OpenAI();
 
 export async function generateAgentConfigurationsforAutoTrader(userInput) {
+    let threadId;
     try {
-        // Create a thread
-        const thread = await openai.beta.threads.create();
+        // Create a thread with metadata for better organization
+        const thread = await openai.beta.threads.create({
+            metadata: {
+                tokenName: userInput.TokenName || userInput.RaydiumTokenPairDataTokenName,
+                tokenSymbol: userInput.TokenSymbol || userInput.RaydiumTokenPairDataTokenSymbol,
+                timestamp: new Date().toISOString(),
+                type: 'trade_analysis'
+            }
+        });
+        threadId = thread.id;
 
-        // Add a message to the thread
+        // Add user input as a message to the thread
         await openai.beta.threads.messages.create(thread.id, {
             role: "user",
-            content: JSON.stringify(userInput, null, 2) // Pretty print JSON for better assistant parsing
+            content: JSON.stringify(userInput, null, 2),
+            metadata: {
+                messageType: 'input_data',
+                priceUSD: userInput.PriceUSD,
+                liquidityUSD: userInput.LiquidityUSD,
+                marketCap: userInput.MarketCap
+            }
         });
 
         // Run the assistant
@@ -105,11 +120,76 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
         console.log('\n📊 Final Agent Configurations:');
         console.log(JSON.stringify(agentConfigurations, null, 2));
 
+        // Store the assistant's response with metadata
+        const responseMessage = await openai.beta.threads.messages.create(thread.id, {
+            role: "assistant",
+            content: JSON.stringify(agentConfigurations, null, 2),
+            metadata: {
+                messageType: 'analysis_response',
+                decision: agentConfigurations[1]?.decision || 'No decision provided',
+                analyst: agentConfigurations[0]?.name || 'Unknown',
+                strategist: agentConfigurations[1]?.name || 'Unknown'
+            }
+        });
+
+        // Add a summary annotation to the thread
+        await openai.beta.threads.runs.create(thread.id, {
+            assistant_id: config.llmSettings.openAI.assistants.autoTrader,
+            metadata: {
+                analysis_completed: true,
+                token_address: userInput.ContractAddress,
+                decision_summary: agentConfigurations[1]?.decision || 'No decision',
+                analysis_timestamp: new Date().toISOString()
+            }
+        });
+
+        console.log('\n💾 Analysis stored in thread:', thread.id);
+        
         return agentConfigurations;
 
     } catch (error) {
         console.error("🚨 Error generating agent configurations:", error);
         console.error("Error details:", error.stack);
+        
+        // Store error information if we have a thread
+        if (threadId) {
+            try {
+                await openai.beta.threads.messages.create(threadId, {
+                    role: "assistant",
+                    content: `Error occurred: ${error.message}`,
+                    metadata: {
+                        messageType: 'error_log',
+                        errorType: error.name,
+                        timestamp: new Date().toISOString()
+                    }
+                });
+            } catch (storeError) {
+                console.error("Failed to store error information:", storeError);
+            }
+        }
+        
         throw new Error(`Failed to generate agent configurations: ${error.message}`);
+    }
+}
+
+// Add a helper function to retrieve historical analyses
+export async function getHistoricalAnalyses(tokenSymbol, limit = 10) {
+    try {
+        const threads = await openai.beta.threads.list({
+            order: "desc",
+            limit: limit,
+            metadata: {
+                tokenSymbol: tokenSymbol
+            }
+        });
+
+        return threads.data.map(thread => ({
+            threadId: thread.id,
+            metadata: thread.metadata,
+            created: new Date(thread.created_at * 1000).toISOString()
+        }));
+    } catch (error) {
+        console.error("Failed to retrieve historical analyses:", error);
+        return [];
     }
 }
