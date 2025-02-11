@@ -82,18 +82,6 @@ export async function fetchMostActiveBoostedTokens() {
 
 // Step 1 - Fetch Token Name and Symbol
 export async function fetchTokenNameAndSymbol(contractAddress) {
-
-  /*
-  try {
-      const response = await axios.get(`${config.apis.crypto.raydiumMintIds}${contractAddress}`);
-      if (response.data && response.data.success && response.data.data.length > 0) {
-          return {
-              tokenName: response.data.data[0].name,
-              tokenSymbol: response.data.data[0].symbol,
-              decimals: response.data.data[0].decimals,
-          };
-      }
-          */
   try {
     const response = await axios.get(`${config.apis.crypto.jupTokenLookup}${contractAddress}`);
     if (response.data) {
