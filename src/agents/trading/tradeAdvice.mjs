@@ -3,6 +3,31 @@ import { config } from '../../config/config.mjs';
 
 const openai = new OpenAI();
 
+function parseTradeAdvice(advice) {
+    if (advice === 'Sell Now' || advice === 'Hold') {
+        return {
+            action: advice,
+            adjustments: null
+        };
+    }
+
+    const match = advice.match(/^Adjust Trade: targetPercentageGain: (\d+), targetPercentageLoss: (\d+)$/);
+    if (match) {
+        return {
+            action: 'Adjust',
+            adjustments: {
+                targetPercentageGain: parseInt(match[1]),
+                targetPercentageLoss: parseInt(match[2])
+            }
+        };
+    }
+
+    return {
+        action: 'Hold',
+        adjustments: null
+    };
+}
+
 export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPercentageGain, targetPercentageLoss) {
     try {
         // Create a thread
@@ -70,20 +95,20 @@ export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPerc
         const advice = lastMessage.content[0].text.value.trim();
         console.log('\n💡 Trade Advice:', advice);
 
-        // Validate the response format
-        const isValidAdjustTrade = /^Adjust Trade: targetPercentageGain: .+, targetPercentageLoss: .+$/.test(advice);
+        // Validate and parse the response
+        const isValidAdjustTrade = /^Adjust Trade: targetPercentageGain: \d+, targetPercentageLoss: \d+$/.test(advice);
         const isValidResponse = advice === 'Sell Now' || advice === 'Hold' || isValidAdjustTrade;
 
         if (!isValidResponse) {
             console.warn('Invalid response format from assistant:', advice);
-            return 'Hold';
+            return { action: 'Hold', adjustments: null };
         }
 
-        return advice;
+        return parseTradeAdvice(advice);
 
     } catch (error) {
         console.error('Error getting trade advice:', error);
         console.error('Error details:', error.stack);
-        return 'Hold';
+        return { action: 'Hold', adjustments: null };
     }
 }
