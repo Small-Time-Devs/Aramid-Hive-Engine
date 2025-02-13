@@ -256,18 +256,11 @@ app.post('/aramid-chat', async (req, res) => {
   }
 
   try {
-    // Changed to pass userInput as userQuestion
     const agentResponse = await startAramidOrchestrator(userInput);
-    console.log("Agent Response:", agentResponse);
     res.json({ agents: agentResponse });
   } catch (error) {
     console.error("Agent Chat Error:", error);
-    res.status(500).json({ 
-      agents: [{
-        name: "Aramid",
-        response: "An error occurred while processing your request."
-      }]
-    });
+    res.status(500).json({ agents: [], summary: "An error occurred while processing your request." });
   }
 });
 

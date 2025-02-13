@@ -5,40 +5,31 @@ const openai = new OpenAI({
     apiKey: config.llmSettings.openAI.apiKey
 });
 
-export async function generateAramidGeneralResponse(userQuestion, additionalData = null) {
-    let threadId;
+// Store single persistent conversation thread
+let mainThread = null;
+
+export async function generateAramidGeneralResponse(userInput, additionalData = null) {
     try {
-        console.log('\n📝 Processing user question:', userQuestion);
+        console.log('\n📝 Processing user question:', userInput);
         
-        // Create assistant thread
-        const thread = await openai.beta.threads.create({
-            metadata: {
-                questionType: 'user_query',
-                timestamp: new Date().toISOString()
-            }
-        });
-        threadId = thread.id;
-        console.log('🧵 Created thread:', threadId);
+        // Initialize thread only if it doesn't exist
+        if (!mainThread) {
+            mainThread = await openai.beta.threads.create();
+            console.log('🧵 Created main conversation thread:', mainThread.id);
+        }
 
-        // Prepare message content with better formatting
-        const messageContent = additionalData 
-            ? `${userQuestion}\n\nAdditional Context:\n${JSON.stringify(additionalData, null, 2)}`
-            : userQuestion;
+        // Add message to existing thread
+        const content = additionalData 
+            ? `${userInput}\n\nContext:\n${JSON.stringify(additionalData, null, 2)}`
+            : userInput;
 
-        console.log('💬 Sending message to assistant...');
-        
-        // Add message to thread
-        await openai.beta.threads.messages.create(thread.id, {
+        await openai.beta.threads.messages.create(mainThread.id, {
             role: "user",
-            content: messageContent,
-            metadata: {
-                messageType: additionalData ? 'follow_up_query' : 'initial_query',
-                timestamp: new Date().toISOString()
-            }
+            content: content
         });
 
         // Run the assistant
-        const run = await openai.beta.threads.runs.create(thread.id, {
+        const run = await openai.beta.threads.runs.create(mainThread.id, {
             assistant_id: config.llmSettings.openAI.assistants.aramidGeneral
         });
 
@@ -48,7 +39,7 @@ export async function generateAramidGeneralResponse(userQuestion, additionalData
         let attempts = 0;
 
         while (attempts < maxAttempts) {
-            runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+            runStatus = await openai.beta.threads.runs.retrieve(mainThread.id, run.id);
             if (runStatus.status === 'completed') break;
             if (runStatus.status === 'failed' || runStatus.status === 'cancelled') {
                 throw new Error(`Assistant run ${runStatus.status}`);
@@ -62,17 +53,18 @@ export async function generateAramidGeneralResponse(userQuestion, additionalData
         }
 
         // Get response
-        const messages = await openai.beta.threads.messages.list(thread.id);
-        if (!messages.data?.[0]?.content?.[0]?.text?.value) {
-            throw new Error('Invalid response structure');
-        }
-
+        const messages = await openai.beta.threads.messages.list(mainThread.id);
         const response = messages.data[0].content[0].text.value;
         console.log('🤖 Assistant response received:', response);
+        
         return response;
 
     } catch (error) {
         console.error("Error in Aramid General Assistant:", error);
         throw error;
     }
+}
+
+export function getCurrentThreadId() {
+    return mainThread?.id || null;
 }

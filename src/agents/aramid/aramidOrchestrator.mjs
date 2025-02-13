@@ -22,12 +22,38 @@ function cleanResponse(response) {
         .replace(/,(\s*[}\]])/g, '$1'); // Remove trailing commas
 }
 
+function ensureValidResponse(response) {
+    try {
+        // Clean the response first
+        const cleaned = cleanResponse(response);
+        
+        // Try to parse as JSON
+        const parsed = JSON.parse(cleaned);
+        
+        // Validate structure
+        if (!Array.isArray(parsed)) {
+            return [{
+                name: "Aramid",
+                response: cleaned
+            }];
+        }
+        
+        return parsed;
+    } catch (error) {
+        // If parsing fails, return formatted response
+        return [{
+            name: "Aramid",
+            response: response
+        }];
+    }
+}
+
 export async function startAramidOrchestrator(userQuestion) {
     try {
-        // Get initial response from assistant
-        console.log('\n🤖 Getting initial response...');
+        // Get response from assistant
+        console.log('\n🤖 Getting response...');
         const initialResponse = await generateAramidGeneralResponse(userQuestion);
-        let parsedResponse = JSON.parse(cleanResponse(initialResponse));
+        let parsedResponse = ensureValidResponse(initialResponse);
 
         // Check if data gathering is needed
         if (parsedResponse[0]?.decision) {
@@ -38,7 +64,6 @@ export async function startAramidOrchestrator(userQuestion) {
                 console.log(`Chain: ${tokenRequest.chain}`);
                 console.log(`Contract: ${tokenRequest.contractAddress}`);
                 
-                // Gather the requested data
                 const tokenData = await gatherAllTokenData(
                     tokenRequest.chain,
                     tokenRequest.contractAddress
@@ -48,9 +73,7 @@ export async function startAramidOrchestrator(userQuestion) {
                 
                 // Get final response with gathered data
                 const finalResponse = await generateAramidGeneralResponse(userQuestion, tokenData);
-                const cleanedResponse = cleanResponse(finalResponse);
-                console.log('\n🔍 Cleaned response:', cleanedResponse);
-                return JSON.parse(cleanedResponse);
+                parsedResponse = ensureValidResponse(finalResponse);
             }
         }
 
@@ -58,7 +81,6 @@ export async function startAramidOrchestrator(userQuestion) {
 
     } catch (error) {
         console.error("🚨 Error in Aramid Orchestrator:", error);
-        console.error("Error details:", error.message);
         return [{
             name: "Aramid",
             response: "I apologize, but I encountered an error processing your request. Please try again."
