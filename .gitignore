@@ -3,3 +3,5 @@ node_modules
 *logs/
 logs/auto_trader.jsonl
 logs/
+logs/aramid_conversation.jsonl
+logs/auto_trader.jsonl
