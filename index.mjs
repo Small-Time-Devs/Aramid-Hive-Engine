@@ -185,29 +185,6 @@ app.post('/twitter-agent-chat', async (req, res) => {
   }
 });
 
-/*
-app.post('/autoTrading-agent-chat', async (req, res) => {
-  const { chain, contractAddress } = req.body;
-
-  console.log("Chain:", chain);
-  console.log("Contract Address:", contractAddress);
-
-  if (!chain || !contractAddress) {
-    return res.status(400).json({ error: "Chain or Contract Address Missing on input!" });
-  }
-
-  try {
-    const tokenData = await gatherAllTokenData(chain, contractAddress);
-    console.log("Token Data:", tokenData);
-    const agentResponses = await generateAgentConfigurationsforAutoTrader(tokenData);
-    res.json({ agents: agentResponses });
-  } catch (error) {
-    console.error("Agent Chat Error:", error);
-    res.status(500).json({ agents: [], summary: "An error occurred while processing your request." });
-  }
-});
-*/
-
 app.post('/autoTrading-agent-chat', async (req, res) => {
   const { chain, contractAddress } = req.body;
 

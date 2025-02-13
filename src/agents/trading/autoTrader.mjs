@@ -1,42 +1,72 @@
 import OpenAI from 'openai';
 import { config } from '../../config/config.mjs';
+import { appendToJSONL } from '../../utils/jsonlHandler.mjs';
 
 const openai = new OpenAI();
 
 // Store single persistent thread
 let mainThread = null;
 
+// Helper function to convert metadata values to strings
+function sanitizeMetadata(metadata) {
+    const sanitized = {};
+    for (const [key, value] of Object.entries(metadata)) {
+        sanitized[key] = value === null || value === undefined ? '' : String(value);
+    }
+    return sanitized;
+}
+
+function summarizeRiskData(rugCheckRisks) {
+    try {
+        const risks = JSON.parse(rugCheckRisks);
+        const riskLevels = risks.map(r => r.level);
+        return `risks:${risks.length},danger:${riskLevels.filter(l => l === 'danger').length},warn:${riskLevels.filter(l => l === 'warn').length}`;
+    } catch (e) {
+        return 'risks:unknown';
+    }
+}
+
 export async function generateAgentConfigurationsforAutoTrader(userInput) {
     try {
         // Initialize thread only if it doesn't exist
         if (!mainThread) {
             mainThread = await openai.beta.threads.create({
-                metadata: {
+                metadata: sanitizeMetadata({
                     tokenName: userInput.TokenName || userInput.RaydiumTokenPairDataTokenName,
                     tokenSymbol: userInput.TokenSymbol || userInput.RaydiumTokenPairDataTokenSymbol,
                     timestamp: new Date().toISOString(),
                     type: 'trade_analysis',
                     chain: 'solana',
                     contractAddress: userInput.ContractAddress
-                }
+                })
             });
             console.log('🧵 Created main conversation thread:', mainThread.id);
         }
 
-        // Add message to existing thread
-        await openai.beta.threads.messages.create(mainThread.id, {
+        // Add message to existing thread with summarized risk data
+        const userMessage = await openai.beta.threads.messages.create(mainThread.id, {
             role: "user",
             content: JSON.stringify(userInput, null, 2),
-            metadata: {
+            metadata: sanitizeMetadata({
                 messageType: 'input_data',
                 priceUSD: userInput.PriceUSD,
                 liquidityUSD: userInput.LiquidityUSD,
                 marketCap: userInput.MarketCap,
                 timeCreated: userInput.TimeCreated,
-                rugCheckRisks: userInput.rugCheckRisks,
+                riskSummary: summarizeRiskData(userInput.rugCheckRisks),
                 priceChange24h: userInput.PriceChange24h,
                 volume24h: userInput.Volume24h
-            }
+            })
+        });
+
+        // Save user message to JSONL
+        await appendToJSONL('auto_trader.jsonl', {
+            thread_id: mainThread.id,
+            message_id: userMessage.id,
+            timestamp: new Date().toISOString(),
+            role: "user",
+            content: userInput,
+            metadata: userMessage.metadata
         });
 
         // Run the assistant
@@ -134,7 +164,7 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
         await openai.beta.threads.messages.create(mainThread.id, {
             role: "assistant",
             content: JSON.stringify(agentConfigurations, null, 2),
-            metadata: {
+            metadata: sanitizeMetadata({
                 messageType: 'analysis_response',
                 decision: agentConfigurations[1]?.decision || 'No decision provided',
                 analyst: agentConfigurations[0]?.name || 'Unknown',
@@ -143,13 +173,30 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
                 riskLevel: getRiskLevel(userInput),
                 tradingVolume: userInput.Volume24h,
                 priceMovement: userInput.PriceChange24h
+            })
+        });
+
+        // Save assistant response to JSONL
+        await appendToJSONL('auto_trader.jsonl', {
+            thread_id: mainThread.id,
+            message_id: lastMessage.id,
+            timestamp: new Date().toISOString(),
+            role: "assistant",
+            content: lastMessage.content[0].text.value,
+            metadata: {
+                analysis_completed: true,
+                token_address: userInput.ContractAddress,
+                price_usd: userInput.PriceUSD,
+                liquidity_usd: userInput.LiquidityUSD,
+                market_cap: userInput.MarketCap,
+                trading_volume_24h: userInput.Volume24h
             }
         });
 
         // Add annotations for better searchability
         await openai.beta.threads.runs.create(mainThread.id, {
             assistant_id: config.llmSettings.openAI.assistants.autoTrader,
-            metadata: {
+            metadata: sanitizeMetadata({
                 analysis_completed: true,
                 token_address: userInput.ContractAddress,
                 decision_summary: agentConfigurations[1]?.decision || 'No decision',
@@ -158,7 +205,7 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
                 liquidity_usd: userInput.LiquidityUSD,
                 market_cap: userInput.MarketCap,
                 trading_volume_24h: userInput.Volume24h
-            }
+            })
         });
 
         console.log('\n💾 Analysis stored in thread:', mainThread.id);

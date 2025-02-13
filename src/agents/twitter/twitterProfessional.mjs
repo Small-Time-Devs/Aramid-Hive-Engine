@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { config } from '../../config/config.mjs';
+import { appendToJSONL } from '../../utils/jsonlHandler.mjs';
 
 const openai = new OpenAI();
 
@@ -15,9 +16,18 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
         }
 
         // Add message to existing thread
-        await openai.beta.threads.messages.create(mainThread.id, {
+        const userMessage = await openai.beta.threads.messages.create(mainThread.id, {
             role: "user",
             content: JSON.stringify(userInput, null, 2)
+        });
+
+        // Save user message to JSONL
+        await appendToJSONL('twitter_conversation.jsonl', {
+            thread_id: mainThread.id,
+            message_id: userMessage.id,
+            timestamp: new Date().toISOString(),
+            role: "user",
+            content: userInput
         });
 
         // Run the assistant
@@ -63,6 +73,15 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
         if (!lastMessage.content?.[0]?.text?.value) {
             throw new Error('Invalid message structure received');
         }
+
+        // Save assistant response to JSONL
+        await appendToJSONL('twitter_conversation.jsonl', {
+            thread_id: mainThread.id,
+            message_id: lastMessage.id,
+            timestamp: new Date().toISOString(),
+            role: "assistant",
+            content: lastMessage.content[0].text.value
+        });
 
         let responseText = lastMessage.content[0].text.value;
 

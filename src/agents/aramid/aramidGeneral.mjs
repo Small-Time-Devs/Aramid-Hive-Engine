@@ -1,5 +1,6 @@
 import { config } from '../../config/config.mjs';
 import OpenAI from 'openai';
+import { appendToJSONL } from '../../utils/jsonlHandler.mjs';
 
 const openai = new OpenAI({
     apiKey: config.llmSettings.openAI.apiKey
@@ -7,6 +8,17 @@ const openai = new OpenAI({
 
 // Store single persistent conversation thread
 let mainThread = null;
+
+// Simplified logging function
+function getConversationData(message) {
+    return {
+        thread_id: mainThread?.id,
+        message_id: message.id,
+        timestamp: new Date().toISOString(),
+        role: message.role,
+        content: message.content[0]?.text?.value || message.content
+    };
+}
 
 export async function generateAramidGeneralResponse(userInput, additionalData = null) {
     try {
@@ -18,15 +30,19 @@ export async function generateAramidGeneralResponse(userInput, additionalData = 
             console.log('🧵 Created main conversation thread:', mainThread.id);
         }
 
-        // Add message to existing thread
-        const content = additionalData 
-            ? `${userInput}\n\nContext:\n${JSON.stringify(additionalData, null, 2)}`
-            : userInput;
-
-        await openai.beta.threads.messages.create(mainThread.id, {
+        const userMessage = await openai.beta.threads.messages.create(mainThread.id, {
             role: "user",
-            content: content
+            content: userInput
         });
+
+        // Log user message
+        await appendToJSONL('aramid_conversation.jsonl', 
+            getConversationData({
+                id: userMessage.id,
+                role: "user",
+                content: userInput
+            })
+        );
 
         // Run the assistant
         const run = await openai.beta.threads.runs.create(mainThread.id, {
@@ -54,10 +70,16 @@ export async function generateAramidGeneralResponse(userInput, additionalData = 
 
         // Get response
         const messages = await openai.beta.threads.messages.list(mainThread.id);
-        const response = messages.data[0].content[0].text.value;
-        console.log('🤖 Assistant response received:', response);
+        const response = messages.data[0];
+
+        // Log assistant response
+        await appendToJSONL('aramid_conversation.jsonl', 
+            getConversationData(response)
+        );
+
+        console.log('🤖 Assistant response received:', response.content[0].text.value);
         
-        return response;
+        return response.content[0].text.value;
 
     } catch (error) {
         console.error("Error in Aramid General Assistant:", error);

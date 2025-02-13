@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { config } from '../../config/config.mjs';
 import { getMainThread, setMainThread } from '../../utils/threadManager.mjs';
+import { appendToJSONL } from '../../utils/jsonlHandler.mjs';
 
 const openai = new OpenAI();
 
@@ -53,9 +54,18 @@ export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPerc
         };
 
         // Add message to existing thread
-        await openai.beta.threads.messages.create(mainThread.id, {
+        const userMessage = await openai.beta.threads.messages.create(mainThread.id, {
             role: "user",
             content: JSON.stringify(messageContent, null, 2)
+        });
+
+        // Save user message to JSONL
+        await appendToJSONL('trade_advice.jsonl', {
+            thread_id: mainThread.id,
+            message_id: userMessage.id,
+            timestamp: new Date().toISOString(),
+            role: "user",
+            content: messageContent
         });
 
         // Run the assistant
@@ -101,6 +111,15 @@ export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPerc
 
         const advice = lastMessage.content[0].text.value.trim();
         console.log('\n💡 Trade Advice:', advice);
+
+        // Save assistant response to JSONL
+        await appendToJSONL('trade_advice.jsonl', {
+            thread_id: mainThread.id,
+            message_id: messages.data[0].id,
+            timestamp: new Date().toISOString(),
+            role: "assistant",
+            content: advice
+        });
 
         // Validate and parse the response
         const isValidAdjustTrade = /^Adjust Trade: targetPercentageGain: \d+, targetPercentageLoss: \d+$/.test(advice);
