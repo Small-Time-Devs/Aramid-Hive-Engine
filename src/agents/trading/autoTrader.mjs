@@ -3,24 +3,28 @@ import { config } from '../../config/config.mjs';
 
 const openai = new OpenAI();
 
-export async function generateAgentConfigurationsforAutoTrader(userInput) {
-    let threadId;
-    try {
-        // Create a thread with metadata for search and organization
-        const thread = await openai.beta.threads.create({
-            metadata: {
-                tokenName: userInput.TokenName || userInput.RaydiumTokenPairDataTokenName,
-                tokenSymbol: userInput.TokenSymbol || userInput.RaydiumTokenPairDataTokenSymbol,
-                timestamp: new Date().toISOString(),
-                type: 'trade_analysis',
-                chain: 'solana',
-                contractAddress: userInput.ContractAddress
-            }
-        });
-        threadId = thread.id;
+// Store single persistent thread
+let mainThread = null;
 
-        // Add user input with enriched metadata
-        await openai.beta.threads.messages.create(thread.id, {
+export async function generateAgentConfigurationsforAutoTrader(userInput) {
+    try {
+        // Initialize thread only if it doesn't exist
+        if (!mainThread) {
+            mainThread = await openai.beta.threads.create({
+                metadata: {
+                    tokenName: userInput.TokenName || userInput.RaydiumTokenPairDataTokenName,
+                    tokenSymbol: userInput.TokenSymbol || userInput.RaydiumTokenPairDataTokenSymbol,
+                    timestamp: new Date().toISOString(),
+                    type: 'trade_analysis',
+                    chain: 'solana',
+                    contractAddress: userInput.ContractAddress
+                }
+            });
+            console.log('🧵 Created main conversation thread:', mainThread.id);
+        }
+
+        // Add message to existing thread
+        await openai.beta.threads.messages.create(mainThread.id, {
             role: "user",
             content: JSON.stringify(userInput, null, 2),
             metadata: {
@@ -36,7 +40,7 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
         });
 
         // Run the assistant
-        const run = await openai.beta.threads.runs.create(thread.id, {
+        const run = await openai.beta.threads.runs.create(mainThread.id, {
             assistant_id: config.llmSettings.openAI.assistants.autoTrader
         });
 
@@ -46,7 +50,7 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
         let attempts = 0;
 
         while (attempts < maxAttempts) {
-            runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+            runStatus = await openai.beta.threads.runs.retrieve(mainThread.id, run.id);
             console.log(`Run status: ${runStatus.status}`);
 
             if (runStatus.status === 'completed') {
@@ -65,7 +69,7 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
         }
 
         // Get the messages
-        const messages = await openai.beta.threads.messages.list(thread.id);
+        const messages = await openai.beta.threads.messages.list(mainThread.id);
         
         if (!messages.data || messages.data.length === 0) {
             throw new Error('No messages returned from assistant');
@@ -127,7 +131,7 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
         console.log(JSON.stringify(agentConfigurations, null, 2));
 
         // Store the analysis results with detailed metadata
-        await openai.beta.threads.messages.create(thread.id, {
+        await openai.beta.threads.messages.create(mainThread.id, {
             role: "assistant",
             content: JSON.stringify(agentConfigurations, null, 2),
             metadata: {
@@ -143,7 +147,7 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
         });
 
         // Add annotations for better searchability
-        await openai.beta.threads.runs.create(thread.id, {
+        await openai.beta.threads.runs.create(mainThread.id, {
             assistant_id: config.llmSettings.openAI.assistants.autoTrader,
             metadata: {
                 analysis_completed: true,
@@ -157,7 +161,7 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
             }
         });
 
-        console.log('\n💾 Analysis stored in thread:', thread.id);
+        console.log('\n💾 Analysis stored in thread:', mainThread.id);
         
         return agentConfigurations;
 
@@ -166,9 +170,9 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
         console.error("Error details:", error.stack);
         
         // Store error information if we have a thread
-        if (threadId) {
+        if (mainThread) {
             try {
-                await openai.beta.threads.messages.create(threadId, {
+                await openai.beta.threads.messages.create(mainThread.id, {
                     role: "assistant",
                     content: `Error occurred: ${error.message}`,
                     metadata: {

@@ -3,19 +3,25 @@ import { config } from '../../config/config.mjs';
 
 const openai = new OpenAI();
 
+// Store single persistent thread
+let mainThread = null;
+
 export async function generateAgentConfigurationsforTwitter(userInput) {
     try {
-        // Create a thread
-        const thread = await openai.beta.threads.create();
+        // Initialize thread only if it doesn't exist
+        if (!mainThread) {
+            mainThread = await openai.beta.threads.create();
+            console.log('🧵 Created main conversation thread:', mainThread.id);
+        }
 
-        // Add a message to the thread
-        await openai.beta.threads.messages.create(thread.id, {
+        // Add message to existing thread
+        await openai.beta.threads.messages.create(mainThread.id, {
             role: "user",
             content: JSON.stringify(userInput, null, 2)
         });
 
         // Run the assistant
-        const run = await openai.beta.threads.runs.create(thread.id, {
+        const run = await openai.beta.threads.runs.create(mainThread.id, {
             assistant_id: config.llmSettings.openAI.assistants.twitterProfessional
         });
 
@@ -25,7 +31,7 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
         let attempts = 0;
 
         while (attempts < maxAttempts) {
-            runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+            runStatus = await openai.beta.threads.runs.retrieve(mainThread.id, run.id);
             console.log(`Run status: ${runStatus.status}`);
 
             if (runStatus.status === 'completed') {
@@ -44,7 +50,7 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
         }
 
         // Get the messages
-        const messages = await openai.beta.threads.messages.list(thread.id);
+        const messages = await openai.beta.threads.messages.list(mainThread.id);
         
         if (!messages.data || messages.data.length === 0) {
             throw new Error('No messages returned from assistant');

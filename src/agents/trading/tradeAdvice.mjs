@@ -1,7 +1,11 @@
 import OpenAI from 'openai';
 import { config } from '../../config/config.mjs';
+import { getMainThread, setMainThread } from '../../utils/threadManager.mjs';
 
 const openai = new OpenAI();
+
+// Store single persistent thread
+let mainThread = null;
 
 function parseTradeAdvice(advice) {
     if (advice === 'Sell Now' || advice === 'Hold') {
@@ -30,8 +34,11 @@ function parseTradeAdvice(advice) {
 
 export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPercentageGain, targetPercentageLoss) {
     try {
-        // Create a thread
-        const thread = await openai.beta.threads.create();
+        // Initialize thread only if it doesn't exist
+        if (!mainThread) {
+            mainThread = await openai.beta.threads.create();
+            console.log('🧵 Created main conversation thread:', mainThread.id);
+        }
 
         // Prepare the input data
         const messageContent = {
@@ -45,14 +52,14 @@ export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPerc
             }
         };
 
-        // Add the message to the thread
-        await openai.beta.threads.messages.create(thread.id, {
+        // Add message to existing thread
+        await openai.beta.threads.messages.create(mainThread.id, {
             role: "user",
             content: JSON.stringify(messageContent, null, 2)
         });
 
         // Run the assistant
-        const run = await openai.beta.threads.runs.create(thread.id, {
+        const run = await openai.beta.threads.runs.create(mainThread.id, {
             assistant_id: config.llmSettings.openAI.assistants.autoTraderAdvice
         });
 
@@ -62,7 +69,7 @@ export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPerc
         let attempts = 0;
 
         while (attempts < maxAttempts) {
-            runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+            runStatus = await openai.beta.threads.runs.retrieve(mainThread.id, run.id);
             console.log(`Run status: ${runStatus.status}`);
 
             if (runStatus.status === 'completed') {
@@ -81,7 +88,7 @@ export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPerc
         }
 
         // Get the messages
-        const messages = await openai.beta.threads.messages.list(thread.id);
+        const messages = await openai.beta.threads.messages.list(mainThread.id);
         
         if (!messages.data || messages.data.length === 0) {
             throw new Error('No messages returned from assistant');
