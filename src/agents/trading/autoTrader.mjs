@@ -3,81 +3,19 @@ import { config } from '../../config/config.mjs';
 
 const openai = new OpenAI();
 
-// Add function to create embeddings and upload to vector database
-async function storeAnalysisInVectorDB(userInput, agentConfigurations, threadId) {
-    try {
-        // Create a minimal document structure
-        const document = {
-            token: {
-                name: userInput.TokenName || userInput.RaydiumTokenPairDataTokenName,
-                symbol: userInput.TokenSymbol || userInput.RaydiumTokenPairDataTokenSymbol,
-                contract: userInput.ContractAddress
-            },
-            analysis: {
-                decision: agentConfigurations[1]?.decision || 'No decision',
-                summary: agentConfigurations[0]?.response.slice(0, 300) // Limit summary size
-            },
-            meta: {
-                thread_id: threadId,
-                timestamp: new Date().toISOString()
-            }
-        };
-
-        // Convert to buffer properly
-        const fileContent = JSON.stringify(document, null, 0);
-        const buffer = Buffer.from(fileContent);
-
-        // Use the correct file upload format
-        const response = await openai.files.create({
-            file: buffer,
-            purpose: 'assistants'
-        });
-
-        // Create minimal embedding
-        const embedding = await openai.embeddings.create({
-            input: `${document.token.name} ${document.token.symbol} ${document.analysis.decision}`,
-            model: 'text-embedding-3-small'
-        });
-
-        console.log('\n📊 Analysis stored:', response.id);
-        
-        return { 
-            fileId: response.id, 
-            embeddingId: embedding.data[0].index 
-        };
-    } catch (error) {
-        console.error('Failed to store analysis:', error);
-        if (error.status === 413 || error.status === 400) {
-            console.warn('File too large or invalid format, skipping storage');
-            return { fileId: null, embeddingId: null };
-        }
-        throw error;
-    }
-}
-
-// Helper function to convert metadata values to strings
-function stringifyMetadata(metadata) {
-    return Object.fromEntries(
-        Object.entries(metadata).map(([key, value]) => [
-            key,
-            typeof value === 'number' ? String(value) : value
-        ])
-    );
-}
-
 export async function generateAgentConfigurationsforAutoTrader(userInput) {
     let threadId;
     try {
         // Create a thread with metadata for search and organization
         const thread = await openai.beta.threads.create({
-            metadata: stringifyMetadata({
+            metadata: {
                 tokenName: userInput.TokenName || userInput.RaydiumTokenPairDataTokenName,
                 tokenSymbol: userInput.TokenSymbol || userInput.RaydiumTokenPairDataTokenSymbol,
                 timestamp: new Date().toISOString(),
                 type: 'trade_analysis',
                 chain: 'solana',
                 contractAddress: userInput.ContractAddress
-            })
+            }
         });
         threadId = thread.id;
 
@@ -85,7 +23,7 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
         await openai.beta.threads.messages.create(thread.id, {
             role: "user",
             content: JSON.stringify(userInput, null, 2),
-            metadata: stringifyMetadata({
+            metadata: {
                 messageType: 'input_data',
                 priceUSD: userInput.PriceUSD,
                 liquidityUSD: userInput.LiquidityUSD,
@@ -94,7 +32,7 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
                 rugCheckRisks: userInput.rugCheckRisks,
                 priceChange24h: userInput.PriceChange24h,
                 volume24h: userInput.Volume24h
-            })
+            }
         });
 
         // Run the assistant
@@ -192,7 +130,7 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
         await openai.beta.threads.messages.create(thread.id, {
             role: "assistant",
             content: JSON.stringify(agentConfigurations, null, 2),
-            metadata: stringifyMetadata({
+            metadata: {
                 messageType: 'analysis_response',
                 decision: agentConfigurations[1]?.decision || 'No decision provided',
                 analyst: agentConfigurations[0]?.name || 'Unknown',
@@ -201,40 +139,22 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
                 riskLevel: getRiskLevel(userInput),
                 tradingVolume: userInput.Volume24h,
                 priceMovement: userInput.PriceChange24h
-            })
+            }
         });
 
-        // Store in vector database with error handling
-        try {
-            const vectorDBResult = await storeAnalysisInVectorDB(userInput, agentConfigurations, threadId);
-            if (vectorDBResult.fileId) {
-                await openai.beta.threads.messages.create(thread.id, {
-                    role: "assistant",
-                    content: "Analysis stored in vector database",
-                    metadata: stringifyMetadata({
-                        vector_file_id: vectorDBResult.fileId,
-                        embedding_id: vectorDBResult.embeddingId,
-                        messageType: 'vector_db_reference'
-                    })
-                });
-            }
-        } catch (vectorError) {
-            console.warn('Vector storage failed but continuing with analysis:', vectorError.message);
-        }
-
-        // Add annotations with string metadata
+        // Add annotations for better searchability
         await openai.beta.threads.runs.create(thread.id, {
             assistant_id: config.llmSettings.openAI.assistants.autoTrader,
-            metadata: stringifyMetadata({
-                analysis_completed: 'true', // Convert boolean to string
+            metadata: {
+                analysis_completed: true,
                 token_address: userInput.ContractAddress,
                 decision_summary: agentConfigurations[1]?.decision || 'No decision',
                 analysis_timestamp: new Date().toISOString(),
-                price_usd: String(userInput.PriceUSD), // Ensure numeric values are strings
-                liquidity_usd: String(userInput.LiquidityUSD),
-                market_cap: String(userInput.MarketCap),
-                trading_volume_24h: String(userInput.Volume24h)
-            })
+                price_usd: userInput.PriceUSD,
+                liquidity_usd: userInput.LiquidityUSD,
+                market_cap: userInput.MarketCap,
+                trading_volume_24h: userInput.Volume24h
+            }
         });
 
         console.log('\n💾 Analysis stored in thread:', thread.id);
@@ -315,64 +235,6 @@ export async function getHistoricalAnalyses(options = {}) {
         return analyses;
     } catch (error) {
         console.error("Failed to retrieve historical analyses:", error);
-        return [];
-    }
-}
-
-// Add function to search vector database
-export async function searchAnalyses(tokenName, contractAddress, limit = 5) {
-    try {
-        // Create embedding for the search query
-        const queryEmbedding = await openai.embeddings.create({
-            input: `${tokenName} ${contractAddress}`,
-            model: 'text-embedding-3-small'
-        });
-
-        // Get all files from assistant
-        const files = await openai.files.list();
-        
-        // Filter files by purpose and content
-        const relevantFiles = [];
-        
-        for (const file of files.data) {
-            if (file.purpose === 'assistants') {
-                try {
-                    // Download and parse file content
-                    const fileContent = await openai.files.retrieveContent(file.id);
-                    const content = JSON.parse(fileContent);
-                    
-                    // Check if file matches token name or contract
-                    if (content.token_info && 
-                        (content.token_info.name.toLowerCase() === tokenName.toLowerCase() ||
-                         content.token_info.contract.toLowerCase() === contractAddress.toLowerCase())) {
-                        
-                        relevantFiles.push({
-                            fileId: file.id,
-                            tokenName: content.token_info.name,
-                            contractAddress: content.token_info.contract,
-                            created: new Date(content.metadata.timestamp).toISOString(),
-                            analysis: {
-                                decision: content.analysis_results.decision,
-                                price_usd: content.market_data.price_usd,
-                                liquidity_usd: content.market_data.liquidity_usd,
-                                volume_24h: content.market_data.volume_24h
-                            }
-                        });
-                    }
-                } catch (parseError) {
-                    console.error(`Failed to parse file ${file.id}:`, parseError);
-                    continue;
-                }
-            }
-        }
-
-        // Sort by creation date (newest first) and limit results
-        return relevantFiles
-            .sort((a, b) => new Date(b.created) - new Date(a.created))
-            .slice(0, limit);
-
-    } catch (error) {
-        console.error('Failed to search analyses:', error);
         return [];
     }
 }

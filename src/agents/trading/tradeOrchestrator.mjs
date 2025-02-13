@@ -1,5 +1,5 @@
 import { gatherAllTokenData } from '../../utils/dataCollector.mjs';
-import { generateAgentConfigurationsforAutoTrader } from './autoTraderNoVectorStore.mjs';
+import { generateAgentConfigurationsforAutoTrader } from './autoTrader.mjs';
 import { getCurrentTradeAdvice } from './tradeAdvice.mjs';
 
 export async function startAutoTradingChat(chain, contractAddress) {

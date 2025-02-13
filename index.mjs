@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url';
 import { startConversation } from './src/agents/orchestrator.mjs';
 import { startAutoTradingChat, startAutoTradingAdvice } from './src/agents/trading/tradeOrchestrator.mjs';
 import { startTwitterChat } from './src/agents/twitter/twitterOrchestrator.mjs';
+import { startAramidOrchestrator } from './src/agents/aramid/aramidOrchestrator.mjs';
 
 dotenv.config();
 
@@ -242,6 +243,31 @@ app.post('/autoTrading-agent-advice', async (req, res) => {
   } catch (error) {
     console.error("Agent Chat Error:", error);
     res.status(500).json({ agents: [], summary: "An error occurred while processing your request." });
+  }
+});
+
+app.post('/aramid-chat', async (req, res) => {
+  const { userInput } = req.body;
+
+  console.log("User Message:", userInput);
+
+  if (!userInput) {
+    return res.status(400).json({ error: "No user input!" });
+  }
+
+  try {
+    // Changed to pass userInput as userQuestion
+    const agentResponse = await startAramidOrchestrator(userInput);
+    console.log("Agent Response:", agentResponse);
+    res.json({ agents: agentResponse });
+  } catch (error) {
+    console.error("Agent Chat Error:", error);
+    res.status(500).json({ 
+      agents: [{
+        name: "Aramid",
+        response: "An error occurred while processing your request."
+      }]
+    });
   }
 });
 

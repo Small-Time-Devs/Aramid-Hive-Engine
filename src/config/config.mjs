@@ -16,6 +16,7 @@ export const config = {
                 autoTrader: process.env.AutoTraderAssistant,
                 autoTraderAdvice: process.env.AutoTraderAdviceAssistant,
                 twitterProfessional: process.env.TwitterProfessionalAssistant,
+                aramidGeneral: process.env.GeneralAssistant,
             }
         },
 
