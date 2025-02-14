@@ -79,17 +79,7 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
             })
         });
 
-        // Save user message to JSONL
-        await appendToJSONL('auto_trader.jsonl', {
-            thread_id: mainThread.id,
-            message_id: userMessage.id,
-            timestamp: new Date().toISOString(),
-            role: "user",
-            content: userInput,
-            metadata: userMessage.metadata
-        });
-
-        // Run the assistant
+        // Remove JSONL storage and continue with assistant run
         const run = await openai.beta.threads.runs.create(mainThread.id, {
             assistant_id: config.llmSettings.openAI.assistants.autoTrader
         });
