@@ -40,78 +40,156 @@ async function initializeThread() {
     }
 })();
 
-// Simplified logging function
-function getConversationData(message) {
-    return {
-        thread_id: mainThread?.id,
-        message_id: message.id,
-        timestamp: new Date().toISOString(),
-        role: message.role,
-        content: message.content[0]?.text?.value || message.content
-    };
+// Message queue and processing state with response tracking
+const messageQueue = [];
+const responsePromises = new Map();
+let isProcessing = false;
+const BATCH_SIZE = 5;
+const RETRY_DELAY = 2000; // 2 seconds
+const MAX_RETRIES = 3;
+
+async function processMessageBatch() {
+    if (isProcessing || messageQueue.length === 0) return;
+    isProcessing = true;
+
+    try {
+        const batch = messageQueue.splice(0, BATCH_SIZE);
+        const batchPromises = [];
+
+        for (const msg of batch) {
+            let retries = 0;
+            while (retries < MAX_RETRIES) {
+                try {
+                    const resultPromise = processSingleMessage(msg);
+                    batchPromises.push(resultPromise);
+                    
+                    // Store promise in map with message ID
+                    responsePromises.set(msg.id, resultPromise);
+                    break;
+                } catch (error) {
+                    if (error.message.includes('active run') && retries < MAX_RETRIES - 1) {
+                        retries++;
+                        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * retries));
+                        continue;
+                    }
+                    // Store error in response map
+                    responsePromises.set(msg.id, Promise.reject(error));
+                    break;
+                }
+            }
+        }
+
+        // Wait for all batch messages to complete
+        await Promise.allSettled(batchPromises);
+
+        // Process next batch if queue is not empty
+        if (messageQueue.length > 0) {
+            setTimeout(processMessageBatch, 100);
+        }
+    } finally {
+        isProcessing = false;
+    }
 }
 
+async function processSingleMessage(messageData) {
+    const { userInput, additionalData } = messageData;
+    
+    // Ensure thread is initialized
+    if (!mainThread) {
+        throw new Error('Thread not initialized. Service not ready.');
+    }
+
+    const userMessage = await openai.beta.threads.messages.create(mainThread.id, {
+        role: "user",
+        content: userInput
+    });
+
+    const run = await openai.beta.threads.runs.create(mainThread.id, {
+        assistant_id: config.llmSettings.openAI.assistants.aramidGeneral
+    });
+
+    // Wait for completion with improved timeout handling
+    const response = await waitForCompletion(run.id);
+    
+    // Store in DynamoDB
+    await storeGeneralConversation({
+        message_id: userMessage.id,
+        thread_id: mainThread.id,
+        timestamp: new Date().toISOString(),
+        user_message: {
+            content: userInput,
+            timestamp: new Date().toISOString()
+        },
+        assistant_response: {
+            content: response.content[0].text.value,
+            message_id: response.id,
+            timestamp: new Date().toISOString()
+        }
+    });
+
+    return response.content[0].text.value;
+}
+
+async function waitForCompletion(runId) {
+    const maxAttempts = 30;
+    let attempts = 0;
+
+    while (attempts < maxAttempts) {
+        const runStatus = await openai.beta.threads.runs.retrieve(mainThread.id, runId);
+        
+        if (runStatus.status === 'completed') {
+            const messages = await openai.beta.threads.messages.list(mainThread.id);
+            return messages.data[0];
+        }
+        
+        if (runStatus.status === 'failed' || runStatus.status === 'cancelled') {
+            throw new Error(`Assistant run ${runStatus.status}`);
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        attempts++;
+    }
+
+    throw new Error('Assistant timed out');
+}
+
+// Modified generate response function to use response tracking
 export async function generateAramidGeneralResponse(userInput, additionalData = null) {
     try {
         console.log('\n📝 Processing user question:', userInput);
         
-        // Ensure thread is initialized
-        if (!mainThread) {
-            throw new Error('Thread not initialized. Service not ready.');
-        }
-
-        const userMessage = await openai.beta.threads.messages.create(mainThread.id, {
-            role: "user",
-            content: userInput
-        });
-
-        // Run the assistant
-        const run = await openai.beta.threads.runs.create(mainThread.id, {
-            assistant_id: config.llmSettings.openAI.assistants.aramidGeneral
-        });
-
-        // Wait for completion
-        let runStatus;
-        const maxAttempts = 30;
-        let attempts = 0;
-
-        while (attempts < maxAttempts) {
-            runStatus = await openai.beta.threads.runs.retrieve(mainThread.id, run.id);
-            if (runStatus.status === 'completed') break;
-            if (runStatus.status === 'failed' || runStatus.status === 'cancelled') {
-                throw new Error(`Assistant run ${runStatus.status}`);
-            }
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            attempts++;
-        }
-
-        if (attempts >= maxAttempts) {
-            throw new Error('Assistant timed out');
-        }
-
-        // Get response
-        const messages = await openai.beta.threads.messages.list(mainThread.id);
-        const response = messages.data[0];
-
-        // Store combined conversation record
-        await storeGeneralConversation({
-            message_id: userMessage.id,
-            thread_id: mainThread.id,
-            timestamp: new Date().toISOString(),
-            user_message: {
-                content: userInput,
-                timestamp: new Date().toISOString()
-            },
-            assistant_response: {
-                content: response.content[0].text.value,
-                message_id: response.id,
-                timestamp: new Date().toISOString()
-            }
-        });
-
-        console.log('🤖 Assistant response received:', response.content[0].text.value);
+        // Create unique message ID
+        const messageId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
         
-        return response.content[0].text.value;
+        // Add message to queue with ID
+        messageQueue.push({ id: messageId, userInput, additionalData });
+        
+        // Create promise for this message's response
+        const responsePromise = new Promise((resolve, reject) => {
+            // Start batch processing if not already running
+            if (!isProcessing) {
+                processMessageBatch().catch(reject);
+            }
+            
+            // Check response map periodically
+            const checkResponse = setInterval(() => {
+                if (responsePromises.has(messageId)) {
+                    clearInterval(checkResponse);
+                    responsePromises.get(messageId)
+                        .then(resolve)
+                        .catch(reject)
+                        .finally(() => responsePromises.delete(messageId));
+                }
+            }, 100);
+
+            // Timeout after 30 seconds
+            setTimeout(() => {
+                clearInterval(checkResponse);
+                reject(new Error('Response timeout'));
+            }, 30000);
+        });
+
+        return await responsePromise;
 
     } catch (error) {
         console.error("Error in Aramid General Assistant:", error);
