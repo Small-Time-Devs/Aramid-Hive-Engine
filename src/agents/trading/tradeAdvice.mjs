@@ -37,31 +37,6 @@ async function initializeThread() {
     }
 })();
 
-function parseTradeAdvice(advice) {
-    if (advice === 'Sell Now' || advice === 'Hold') {
-        return {
-            action: advice,
-            adjustments: null
-        };
-    }
-
-    const match = advice.match(/^Adjust Trade: targetPercentageGain: (\d+), targetPercentageLoss: (\d+)$/);
-    if (match) {
-        return {
-            action: 'Adjust',
-            adjustments: {
-                targetPercentageGain: parseInt(match[1]),
-                targetPercentageLoss: parseInt(match[2])
-            }
-        };
-    }
-
-    return {
-        action: 'Hold',
-        adjustments: null
-    };
-}
-
 export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPercentageGain, targetPercentageLoss) {
     try {
         // Ensure thread is initialized
@@ -131,7 +106,7 @@ export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPerc
         const advice = lastMessage.content[0].text.value.trim();
         console.log('\n💡 Trade Advice:', advice);
 
-        // Store combined conversation record in DynamoDB
+        // Store in DynamoDB without parsing
         await storeTradeAdviceConversation({
             message_id: userMessage.id,
             thread_id: mainThread.id,
@@ -149,24 +124,16 @@ export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPerc
                 content: advice,
                 message_id: lastMessage.id,
                 timestamp: new Date().toISOString(),
-                parsed_advice: parseTradeAdvice(advice)
+                raw_advice: advice  // Store the raw advice
             }
         });
 
-        // Validate and parse the response
-        const isValidAdjustTrade = /^Adjust Trade: targetPercentageGain: \d+, targetPercentageLoss: \d+$/.test(advice);
-        const isValidResponse = advice === 'Sell Now' || advice === 'Hold' || isValidAdjustTrade;
-
-        if (!isValidResponse) {
-            console.warn('Invalid response format from assistant:', advice);
-            return { action: 'Hold', adjustments: null };
-        }
-
-        return parseTradeAdvice(advice);
+        // Return the complete response
+        return advice;
 
     } catch (error) {
         console.error('Error getting trade advice:', error);
         console.error('Error details:', error.stack);
-        return { action: 'Hold', adjustments: null };
+        return 'Error occurred while getting trade advice';
     }
 }
