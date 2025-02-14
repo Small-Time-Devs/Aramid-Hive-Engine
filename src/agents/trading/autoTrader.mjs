@@ -1,11 +1,41 @@
 import OpenAI from 'openai';
 import { config } from '../../config/config.mjs';
-import { appendToJSONL } from '../../utils/jsonlHandler.mjs';
+import { storeAutoTraderConversation, getAssistantThread, storeAssistantThread } from '../../db/dynamo.mjs';
 
 const openai = new OpenAI();
-
-// Store single persistent thread
+const ASSISTANT_NAME = 'AutoTrader';
 let mainThread = null;
+
+// Initialize thread from storage or create new one
+async function initializeThread() {
+    try {
+        const existingThreadId = await getAssistantThread(ASSISTANT_NAME);
+        
+        if (existingThreadId) {
+            console.log('🧵 Recovered existing AutoTrader thread:', existingThreadId);
+            return { id: existingThreadId };
+        } else {
+            const newThread = await openai.beta.threads.create();
+            await storeAssistantThread(ASSISTANT_NAME, newThread.id);
+            console.log('🧵 Created new AutoTrader thread:', newThread.id);
+            return newThread;
+        }
+    } catch (error) {
+        console.error('Error initializing AutoTrader thread:', error);
+        throw error;
+    }
+}
+
+// Initialize thread immediately when module loads
+(async () => {
+    try {
+        mainThread = await initializeThread();
+        console.log(`🔄 AutoTrader initialized with thread: ${mainThread.id}`);
+    } catch (error) {
+        console.error('❌ Failed to initialize AutoTrader thread:', error);
+        process.exit(1); // Exit if we can't initialize the thread
+    }
+})();
 
 // Helper function to convert metadata values to strings
 function sanitizeMetadata(metadata) {
@@ -28,19 +58,9 @@ function summarizeRiskData(rugCheckRisks) {
 
 export async function generateAgentConfigurationsforAutoTrader(userInput) {
     try {
-        // Initialize thread only if it doesn't exist
+        // Ensure thread is initialized
         if (!mainThread) {
-            mainThread = await openai.beta.threads.create({
-                metadata: sanitizeMetadata({
-                    tokenName: userInput.TokenName || userInput.RaydiumTokenPairDataTokenName,
-                    tokenSymbol: userInput.TokenSymbol || userInput.RaydiumTokenPairDataTokenSymbol,
-                    timestamp: new Date().toISOString(),
-                    type: 'trade_analysis',
-                    chain: 'solana',
-                    contractAddress: userInput.ContractAddress
-                })
-            });
-            console.log('🧵 Created main conversation thread:', mainThread.id);
+            throw new Error('Thread not initialized. Service not ready.');
         }
 
         // Add message to existing thread with summarized risk data
@@ -176,36 +196,30 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
             })
         });
 
-        // Save assistant response to JSONL
-        await appendToJSONL('auto_trader.jsonl', {
+        // Store combined conversation record in DynamoDB
+        await storeAutoTraderConversation({
+            message_id: userMessage.id,
             thread_id: mainThread.id,
-            message_id: lastMessage.id,
             timestamp: new Date().toISOString(),
-            role: "assistant",
-            content: lastMessage.content[0].text.value,
-            metadata: {
-                analysis_completed: true,
-                token_address: userInput.ContractAddress,
-                price_usd: userInput.PriceUSD,
-                liquidity_usd: userInput.LiquidityUSD,
-                market_cap: userInput.MarketCap,
-                trading_volume_24h: userInput.Volume24h
+            user_message: {
+                content: JSON.stringify(userInput, null, 2),
+                metadata: userMessage.metadata,
+                timestamp: new Date().toISOString()
+            },
+            assistant_response: {
+                content: JSON.stringify(agentConfigurations, null, 2),
+                message_id: lastMessage.id,
+                metadata: {
+                    analysis_completed: true,
+                    token_address: userInput.ContractAddress,
+                    decision_summary: agentConfigurations[1]?.decision || 'No decision',
+                    price_usd: userInput.PriceUSD,
+                    liquidity_usd: userInput.LiquidityUSD,
+                    market_cap: userInput.MarketCap,
+                    trading_volume_24h: userInput.Volume24h
+                },
+                timestamp: new Date().toISOString()
             }
-        });
-
-        // Add annotations for better searchability
-        await openai.beta.threads.runs.create(mainThread.id, {
-            assistant_id: config.llmSettings.openAI.assistants.autoTrader,
-            metadata: sanitizeMetadata({
-                analysis_completed: true,
-                token_address: userInput.ContractAddress,
-                decision_summary: agentConfigurations[1]?.decision || 'No decision',
-                analysis_timestamp: new Date().toISOString(),
-                price_usd: userInput.PriceUSD,
-                liquidity_usd: userInput.LiquidityUSD,
-                market_cap: userInput.MarketCap,
-                trading_volume_24h: userInput.Volume24h
-            })
         });
 
         console.log('\n💾 Analysis stored in thread:', mainThread.id);

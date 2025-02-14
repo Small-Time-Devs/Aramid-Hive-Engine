@@ -1,33 +1,53 @@
 import OpenAI from 'openai';
 import { config } from '../../config/config.mjs';
-import { appendToJSONL } from '../../utils/jsonlHandler.mjs';
+import { storeTwitterConversation, getAssistantThread, storeAssistantThread } from '../../db/dynamo.mjs';
 
 const openai = new OpenAI();
-
-// Store single persistent thread
+const ASSISTANT_NAME = 'TwitterProfessional';
 let mainThread = null;
+
+// Initialize thread from storage or create new one
+async function initializeThread() {
+    try {
+        const existingThreadId = await getAssistantThread(ASSISTANT_NAME);
+        
+        if (existingThreadId) {
+            console.log('🧵 Recovered existing Twitter Professional thread:', existingThreadId);
+            return { id: existingThreadId };
+        } else {
+            const newThread = await openai.beta.threads.create();
+            await storeAssistantThread(ASSISTANT_NAME, newThread.id);
+            console.log('🧵 Created new Twitter Professional thread:', newThread.id);
+            return newThread;
+        }
+    } catch (error) {
+        console.error('Error initializing Twitter Professional thread:', error);
+        throw error;
+    }
+}
+
+// Initialize thread immediately when module loads
+(async () => {
+    try {
+        mainThread = await initializeThread();
+        console.log(`🔄 Twitter Professional initialized with thread: ${mainThread.id}`);
+    } catch (error) {
+        console.error('❌ Failed to initialize Twitter Professional thread:', error);
+        process.exit(1); // Exit if we can't initialize the thread
+    }
+})();
 
 export async function generateAgentConfigurationsforTwitter(userInput) {
     try {
-        // Initialize thread only if it doesn't exist
+        // Ensure thread is initialized
         if (!mainThread) {
-            mainThread = await openai.beta.threads.create();
-            console.log('🧵 Created main conversation thread:', mainThread.id);
+            throw new Error('Thread not initialized. Service not ready.');
         }
 
         // Add message to existing thread
         const userMessage = await openai.beta.threads.messages.create(mainThread.id, {
             role: "user",
             content: JSON.stringify(userInput, null, 2)
-        });
-
-        // Save user message to JSONL
-        await appendToJSONL('twitter_conversation.jsonl', {
-            thread_id: mainThread.id,
-            message_id: userMessage.id,
-            timestamp: new Date().toISOString(),
-            role: "user",
-            content: userInput
         });
 
         // Run the assistant
@@ -74,15 +94,6 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
             throw new Error('Invalid message structure received');
         }
 
-        // Save assistant response to JSONL
-        await appendToJSONL('twitter_conversation.jsonl', {
-            thread_id: mainThread.id,
-            message_id: lastMessage.id,
-            timestamp: new Date().toISOString(),
-            role: "assistant",
-            content: lastMessage.content[0].text.value
-        });
-
         let responseText = lastMessage.content[0].text.value;
 
         // Clean up the response text
@@ -105,6 +116,23 @@ export async function generateAgentConfigurationsforTwitter(userInput) {
         if (!Array.isArray(agentConfigurations) || agentConfigurations.length !== 5) {
             throw new Error('Expected exactly 5 agents in response');
         }
+
+        // Store combined conversation record in DynamoDB
+        await storeTwitterConversation({
+            message_id: userMessage.id,
+            thread_id: mainThread.id,
+            timestamp: new Date().toISOString(),
+            user_message: {
+                content: JSON.stringify(userInput, null, 2),
+                timestamp: new Date().toISOString()
+            },
+            assistant_response: {
+                content: lastMessage.content[0].text.value,
+                message_id: lastMessage.id,
+                timestamp: new Date().toISOString(),
+                configurations: agentConfigurations
+            }
+        });
 
         console.log('\n📊 Final Twitter Configurations:');
         console.log(JSON.stringify(agentConfigurations, null, 2));

@@ -1,13 +1,44 @@
 import { config } from '../../config/config.mjs';
 import OpenAI from 'openai';
-import { appendToJSONL } from '../../utils/jsonlHandler.mjs';
+import { storeGeneralConversation, getAssistantThread, storeAssistantThread } from '../../db/dynamo.mjs';
 
 const openai = new OpenAI({
     apiKey: config.llmSettings.openAI.apiKey
 });
 
-// Store single persistent conversation thread
+const ASSISTANT_NAME = 'AramidGeneral';
 let mainThread = null;
+
+// Initialize thread from storage or create new one
+async function initializeThread() {
+    try {
+        const existingThreadId = await getAssistantThread(ASSISTANT_NAME);
+        
+        if (existingThreadId) {
+            console.log('🧵 Recovered existing thread:', existingThreadId);
+            return { id: existingThreadId };
+        } else {
+            const newThread = await openai.beta.threads.create();
+            await storeAssistantThread(ASSISTANT_NAME, newThread.id);
+            console.log('🧵 Created new thread:', newThread.id);
+            return newThread;
+        }
+    } catch (error) {
+        console.error('Error initializing thread:', error);
+        throw error;
+    }
+}
+
+// Initialize thread immediately when module loads
+(async () => {
+    try {
+        mainThread = await initializeThread();
+        console.log(`🔄 AramidGeneral initialized with thread: ${mainThread.id}`);
+    } catch (error) {
+        console.error('❌ Failed to initialize AramidGeneral thread:', error);
+        process.exit(1); // Exit if we can't initialize the thread
+    }
+})();
 
 // Simplified logging function
 function getConversationData(message) {
@@ -24,25 +55,15 @@ export async function generateAramidGeneralResponse(userInput, additionalData = 
     try {
         console.log('\n📝 Processing user question:', userInput);
         
-        // Initialize thread only if it doesn't exist
+        // Ensure thread is initialized
         if (!mainThread) {
-            mainThread = await openai.beta.threads.create();
-            console.log('🧵 Created main conversation thread:', mainThread.id);
+            throw new Error('Thread not initialized. Service not ready.');
         }
 
         const userMessage = await openai.beta.threads.messages.create(mainThread.id, {
             role: "user",
             content: userInput
         });
-
-        // Log user message
-        await appendToJSONL('aramid_conversation.jsonl', 
-            getConversationData({
-                id: userMessage.id,
-                role: "user",
-                content: userInput
-            })
-        );
 
         // Run the assistant
         const run = await openai.beta.threads.runs.create(mainThread.id, {
@@ -72,10 +93,21 @@ export async function generateAramidGeneralResponse(userInput, additionalData = 
         const messages = await openai.beta.threads.messages.list(mainThread.id);
         const response = messages.data[0];
 
-        // Log assistant response
-        await appendToJSONL('aramid_conversation.jsonl', 
-            getConversationData(response)
-        );
+        // Store combined conversation record
+        await storeGeneralConversation({
+            message_id: userMessage.id,
+            thread_id: mainThread.id,
+            timestamp: new Date().toISOString(),
+            user_message: {
+                content: userInput,
+                timestamp: new Date().toISOString()
+            },
+            assistant_response: {
+                content: response.content[0].text.value,
+                message_id: response.id,
+                timestamp: new Date().toISOString()
+            }
+        });
 
         console.log('🤖 Assistant response received:', response.content[0].text.value);
         

@@ -1,12 +1,41 @@
 import OpenAI from 'openai';
 import { config } from '../../config/config.mjs';
-import { getMainThread, setMainThread } from '../../utils/threadManager.mjs';
-import { appendToJSONL } from '../../utils/jsonlHandler.mjs';
+import { storeTradeAdviceConversation, getAssistantThread, storeAssistantThread } from '../../db/dynamo.mjs';
 
 const openai = new OpenAI();
-
-// Store single persistent thread
+const ASSISTANT_NAME = 'TradeAdvice';
 let mainThread = null;
+
+// Initialize thread from storage or create new one
+async function initializeThread() {
+    try {
+        const existingThreadId = await getAssistantThread(ASSISTANT_NAME);
+        
+        if (existingThreadId) {
+            console.log('🧵 Recovered existing TradeAdvice thread:', existingThreadId);
+            return { id: existingThreadId };
+        } else {
+            const newThread = await openai.beta.threads.create();
+            await storeAssistantThread(ASSISTANT_NAME, newThread.id);
+            console.log('🧵 Created new TradeAdvice thread:', newThread.id);
+            return newThread;
+        }
+    } catch (error) {
+        console.error('Error initializing TradeAdvice thread:', error);
+        throw error;
+    }
+}
+
+// Initialize thread immediately when module loads
+(async () => {
+    try {
+        mainThread = await initializeThread();
+        console.log(`🔄 TradeAdvice initialized with thread: ${mainThread.id}`);
+    } catch (error) {
+        console.error('❌ Failed to initialize TradeAdvice thread:', error);
+        process.exit(1); // Exit if we can't initialize the thread
+    }
+})();
 
 function parseTradeAdvice(advice) {
     if (advice === 'Sell Now' || advice === 'Hold') {
@@ -35,10 +64,9 @@ function parseTradeAdvice(advice) {
 
 export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPercentageGain, targetPercentageLoss) {
     try {
-        // Initialize thread only if it doesn't exist
+        // Ensure thread is initialized
         if (!mainThread) {
-            mainThread = await openai.beta.threads.create();
-            console.log('🧵 Created main conversation thread:', mainThread.id);
+            throw new Error('Thread not initialized. Service not ready.');
         }
 
         // Prepare the input data
@@ -57,15 +85,6 @@ export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPerc
         const userMessage = await openai.beta.threads.messages.create(mainThread.id, {
             role: "user",
             content: JSON.stringify(messageContent, null, 2)
-        });
-
-        // Save user message to JSONL
-        await appendToJSONL('trade_advice.jsonl', {
-            thread_id: mainThread.id,
-            message_id: userMessage.id,
-            timestamp: new Date().toISOString(),
-            role: "user",
-            content: messageContent
         });
 
         // Run the assistant
@@ -112,13 +131,26 @@ export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPerc
         const advice = lastMessage.content[0].text.value.trim();
         console.log('\n💡 Trade Advice:', advice);
 
-        // Save assistant response to JSONL
-        await appendToJSONL('trade_advice.jsonl', {
+        // Store combined conversation record in DynamoDB
+        await storeTradeAdviceConversation({
+            message_id: userMessage.id,
             thread_id: mainThread.id,
-            message_id: messages.data[0].id,
             timestamp: new Date().toISOString(),
-            role: "assistant",
-            content: advice
+            user_message: {
+                content: JSON.stringify(messageContent, null, 2),
+                timestamp: new Date().toISOString(),
+                metadata: {
+                    entryPriceSOL,
+                    targetPercentageGain,
+                    targetPercentageLoss
+                }
+            },
+            assistant_response: {
+                content: advice,
+                message_id: lastMessage.id,
+                timestamp: new Date().toISOString(),
+                parsed_advice: parseTradeAdvice(advice)
+            }
         });
 
         // Validate and parse the response
