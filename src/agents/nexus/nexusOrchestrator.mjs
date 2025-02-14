@@ -1,4 +1,4 @@
-import { generateAramidGeneralResponse } from './aramidGeneral.mjs';
+import { generateNexusGeneralResponse } from './nexusGeneral.mjs';
 import { gatherAllTokenData } from '../../utils/dataCollector.mjs';
 
 function parseDecision(decision) {
@@ -33,7 +33,7 @@ function ensureValidResponse(response) {
         // Validate structure
         if (!Array.isArray(parsed)) {
             return [{
-                name: "Aramid",
+                name: "Nexus",
                 response: cleaned
             }];
         }
@@ -42,17 +42,17 @@ function ensureValidResponse(response) {
     } catch (error) {
         // If parsing fails, return formatted response
         return [{
-            name: "Aramid",
+            name: "Nexus",
             response: response
         }];
     }
 }
 
-export async function startAramidOrchestrator(userQuestion) {
+export async function startNexusOrchestrator(userQuestion) {
     try {
         // Get response from assistant
         console.log('\n🤖 Getting response...');
-        const initialResponse = await generateAramidGeneralResponse(userQuestion);
+        const initialResponse = await generateNexusGeneralResponse(userQuestion);
         let parsedResponse = ensureValidResponse(initialResponse);
 
         // Check if data gathering is needed
@@ -72,7 +72,7 @@ export async function startAramidOrchestrator(userQuestion) {
                 console.log('\n💽 Token data gathered, getting final analysis...');
                 
                 // Get final response with gathered data
-                const finalResponse = await generateAramidGeneralResponse(userQuestion, tokenData);
+                const finalResponse = await generateNexusGeneralResponse(userQuestion, tokenData);
                 parsedResponse = ensureValidResponse(finalResponse);
             }
         }
@@ -80,9 +80,9 @@ export async function startAramidOrchestrator(userQuestion) {
         return parsedResponse;
 
     } catch (error) {
-        console.error("🚨 Error in Aramid Orchestrator:", error);
+        console.error("🚨 Error in Nexus Orchestrator:", error);
         return [{
-            name: "Aramid",
+            name: "Nexus",
             response: "I apologize, but I encountered an error processing your request. Please try again."
         }];
     }

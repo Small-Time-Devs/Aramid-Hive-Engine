@@ -6,7 +6,7 @@ const openai = new OpenAI({
     apiKey: config.llmSettings.openAI.apiKey
 });
 
-const ASSISTANT_NAME = 'AramidGeneral';
+const ASSISTANT_NAME = 'NexusGeneral';
 let mainThread = null;
 
 // Initialize thread from storage or create new one
@@ -33,9 +33,9 @@ async function initializeThread() {
 (async () => {
     try {
         mainThread = await initializeThread();
-        console.log(`🔄 AramidGeneral initialized with thread: ${mainThread.id}`);
+        console.log(`🔄 NexusGeneral initialized with thread: ${mainThread.id}`);
     } catch (error) {
-        console.error('❌ Failed to initialize AramidGeneral thread:', error);
+        console.error('❌ Failed to initialize NexusGeneral thread:', error);
         process.exit(1); // Exit if we can't initialize the thread
     }
 })();
@@ -105,7 +105,7 @@ async function processSingleMessage(messageData) {
     });
 
     const run = await openai.beta.threads.runs.create(mainThread.id, {
-        assistant_id: config.llmSettings.openAI.assistants.aramidGeneral
+        assistant_id: config.llmSettings.openAI.assistants.NexusGeneral
     });
 
     // Wait for completion with improved timeout handling
@@ -154,7 +154,7 @@ async function waitForCompletion(runId) {
 }
 
 // Modified generate response function to use response tracking
-export async function generateAramidGeneralResponse(userInput, additionalData = null) {
+export async function generateNexusGeneralResponse(userInput, additionalData = null) {
     try {
         console.log('\n📝 Processing user question:', userInput);
         
@@ -192,7 +192,7 @@ export async function generateAramidGeneralResponse(userInput, additionalData = 
         return await responsePromise;
 
     } catch (error) {
-        console.error("Error in Aramid General Assistant:", error);
+        console.error("Error in Nexus General Assistant:", error);
         throw error;
     }
 }

@@ -7,16 +7,18 @@ const ASSISTANT_NAME = 'TwitterProfessional';
 let mainThread = null;
 
 // Initialize thread from storage or create new one
-async function initializeThread() {
+async function initializeThread(forceNewThread = false) {
     try {
-        const existingThreadId = await getAssistantThread(ASSISTANT_NAME);
+        const existingThreadId = !forceNewThread ? await getAssistantThread(ASSISTANT_NAME) : null;
         
-        if (existingThreadId) {
+        if (existingThreadId && !forceNewThread) {
             console.log('🧵 Recovered existing Twitter Professional thread:', existingThreadId);
             return { id: existingThreadId };
         } else {
             const newThread = await openai.beta.threads.create();
-            await storeAssistantThread(ASSISTANT_NAME, newThread.id);
+            if (!forceNewThread) {
+                await storeAssistantThread(ASSISTANT_NAME, newThread.id);
+            }
             console.log('🧵 Created new Twitter Professional thread:', newThread.id);
             return newThread;
         }
@@ -37,9 +39,15 @@ async function initializeThread() {
     }
 })();
 
-export async function generateAgentConfigurationsforTwitter(userInput) {
+export async function generateAgentConfigurationsforTwitter(userInput, useNewThread = false) {
     try {
-        // Ensure thread is initialized
+        // Create new thread if requested
+        if (useNewThread) {
+            mainThread = await initializeThread(true);
+            console.log(`🔄 Created fresh Twitter Professional thread: ${mainThread.id}`);
+        }
+        
+        // Ensure thread exists
         if (!mainThread) {
             throw new Error('Thread not initialized. Service not ready.');
         }

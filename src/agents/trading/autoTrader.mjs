@@ -5,6 +5,7 @@ import { storeAutoTraderConversation, getAssistantThread, storeAssistantThread }
 const openai = new OpenAI();
 const ASSISTANT_NAME = 'AutoTrader';
 let mainThread = null;
+let currentlyProcessing = false;
 
 // Initialize thread from storage or create new one
 async function initializeThread() {
@@ -56,14 +57,27 @@ function summarizeRiskData(rugCheckRisks) {
     }
 }
 
-export async function generateAgentConfigurationsforAutoTrader(userInput) {
+async function processSingleMessage(userInput) {
     try {
-        // Ensure thread is initialized
         if (!mainThread) {
             throw new Error('Thread not initialized. Service not ready.');
         }
 
-        // Add message to existing thread with summarized risk data
+        // Wait if there's already a message being processed
+        if (currentlyProcessing) {
+            console.log('Waiting for previous message to complete...');
+            await new Promise(resolve => {
+                const checkInterval = setInterval(() => {
+                    if (!currentlyProcessing) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 500);
+            });
+        }
+
+        currentlyProcessing = true;
+
         const userMessage = await openai.beta.threads.messages.create(mainThread.id, {
             role: "user",
             content: JSON.stringify(userInput, null, 2),
@@ -79,114 +93,12 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
             })
         });
 
-        // Remove JSONL storage and continue with assistant run
         const run = await openai.beta.threads.runs.create(mainThread.id, {
             assistant_id: config.llmSettings.openAI.assistants.autoTrader
         });
 
-        // Wait for the run to complete with timeout
-        let runStatus;
-        const maxAttempts = 30;
-        let attempts = 0;
-
-        while (attempts < maxAttempts) {
-            runStatus = await openai.beta.threads.runs.retrieve(mainThread.id, run.id);
-            console.log(`Run status: ${runStatus.status}`);
-
-            if (runStatus.status === 'completed') {
-                break;
-            }
-            if (runStatus.status === 'failed' || runStatus.status === 'cancelled') {
-                throw new Error(`Assistant run ${runStatus.status}: ${runStatus.last_error?.message || 'Unknown error'}`);
-            }
-            
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            attempts++;
-        }
-
-        if (attempts >= maxAttempts) {
-            throw new Error('Assistant timed out');
-        }
-
-        // Get the messages
-        const messages = await openai.beta.threads.messages.list(mainThread.id);
+        const response = await waitForCompletion(run.id);
         
-        if (!messages.data || messages.data.length === 0) {
-            throw new Error('No messages returned from assistant');
-        }
-
-        const lastMessage = messages.data[0];
-        if (!lastMessage.content?.[0]?.text?.value) {
-            throw new Error('Invalid message structure received');
-        }
-
-        let responseText = lastMessage.content[0].text.value;
-        console.log('\n🤖 Assistant Raw Response:');
-        console.log(responseText);
-
-        // Clean up the response text and ensure proper JSON formatting
-        responseText = responseText
-            .replace(/```json|```/g, '')
-            .trim()
-            .replace(/,(\s*})/g, '$1') // Remove trailing commas
-            .replace(/,(\s*])/g, '$1'); // Remove trailing commas before array end
-
-        // Try to extract JSON if it's wrapped in something else
-        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-        if (!jsonMatch) {
-            throw new Error('No valid JSON array found in response');
-        }
-
-        // Parse and validate JSON
-        let agentConfigurations = JSON.parse(jsonMatch[0]);
-
-        // Ensure each agent has the required fields and structure
-        agentConfigurations = agentConfigurations.map(agent => {
-            if (!agent.name || !agent.personality || !agent.response) {
-                throw new Error('Missing required fields in agent configuration');
-            }
-
-            // Add decision field if missing
-            if (!agent.decision && agent.response.toLowerCase().includes('pass:')) {
-                const passIndex = agent.response.toLowerCase().indexOf('pass:');
-                agent.decision = agent.response.slice(passIndex).split('\n')[0].trim();
-            } else if (!agent.decision && 
-                     (agent.response.toLowerCase().includes('gain') && 
-                      agent.response.toLowerCase().includes('loss'))) {
-                // Extract decision from response if it contains gain/loss values
-                const matches = agent.response.match(/(?:gain|Gain).?\+(\d+)%.+(?:loss|Loss).?-(\d+)%/i);
-                if (matches) {
-                    agent.decision = `Quick Profit: Gain +${matches[1]}%, Loss -${matches[2]}%`;
-                }
-            }
-
-            return agent;
-        });
-
-        if (agentConfigurations.length !== 2) {
-            throw new Error('Expected exactly 2 agents in response');
-        }
-
-        console.log('\n📊 Final Agent Configurations:');
-        console.log(JSON.stringify(agentConfigurations, null, 2));
-
-        // Store the analysis results with detailed metadata
-        await openai.beta.threads.messages.create(mainThread.id, {
-            role: "assistant",
-            content: JSON.stringify(agentConfigurations, null, 2),
-            metadata: sanitizeMetadata({
-                messageType: 'analysis_response',
-                decision: agentConfigurations[1]?.decision || 'No decision provided',
-                analyst: agentConfigurations[0]?.name || 'Unknown',
-                strategist: agentConfigurations[1]?.name || 'Unknown',
-                analysisTimestamp: new Date().toISOString(),
-                riskLevel: getRiskLevel(userInput),
-                tradingVolume: userInput.Volume24h,
-                priceMovement: userInput.PriceChange24h
-            })
-        });
-
-        // Store combined conversation record in DynamoDB
         await storeAutoTraderConversation({
             message_id: userMessage.id,
             thread_id: mainThread.id,
@@ -197,12 +109,12 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
                 timestamp: new Date().toISOString()
             },
             assistant_response: {
-                content: JSON.stringify(agentConfigurations, null, 2),
-                message_id: lastMessage.id,
+                content: JSON.stringify(response.agentConfigurations, null, 2),
+                message_id: response.lastMessage.id,
                 metadata: {
                     analysis_completed: true,
                     token_address: userInput.ContractAddress,
-                    decision_summary: agentConfigurations[1]?.decision || 'No decision',
+                    decision_summary: response.agentConfigurations?.[1]?.decision || 'No decision',
                     price_usd: userInput.PriceUSD,
                     liquidity_usd: userInput.LiquidityUSD,
                     market_cap: userInput.MarketCap,
@@ -212,31 +124,89 @@ export async function generateAgentConfigurationsforAutoTrader(userInput) {
             }
         });
 
-        console.log('\n💾 Analysis stored in thread:', mainThread.id);
-        
-        return agentConfigurations;
+        return response.agentConfigurations;
 
     } catch (error) {
-        console.error("🚨 Error generating agent configurations:", error);
-        console.error("Error details:", error.stack);
-        
-        // Store error information if we have a thread
-        if (mainThread) {
-            try {
-                await openai.beta.threads.messages.create(mainThread.id, {
-                    role: "assistant",
-                    content: `Error occurred: ${error.message}`,
-                    metadata: {
-                        messageType: 'error_log',
-                        errorType: error.name,
-                        timestamp: new Date().toISOString()
-                    }
-                });
-            } catch (storeError) {
-                console.error("Failed to store error information:", storeError);
-            }
+        throw error;
+    } finally {
+        currentlyProcessing = false;
+    }
+}
+
+async function waitForCompletion(runId) {
+    const maxAttempts = 60; // Increased timeout
+    let attempts = 0;
+
+    while (attempts < maxAttempts) {
+        const runStatus = await openai.beta.threads.runs.retrieve(mainThread.id, runId);
+        console.log(`Run status: ${runStatus.status}`);
+
+        if (runStatus.status === 'completed') {
+            const messages = await openai.beta.threads.messages.list(mainThread.id);
+            const lastMessage = messages.data[0];
+            const agentConfigurations = await processResponse(lastMessage);
+            return { agentConfigurations, lastMessage };
         }
+
+        if (runStatus.status === 'failed' || runStatus.status === 'cancelled') {
+            throw new Error(`Assistant run ${runStatus.status}`);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        attempts++;
+    }
+
+    throw new Error('Assistant timed out');
+}
+
+async function processResponse(lastMessage) {
+    try {
+        if (!lastMessage?.content?.[0]?.text?.value) {
+            throw new Error('Invalid message structure received');
+        }
+
+        let responseText = lastMessage.content[0].text.value;
         
+        // Clean up the response text
+        responseText = responseText
+            .replace(/```json|```/g, '')  // Remove JSON code block markers
+            .trim()
+            .replace(/,(\s*[}\]])/g, '$1'); // Remove trailing commas
+
+        // Try to extract JSON if it's wrapped in something else
+        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) {
+            throw new Error('No valid JSON array found in response');
+        }
+
+        // Parse the JSON array
+        const agentConfigurations = JSON.parse(jsonMatch[0]);
+
+        // Validate the response structure
+        if (!Array.isArray(agentConfigurations)) {
+            throw new Error('Response is not an array');
+        }
+
+        return agentConfigurations;
+    } catch (error) {
+        console.error('Error processing response:', error);
+        // Return a default empty array of configurations
+        return [{
+            name: "Analyst",
+            response: "Error processing analysis"
+        }, {
+            name: "Investment Strategist",
+            decision: "Pass",
+            response: "Unable to process data"
+        }];
+    }
+}
+
+export async function generateAgentConfigurationsforAutoTrader(userInput) {
+    try {
+        return await processSingleMessage(userInput);
+    } catch (error) {
+        console.error("🚨 Error generating agent configurations:", error);
         throw new Error(`Failed to generate agent configurations: ${error.message}`);
     }
 }
