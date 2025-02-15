@@ -197,6 +197,7 @@ app.post('/autoTrading-agent-chat', async (req, res) => {
 
   try {
     const agentResponses = await startAutoTradingChat(chain, contractAddress);
+    console.log("Agent Responses:", agentResponses);
     res.json({ agents: agentResponses });
   } catch (error) {
     console.error("Agent Chat Error:", error);

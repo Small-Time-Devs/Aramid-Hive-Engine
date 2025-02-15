@@ -10,9 +10,9 @@ export const config = {
         openAI: {
             apiKey: process.env.OPENAI_API_KEY, // Set your OpenAI API key here
             model: 'gpt-4o-mini', // Set the OpenAI model to use
-            store: true, // Set to true to store conversations in the 'conversations' folder
-            userPersonalAssistants: true, // Set to true to enable user personal assistants
             assistants: {
+                useAutoTraderAssistant: true, // Not implemented yet
+                useAutoTraderSameThread: false, // Not implemented yet
                 autoTrader: process.env.AutoTraderAssistant,
                 autoTraderAdvice: process.env.AutoTraderAdviceAssistant,
                 twitterProfessional: process.env.TwitterProfessionalAssistant,
