@@ -9,15 +9,22 @@ let mainThread = null;
 // Initialize thread from storage or create new one
 async function initializeThread() {
     try {
-        const existingThreadId = await getAssistantThread(ASSISTANT_NAME);
-        
-        if (existingThreadId) {
-            console.log('🧵 Recovered existing TradeAdvice thread:', existingThreadId);
-            return { id: existingThreadId };
+        if (config.llmSettings.openAI.assistants.useTraderAdviceSameThread) {
+            const existingThreadId = await getAssistantThread(ASSISTANT_NAME);
+            
+            if (existingThreadId) {
+                console.log('🧵 Recovered existing TradeAdvice thread:', existingThreadId);
+                return { id: existingThreadId };
+            } else {
+                const newThread = await openai.beta.threads.create();
+                await storeAssistantThread(ASSISTANT_NAME, newThread.id);
+                console.log('🧵 Created new TradeAdvice thread:', newThread.id);
+                return newThread;
+            }
         } else {
+            // Don't store the thread ID if we're not using persistent threads
             const newThread = await openai.beta.threads.create();
-            await storeAssistantThread(ASSISTANT_NAME, newThread.id);
-            console.log('🧵 Created new TradeAdvice thread:', newThread.id);
+            console.log('🧵 Created new temporary thread:', newThread.id);
             return newThread;
         }
     } catch (error) {
@@ -26,21 +33,27 @@ async function initializeThread() {
     }
 }
 
-// Initialize thread immediately when module loads
-(async () => {
-    try {
-        mainThread = await initializeThread();
-        console.log(`🔄 TradeAdvice initialized with thread: ${mainThread.id}`);
-    } catch (error) {
-        console.error('❌ Failed to initialize TradeAdvice thread:', error);
-        process.exit(1); // Exit if we can't initialize the thread
-    }
-})();
+// Only initialize persistent thread if configured to use same thread
+if (config.llmSettings.openAI.assistants.useTraderAdviceSameThread) {
+    (async () => {
+        try {
+            mainThread = await initializeThread();
+            console.log(`🔄 TradeAdvice initialized with persistent thread: ${mainThread.id}`);
+        } catch (error) {
+            console.error('❌ Failed to initialize TradeAdvice thread:', error);
+            process.exit(1);
+        }
+    })();
+}
 
 export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPercentageGain, targetPercentageLoss) {
     try {
-        // Ensure thread is initialized
-        if (!mainThread) {
+        // Create new thread for each message if not using persistent thread
+        const thread = config.llmSettings.openAI.assistants.useTraderAdviceSameThread 
+            ? mainThread 
+            : await initializeThread();
+
+        if (!thread) {
             throw new Error('Thread not initialized. Service not ready.');
         }
 
@@ -57,13 +70,13 @@ export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPerc
         };
 
         // Add message to existing thread
-        const userMessage = await openai.beta.threads.messages.create(mainThread.id, {
+        const userMessage = await openai.beta.threads.messages.create(thread.id, {
             role: "user",
             content: JSON.stringify(messageContent, null, 2)
         });
 
         // Run the assistant
-        const run = await openai.beta.threads.runs.create(mainThread.id, {
+        const run = await openai.beta.threads.runs.create(thread.id, {
             assistant_id: config.llmSettings.openAI.assistants.autoTraderAdvice
         });
 
@@ -73,7 +86,7 @@ export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPerc
         let attempts = 0;
 
         while (attempts < maxAttempts) {
-            runStatus = await openai.beta.threads.runs.retrieve(mainThread.id, run.id);
+            runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
             console.log(`Run status: ${runStatus.status}`);
 
             if (runStatus.status === 'completed') {
@@ -92,7 +105,7 @@ export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPerc
         }
 
         // Get the messages
-        const messages = await openai.beta.threads.messages.list(mainThread.id);
+        const messages = await openai.beta.threads.messages.list(thread.id);
         
         if (!messages.data || messages.data.length === 0) {
             throw new Error('No messages returned from assistant');
@@ -109,7 +122,7 @@ export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPerc
         // Store in DynamoDB without parsing
         await storeTradeAdviceConversation({
             message_id: userMessage.id,
-            thread_id: mainThread.id,
+            thread_id: thread.id,
             timestamp: new Date().toISOString(),
             user_message: {
                 content: JSON.stringify(messageContent, null, 2),
@@ -127,6 +140,16 @@ export async function getCurrentTradeAdvice(userInput, entryPriceSOL, targetPerc
                 raw_advice: advice  // Store the raw advice
             }
         });
+
+        // Clean up temporary thread if not using persistent threads
+        if (!config.llmSettings.openAI.assistants.useTraderAdviceSameThread) {
+            try {
+                await openai.beta.threads.del(thread.id);
+                console.log('🧹 Cleaned up temporary thread:', thread.id);
+            } catch (cleanupError) {
+                console.warn('Warning: Failed to cleanup temporary thread:', cleanupError);
+            }
+        }
 
         // Return the complete response
         return advice;

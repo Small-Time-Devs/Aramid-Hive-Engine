@@ -12,15 +12,22 @@ let mainThread = null;
 // Initialize thread from storage or create new one
 async function initializeThread() {
     try {
-        const existingThreadId = await getAssistantThread(ASSISTANT_NAME);
-        
-        if (existingThreadId) {
-            console.log('🧵 Recovered existing thread:', existingThreadId);
-            return { id: existingThreadId };
+        if (config.llmSettings.openAI.assistants.useAramidGeneralSameThread) {
+            const existingThreadId = await getAssistantThread(ASSISTANT_NAME);
+            
+            if (existingThreadId) {
+                console.log('🧵 Recovered existing thread:', existingThreadId);
+                return { id: existingThreadId };
+            } else {
+                const newThread = await openai.beta.threads.create();
+                await storeAssistantThread(ASSISTANT_NAME, newThread.id);
+                console.log('🧵 Created new persistent thread:', newThread.id);
+                return newThread;
+            }
         } else {
+            // Don't store the thread ID if we're not using persistent threads
             const newThread = await openai.beta.threads.create();
-            await storeAssistantThread(ASSISTANT_NAME, newThread.id);
-            console.log('🧵 Created new thread:', newThread.id);
+            console.log('🧵 Created new temporary thread:', newThread.id);
             return newThread;
         }
     } catch (error) {
@@ -29,16 +36,18 @@ async function initializeThread() {
     }
 }
 
-// Initialize thread immediately when module loads
-(async () => {
-    try {
-        mainThread = await initializeThread();
-        console.log(`🔄 AramidGeneral initialized with thread: ${mainThread.id}`);
-    } catch (error) {
-        console.error('❌ Failed to initialize AramidGeneral thread:', error);
-        process.exit(1); // Exit if we can't initialize the thread
-    }
-})();
+// Only initialize persistent thread if configured to use same thread
+if (config.llmSettings.openAI.assistants.useAramidGeneralSameThread) {
+    (async () => {
+        try {
+            mainThread = await initializeThread();
+            console.log(`🔄 AramidGeneral initialized with persistent thread: ${mainThread.id}`);
+        } catch (error) {
+            console.error('❌ Failed to initialize AramidGeneral thread:', error);
+            process.exit(1);
+        }
+    })();
+}
 
 // Message queue and processing state with response tracking
 const messageQueue = [];
@@ -94,51 +103,72 @@ async function processMessageBatch() {
 async function processSingleMessage(messageData) {
     const { userInput, additionalData } = messageData;
     
-    // Ensure thread is initialized
-    if (!mainThread) {
-        throw new Error('Thread not initialized. Service not ready.');
-    }
+    try {
+        // Create new thread for each message if not using persistent thread
+        const thread = config.llmSettings.openAI.assistants.useAramidGeneralSameThread 
+            ? mainThread 
+            : await initializeThread();
 
-    const userMessage = await openai.beta.threads.messages.create(mainThread.id, {
-        role: "user",
-        content: userInput
-    });
-
-    const run = await openai.beta.threads.runs.create(mainThread.id, {
-        assistant_id: config.llmSettings.openAI.assistants.aramidGeneral
-    });
-
-    // Wait for completion with improved timeout handling
-    const response = await waitForCompletion(run.id);
-    
-    // Store in DynamoDB
-    await storeGeneralConversation({
-        message_id: userMessage.id,
-        thread_id: mainThread.id,
-        timestamp: new Date().toISOString(),
-        user_message: {
-            content: userInput,
-            timestamp: new Date().toISOString()
-        },
-        assistant_response: {
-            content: response.content[0].text.value,
-            message_id: response.id,
-            timestamp: new Date().toISOString()
+        if (!thread) {
+            throw new Error('Thread not initialized. Service not ready.');
         }
-    });
 
-    return response.content[0].text.value;
+        const userMessage = await openai.beta.threads.messages.create(thread.id, {
+            role: "user",
+            content: userInput
+        });
+
+        const run = await openai.beta.threads.runs.create(thread.id, {
+            assistant_id: config.llmSettings.openAI.assistants.aramidGeneral
+        });
+
+        // Wait for completion with improved timeout handling
+        const response = await waitForCompletion(run.id, thread.id);
+        
+        // Store in DynamoDB
+        await storeGeneralConversation({
+            message_id: userMessage.id,
+            thread_id: thread.id,
+            timestamp: new Date().toISOString(),
+            user_message: {
+                content: userInput,
+                timestamp: new Date().toISOString()
+            },
+            assistant_response: {
+                content: response.content[0].text.value,
+                message_id: response.id,
+                timestamp: new Date().toISOString()
+            }
+        });
+
+        // Clean up temporary thread if not using persistent threads
+        if (!config.llmSettings.openAI.assistants.useAramidGeneralSameThread) {
+            try {
+                await openai.beta.threads.del(thread.id);
+                console.log('🧹 Cleaned up temporary thread:', thread.id);
+            } catch (cleanupError) {
+                console.warn('Warning: Failed to cleanup temporary thread:', cleanupError);
+            }
+        }
+
+        return response.content[0].text.value;
+
+    } catch (error) {
+        console.error('Error processing message:', error);
+        throw error;
+    }
 }
 
-async function waitForCompletion(runId) {
+// Update waitForCompletion to accept threadId parameter
+async function waitForCompletion(runId, threadId) {
     const maxAttempts = 30;
     let attempts = 0;
 
     while (attempts < maxAttempts) {
-        const runStatus = await openai.beta.threads.runs.retrieve(mainThread.id, runId);
+        const runStatus = await openai.beta.threads.runs.retrieve(threadId, runId);
         
         if (runStatus.status === 'completed') {
-            const messages = await openai.beta.threads.messages.list(mainThread.id);
+            const messages = await openai.beta.threads.messages.list(threadId);
             return messages.data[0];
         }
         
@@ -198,5 +228,7 @@ export async function generateAramidGeneralResponse(userInput, additionalData = 
 }
 
 export function getCurrentThreadId() {
-    return mainThread?.id || null;
+    return config.llmSettings.openAI.assistants.useAramidGeneralSameThread 
+        ? mainThread?.id 
+        : null;
 }

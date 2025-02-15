@@ -12,10 +12,16 @@ export const config = {
             model: 'gpt-4o-mini', // Set the OpenAI model to use
             assistants: {
                 useAutoTraderAssistant: true, // Not implemented yet
-                useAutoTraderSameThread: false, // Not implemented yet
+                useAutoTraderSameThread: false,
                 autoTrader: process.env.AutoTraderAssistant,
+
+                useTraderAdviceSameThread: false,
                 autoTraderAdvice: process.env.AutoTraderAdviceAssistant,
+
+                useTwitterProfessionalSameThread: false,
                 twitterProfessional: process.env.TwitterProfessionalAssistant,
+
+                useAramidGeneralSameThread: true,
                 aramidGeneral: process.env.GeneralAssistant,
             }
         },
