@@ -22,7 +22,10 @@ export const config = {
                 twitterProfessional: process.env.TwitterProfessionalAssistant,
 
                 useAramidGeneralSameThread: true,
-                aramidGeneral: process.env.GeneralAssistant,
+                aramidGeneral: process.env.AramidAssistant,
+
+                useCortexGeneralSameThread: true,
+                cortexGeneral: process.env.CortexAssistant,
             }
         },
 
@@ -41,6 +44,10 @@ export const config = {
             network: 'mainnet-beta',
             tokenMintAddress: 'So11111111111111111111111111111111111111112'
         }
+    },
+
+    dataGathering: {
+        gatherPastTradeData: true,
     },
 
     // Add API sections and their respective APIs

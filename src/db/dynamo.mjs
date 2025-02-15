@@ -173,3 +173,47 @@ export async function storeAssistantThread(assistantName, threadId) {
         throw error;
     }
 }
+
+export async function getPastTradesByTokenAddress(tokenAddress) {
+    console.log("Retrieving past trades for token:", tokenAddress);
+    const params = {
+        TableName: "AramidAI-X-PastTrades",
+        FilterExpression: "tokenAddress = :addr",
+        ExpressionAttributeValues: {
+            ":addr": tokenAddress
+        }
+    };
+
+    try {
+        const response = await docClient.send(new ScanCommand(params));
+        if (!response.Items || response.Items.length === 0) {
+            return [];
+        }
+        console.log("Past trades retrieved:", response.Items);
+
+        // Transform the response to match the desired format
+        return response.Items.map(item => ({
+            tradeId: item.tradeId,
+            tokenName: item.tokenName,
+            tokenAddress: item.tokenAddress,
+            tradeType: item.tradeType,
+            status: item.status,
+            timestamp: item.timestamp,
+            completedAt: item.completedAt,
+            amountInvested: Number(item.amountInvested),
+            entryPriceSOL: item.entryPriceSOL,
+            entryPriceUSD: item.entryPriceUSD,
+            exitPriceSOL: item.exitPriceSOL,
+            exitPriceUSD: item.exitPriceUSD,
+            tokensReceived: Number(item.tokensReceived),
+            targetPercentageGain: Number(item.targetPercentageGain),
+            targetPercentageLoss: Number(item.targetPercentageLoss),
+            sellPercentageGain: item.sellPercentageGain ? Number(item.sellPercentageGain) : null,
+            sellPercentageLoss: item.sellPercentageLoss || null,
+            reason: item.reason
+        }));
+    } catch (error) {
+        console.error("Error retrieving past trades:", error);
+        throw error;
+    }
+}

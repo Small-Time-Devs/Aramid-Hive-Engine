@@ -105,7 +105,7 @@ async function processSingleMessage(messageData) {
     });
 
     const run = await openai.beta.threads.runs.create(mainThread.id, {
-        assistant_id: config.llmSettings.openAI.assistants.CortexGeneral
+        assistant_id: config.llmSettings.openAI.assistants.cortexGeneral
     });
 
     // Wait for completion with improved timeout handling

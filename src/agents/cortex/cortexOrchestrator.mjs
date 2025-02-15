@@ -1,4 +1,4 @@
-import { generateCortexGeneralResponse } from './CortexGeneral.mjs';
+import { generateCortexGeneralResponse } from './cortexGeneral.mjs';
 import { gatherAllTokenData } from '../../utils/dataCollector.mjs';
 
 function parseDecision(decision) {

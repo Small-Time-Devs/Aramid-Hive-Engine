@@ -8,10 +8,14 @@ import bodyParser from 'body-parser';
 import timeout from 'connect-timeout'; // Import the timeout middleware
 import { fileURLToPath } from 'url';
 
+// General Public Agents Orchestrator
 import { startConversation } from './src/agents/orchestrator.mjs';
+
+// Specific Agents Orchestrators
 import { startAutoTradingChat, startAutoTradingAdvice } from './src/agents/trading/tradeOrchestrator.mjs';
 import { startTwitterChat } from './src/agents/twitter/twitterOrchestrator.mjs';
 import { startAramidOrchestrator } from './src/agents/aramid/aramidOrchestrator.mjs';
+import { startCortexOrchestrator } from './src/agents/cortex/cortexOrchestrator.mjs';
 
 dotenv.config();
 
@@ -235,6 +239,24 @@ app.post('/aramid-chat', async (req, res) => {
 
   try {
     const agentResponse = await startAramidOrchestrator(userInput);
+    res.json({ agents: agentResponse });
+  } catch (error) {
+    console.error("Agent Chat Error:", error);
+    res.status(500).json({ agents: [], summary: "An error occurred while processing your request." });
+  }
+});
+
+app.post('/cortex-chat', async (req, res) => {
+  const { userInput } = req.body;
+
+  console.log("User Message:", userInput);
+
+  if (!userInput) {
+    return res.status(400).json({ error: "No user input!" });
+  }
+
+  try {
+    const agentResponse = await startCortexOrchestrator(userInput);
     res.json({ agents: agentResponse });
   } catch (error) {
     console.error("Agent Chat Error:", error);
