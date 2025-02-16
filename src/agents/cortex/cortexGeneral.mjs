@@ -48,41 +48,42 @@ const BATCH_SIZE = 5;
 const RETRY_DELAY = 2000; // 2 seconds
 const MAX_RETRIES = 3;
 
+// Add new constants for thread management
+const activeRuns = new Map();
+const threadLocks = new Map();
+const LOCK_TIMEOUT = 30000;
+const CHECK_INTERVAL = 1000;
+
+// Add helper function to manage thread locks
+async function acquireThreadLock(threadId) {
+    while (threadLocks.has(threadId)) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    threadLocks.set(threadId, Date.now());
+}
+
+function releaseThreadLock(threadId) {
+    threadLocks.delete(threadId);
+}
+
 async function processMessageBatch() {
     if (isProcessing || messageQueue.length === 0) return;
     isProcessing = true;
 
     try {
         const batch = messageQueue.splice(0, BATCH_SIZE);
-        const batchPromises = [];
-
+        
         for (const msg of batch) {
-            let retries = 0;
-            while (retries < MAX_RETRIES) {
-                try {
-                    const resultPromise = processSingleMessage(msg);
-                    batchPromises.push(resultPromise);
-                    
-                    // Store promise in map with message ID
-                    responsePromises.set(msg.id, resultPromise);
-                    break;
-                } catch (error) {
-                    if (error.message.includes('active run') && retries < MAX_RETRIES - 1) {
-                        retries++;
-                        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * retries));
-                        continue;
-                    }
-                    // Store error in response map
-                    responsePromises.set(msg.id, Promise.reject(error));
-                    break;
-                }
+            try {
+                const result = await processSingleMessage(msg);
+                responsePromises.get(msg.id)?.[0](result);
+            } catch (error) {
+                responsePromises.get(msg.id)?.[1](error);
+            } finally {
+                responsePromises.delete(msg.id);
             }
         }
 
-        // Wait for all batch messages to complete
-        await Promise.allSettled(batchPromises);
-
-        // Process next batch if queue is not empty
         if (messageQueue.length > 0) {
             setTimeout(processMessageBatch, 100);
         }
@@ -93,64 +94,101 @@ async function processMessageBatch() {
 
 async function processSingleMessage(messageData) {
     const { userInput, additionalData } = messageData;
-    
-    // Ensure thread is initialized
+    let retries = 0;
+
     if (!mainThread) {
-        throw new Error('Thread not initialized. Service not ready.');
+        throw new Error('Thread not initialized');
     }
 
-    const userMessage = await openai.beta.threads.messages.create(mainThread.id, {
-        role: "user",
-        content: userInput
-    });
+    while (retries < MAX_RETRIES) {
+        try {
+            await acquireThreadLock(mainThread.id);
+            
+            // Check for existing active run
+            if (activeRuns.has(mainThread.id)) {
+                const lastRun = activeRuns.get(mainThread.id);
+                try {
+                    const runStatus = await openai.beta.threads.runs.retrieve(mainThread.id, lastRun);
+                    if (!['completed', 'failed', 'cancelled', 'expired'].includes(runStatus.status)) {
+                        throw new Error('Thread has active run');
+                    }
+                } catch (error) {
+                    if (error.status === 404) {
+                        activeRuns.delete(mainThread.id);
+                    } else {
+                        throw error;
+                    }
+                }
+            }
 
-    const run = await openai.beta.threads.runs.create(mainThread.id, {
-        assistant_id: config.llmSettings.openAI.assistants.cortexGeneral
-    });
+            const userMessage = await openai.beta.threads.messages.create(mainThread.id, {
+                role: "user",
+                content: userInput
+            });
 
-    // Wait for completion with improved timeout handling
-    const response = await waitForCompletion(run.id);
-    
-    // Store in DynamoDB
-    await storeGeneralConversation({
-        message_id: userMessage.id,
-        thread_id: mainThread.id,
-        timestamp: new Date().toISOString(),
-        user_message: {
-            content: userInput,
-            timestamp: new Date().toISOString()
-        },
-        assistant_response: {
-            content: response.content[0].text.value,
-            message_id: response.id,
-            timestamp: new Date().toISOString()
+            const run = await openai.beta.threads.runs.create(mainThread.id, {
+                assistant_id: config.llmSettings.openAI.assistants.cortexGeneral
+            });
+
+            activeRuns.set(mainThread.id, run.id);
+            
+            const response = await waitForCompletion(run.id);
+            
+            await storeGeneralConversation({
+                message_id: userMessage.id,
+                thread_id: mainThread.id,
+                timestamp: new Date().toISOString(),
+                user_message: {
+                    content: userInput,
+                    timestamp: new Date().toISOString()
+                },
+                assistant_response: {
+                    content: response.content[0].text.value,
+                    message_id: response.id,
+                    timestamp: new Date().toISOString()
+                }
+            });
+
+            return response.content[0].text.value;
+
+        } catch (error) {
+            if (error.message.includes('active run') && retries < MAX_RETRIES - 1) {
+                retries++;
+                await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * retries));
+                continue;
+            }
+            throw error;
+        } finally {
+            releaseThreadLock(mainThread.id);
         }
-    });
-
-    return response.content[0].text.value;
+    }
+    throw new Error(`Failed to process message after ${MAX_RETRIES} retries`);
 }
 
 async function waitForCompletion(runId) {
     const maxAttempts = 30;
     let attempts = 0;
 
-    while (attempts < maxAttempts) {
-        const runStatus = await openai.beta.threads.runs.retrieve(mainThread.id, runId);
-        
-        if (runStatus.status === 'completed') {
-            const messages = await openai.beta.threads.messages.list(mainThread.id);
-            return messages.data[0];
+    try {
+        while (attempts < maxAttempts) {
+            const runStatus = await openai.beta.threads.runs.retrieve(mainThread.id, runId);
+            
+            if (runStatus.status === 'completed') {
+                const messages = await openai.beta.threads.messages.list(mainThread.id);
+                return messages.data[0];
+            }
+            
+            if (['failed', 'cancelled', 'expired'].includes(runStatus.status)) {
+                throw new Error(`Assistant run ${runStatus.status}`);
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, CHECK_INTERVAL));
+            attempts++;
         }
-        
-        if (runStatus.status === 'failed' || runStatus.status === 'cancelled') {
-            throw new Error(`Assistant run ${runStatus.status}`);
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        attempts++;
+        throw new Error('Assistant timed out');
+    } finally {
+        activeRuns.delete(mainThread.id);
     }
-
-    throw new Error('Assistant timed out');
 }
 
 // Modified generate response function to use response tracking
@@ -166,30 +204,19 @@ export async function generateCortexGeneralResponse(userInput, additionalData = 
         
         // Create promise for this message's response
         const responsePromise = new Promise((resolve, reject) => {
-            // Start batch processing if not already running
+            responsePromises.set(messageId, [resolve, reject]);
+            messageQueue.push({ id: messageId, userInput, additionalData });
+            
             if (!isProcessing) {
                 processMessageBatch().catch(reject);
             }
-            
-            // Check response map periodically
-            const checkResponse = setInterval(() => {
-                if (responsePromises.has(messageId)) {
-                    clearInterval(checkResponse);
-                    responsePromises.get(messageId)
-                        .then(resolve)
-                        .catch(reject)
-                        .finally(() => responsePromises.delete(messageId));
-                }
-            }, 100);
-
-            // Timeout after 30 seconds
-            setTimeout(() => {
-                clearInterval(checkResponse);
-                reject(new Error('Response timeout'));
-            }, 30000);
         });
 
-        return await responsePromise;
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Response timeout')), 30000)
+        );
+
+        return await Promise.race([responsePromise, timeoutPromise]);
 
     } catch (error) {
         console.error("Error in Cortex General Assistant:", error);
