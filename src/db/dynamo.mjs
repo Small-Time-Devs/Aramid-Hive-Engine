@@ -217,3 +217,44 @@ export async function getPastTradesByTokenAddress(tokenAddress) {
         throw error;
     }
 }
+
+export async function getWhitelistedThreads() {
+    try {
+        const response = await docClient.send(new ScanCommand({
+            TableName: "AramidAI-Engine-Assistant-Threads",
+            ProjectionExpression: "thread_id"
+        }));
+
+        return response.Items.map(item => item.thread_id);
+    } catch (error) {
+        console.error('Error fetching whitelisted threads:', error);
+        return [];
+    }
+}
+
+export async function getAllThreadIds() {
+    try {
+        const params = {
+            TableName: "AramidAI-Engine-All-Threads",
+            ProjectionExpression: "thread_id"
+        };
+
+        let threads = [];
+        let lastEvaluatedKey = undefined;
+
+        do {
+            if (lastEvaluatedKey) {
+                params.ExclusiveStartKey = lastEvaluatedKey;
+            }
+
+            const response = await docClient.send(new ScanCommand(params));
+            threads = threads.concat(response.Items.map(item => item.thread_id));
+            lastEvaluatedKey = response.LastEvaluatedKey;
+        } while (lastEvaluatedKey);
+
+        return threads;
+    } catch (error) {
+        console.error('Error fetching thread IDs:', error);
+        throw error;
+    }
+}

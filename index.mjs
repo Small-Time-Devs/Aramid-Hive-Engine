@@ -8,6 +8,8 @@ import bodyParser from 'body-parser';
 import timeout from 'connect-timeout'; // Import the timeout middleware
 import { fileURLToPath } from 'url';
 
+import { config } from './src/config/config.mjs';
+
 // General Public Agents Orchestrator
 import { startConversation } from './src/agents/orchestrator.mjs';
 
@@ -16,6 +18,9 @@ import { startAutoTradingChat, startAutoTradingAdvice } from './src/agents/tradi
 import { startTwitterChat } from './src/agents/twitter/twitterOrchestrator.mjs';
 import { startAramidOrchestrator } from './src/agents/aramid/aramidOrchestrator.mjs';
 import { startCortexOrchestrator } from './src/agents/cortex/cortexOrchestrator.mjs';
+
+// Add this near the start of your server initialization
+import { deleteAllThreads } from './src/utils/threadManager.mjs';
 
 dotenv.config();
 
@@ -274,6 +279,16 @@ async function internetResearch(query) {
     } catch (error) {
         console.error('Error with internet research:', error.message);
         throw new Error('Failed to retrieve search results.');
+    }
+}
+
+// Add this before app.listen()
+if (config.llmSettings.openAI.openAIThreads.deleteAllThreads) {
+    try {
+        await deleteAllThreads();
+        console.log('Thread cleanup completed successfully');
+    } catch (error) {
+        console.error('Failed to cleanup threads:', error);
     }
 }
 

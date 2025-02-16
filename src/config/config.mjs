@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import { fetchRugcheckSummary } from '../utils/apiUtils.mjs';
+import { Threads } from 'openai/resources/beta/threads/threads.mjs';
 
 dotenv.config();
 
@@ -21,12 +22,16 @@ export const config = {
                 useTwitterProfessionalSameThread: false,
                 twitterProfessional: process.env.TwitterProfessionalAssistant,
 
-                useAramidGeneralSameThread: true,
+                useAramidGeneralSameThread: false,
                 aramidGeneral: process.env.AramidAssistant,
 
-                useCortexGeneralSameThread: true,
+                useCortexGeneralSameThread: false,
                 cortexGeneral: process.env.CortexAssistant,
-            }
+            },
+
+            openAIThreads: {
+                deleteAllThreads: true, // Set to true to delete all threads
+            },
         },
 
         localLLM: {
