@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
-import { config } from '../../config/config.mjs';
-import { storeTradeAdviceConversation, getAssistantThread, storeAssistantThread } from '../../db/dynamo.mjs';
+import { config } from '../../../config/config.mjs';
+import { storeTradeAdviceConversation, getAssistantThread, storeAssistantThread } from '../../../db/dynamo.mjs';
 
 const openai = new OpenAI();
 const ASSISTANT_NAME = 'TradeAdvice';

@@ -8,6 +8,25 @@ export const config = {
 
     llmSettings: {
 
+        activePlatform: {
+            openAI: false,
+            cloudFlare: true,
+        },
+
+        cloudFlare: {
+            cloudFlareApiKey: process.env.CLOUDFLARE_API_TOKEN,
+            cloudFlareAccountID: process.env.CLOUDFLARE_ACCOUNT_ID,
+            cloudFlareRestAPIUrl: `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/ai/run/`,
+            
+            llamaModel: '@cf/meta/llama-3-8b-instruct',  // More detailed
+            llamaFastModel: '@cf/meta/llama-3.3-70b-instruct-fp8-fast', // has less context window
+            llamaAwqModel: '@cf/meta/llama-3-8b-instruct-awq', // has less context window
+            llamaFp8Model: '@cf/meta/llama-3.1-8b-instruct-fp8', // has less context window
+
+            maxTokens: 4096, // Maximum tokens for response
+            temperature: 0.7, // Temperature for response randomness
+        },
+
         openAI: {
             apiKey: process.env.OPENAI_API_KEY, // Set your OpenAI API key here
             model: 'gpt-4o-mini', // Set the OpenAI model to use

@@ -1,7 +1,9 @@
 import { gatherAllTokenData } from '../../utils/dataCollector.mjs';
-import { generateAgentConfigurationsforAutoTrader } from './autoTrader.mjs';
-import { getCurrentTradeAdvice } from './tradeAdvice.mjs';
+import { generateAgentConfigurationsforAutoTrader } from './openAI/autoTrader.mjs';
+import { cloudFlareAutoTraderAgent } from './cloudFlare/cloudFlareAutoTrader.mjs';
+import { getCurrentTradeAdvice } from './openAI/tradeAdvice.mjs';
 import { getPastTradesByTokenAddress } from '../../db/dynamo.mjs';
+import { config } from '../../config/config.mjs';
 
 export async function startAutoTradingChat(chain, contractAddress) {
   try {
@@ -29,8 +31,15 @@ export async function startAutoTradingChat(chain, contractAddress) {
       ...pastTradesSummary
     };
 
-    const agentResponses = await generateAgentConfigurationsforAutoTrader(enrichedData);
-    return agentResponses;
+    let agentResponses;  // Changed from const to let
+    if (config.llmSettings.activePlatform.openAI) {
+      agentResponses = await generateAgentConfigurationsforAutoTrader(enrichedData);
+    } else if (config.llmSettings.activePlatform.cloudFlare) {
+      agentResponses = await cloudFlareAutoTraderAgent(enrichedData);
+    }
+
+    return agentResponses || [];  // Ensure we always return an array
+
   } catch (error) {
     console.error("Agent Chat Error:", error);
     return [];
