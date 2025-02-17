@@ -1,9 +1,14 @@
-import { gatherAllTokenData } from '../../utils/dataCollector.mjs';
-import { generateAgentConfigurationsforAutoTrader } from './openAI/autoTrader.mjs';
-import { cloudFlareAutoTraderAgent } from './cloudFlare/cloudFlareAutoTrader.mjs';
-import { getCurrentTradeAdvice } from './openAI/tradeAdvice.mjs';
-import { getPastTradesByTokenAddress } from '../../db/dynamo.mjs';
 import { config } from '../../config/config.mjs';
+import { getPastTradesByTokenAddress } from '../../db/dynamo.mjs';
+import { gatherAllTokenData } from '../../utils/dataCollector.mjs';
+
+// Cloud Flare imports
+import { cloudFlareAutoTraderAgent } from './cloudFlare/cloudFlareAutoTrader.mjs';
+import { cloudFlareAutoTraderAdviceAgent } from './cloudFlare/cloudFlareTradeAdvice.mjs';
+
+// OpenAI imports
+import { generateAgentConfigurationsforAutoTrader } from './openAI/autoTrader.mjs';
+import { getCurrentTradeAdvice } from './openAI/tradeAdvice.mjs';
 
 export async function startAutoTradingChat(chain, contractAddress) {
   try {
@@ -31,7 +36,7 @@ export async function startAutoTradingChat(chain, contractAddress) {
       ...pastTradesSummary
     };
 
-    let agentResponses;  // Changed from const to let
+    let agentResponses;
     if (config.llmSettings.activePlatform.openAI) {
       agentResponses = await generateAgentConfigurationsforAutoTrader(enrichedData);
     } else if (config.llmSettings.activePlatform.cloudFlare) {
@@ -39,6 +44,25 @@ export async function startAutoTradingChat(chain, contractAddress) {
     }
 
     return agentResponses || [];  // Ensure we always return an array
+
+  } catch (error) {
+    console.error("Agent Chat Error:", error);
+    return [];
+  }
+}
+
+export async function startAutoTradingAdvice( chain, contractAddress, entryPriceSOL, targetPercentageGain, targetPercentageLoss) {
+  try {
+    const tokenData = await gatherAllTokenData(chain, contractAddress);
+
+  let agentResponse;
+  if (config.llmSettings.activePlatform.openAI) {
+    agentResponse = await getCurrentTradeAdvice(tokenData, entryPriceSOL, targetPercentageGain, targetPercentageLoss);
+  } else if (config.llmSettings.activePlatform.cloudFlare) {
+    agentResponse = await cloudFlareAutoTraderAdviceAgent(tokenData, entryPriceSOL, targetPercentageGain, targetPercentageLoss);
+  }
+
+  return agentResponse || [];  // Ensure we always return an array
 
   } catch (error) {
     console.error("Agent Chat Error:", error);
@@ -89,15 +113,3 @@ function calculateTotalVolume(trades) {
   if (!trades?.length) return 0;
   return trades.reduce((sum, trade) => sum + (trade.amountInvested || 0), 0);
 }
-
-export async function startAutoTradingAdvice( chain, contractAddress, entryPriceSOL, targetPercentageGain, targetPercentageLoss) {
-    try {
-      const tokenData = await gatherAllTokenData(chain, contractAddress);
-      console.log("Refreshed Token Data:", tokenData);
-      const agentResponse = await getCurrentTradeAdvice(tokenData, entryPriceSOL, targetPercentageGain, targetPercentageLoss);
-      return agentResponse;
-    } catch (error) {
-      console.error("Agent Chat Error:", error);
-      return [];
-    }
-  }
