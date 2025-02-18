@@ -1,8 +1,6 @@
 import { config } from '../../../config/config.mjs';
 import { storeGeneralConversation } from '../../../db/dynamo.mjs';
-
-// Instructions
-import { AramidBaseSystemInstructions } from '../prompts/systemInstructions.mjs';
+import { AramidBaseSystemInstructions } from '../../../prompts/systemInstructions.mjs';
 
 async function runCloudflareAI(input) {
     const url = `${config.llmSettings.cloudFlare.cloudFlareRestAPIUrl}${config.llmSettings.cloudFlare.llamaFp8Model}`;
