@@ -31,6 +31,9 @@ export const config = {
 
             twitterProfessionalMaxTokens: 4096,
             twitterProfessionalTemperature: 1,
+
+            aramidGeneralMaxTokens: 4096,
+            aramidGeneralTemperature: 1,
         },
 
         openAI: {

@@ -1,4 +1,6 @@
-import { generateAramidGeneralResponse } from './aramidGeneral.mjs';
+import { generateAramidGeneralResponse } from './openAI/openAIAramidGeneral.mjs';
+import { config } from '../../config/config.mjs';
+import { generatecloudFlareAramidGeneralResponse } from './cloudFlare/cloudFlareAramidGeneral.mjs';
 import { gatherAllTokenData } from '../../utils/dataCollector.mjs';
 
 function parseDecision(decision) {
@@ -52,7 +54,15 @@ export async function startAramidOrchestrator(userQuestion) {
     try {
         // Get response from assistant
         console.log('\n🤖 Getting response...');
-        const initialResponse = await generateAramidGeneralResponse(userQuestion);
+
+        let initialResponse;
+        if (config.llmSettings.activePlatform.openAI) {
+            initialResponse = await generateAramidGeneralResponse(userQuestion);
+        } else if (config.llmSettings.activePlatform.cloudFlare) {
+            initialResponse = await generatecloudFlareAramidGeneralResponse(userQuestion);
+        }
+
+
         let parsedResponse = ensureValidResponse(initialResponse);
 
         // Check if data gathering is needed
@@ -70,9 +80,15 @@ export async function startAramidOrchestrator(userQuestion) {
                 );
 
                 console.log('\n💽 Token data gathered, getting final analysis...');
+
+
+                let finalResponse;
+                if (config.llmSettings.activePlatform.openAI) {
+                    finalResponse = await generateAramidGeneralResponse(userQuestion, tokenData);
+                } else if (config.llmSettings.activePlatform.cloudFlare) {
+                    finalResponse = await generatecloudFlareAramidGeneralResponse(userQuestion, tokenData);
+                }
                 
-                // Get final response with gathered data
-                const finalResponse = await generateAramidGeneralResponse(userQuestion, tokenData);
                 parsedResponse = ensureValidResponse(finalResponse);
             }
         }

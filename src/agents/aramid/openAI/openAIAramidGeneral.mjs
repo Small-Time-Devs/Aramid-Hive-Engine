@@ -1,6 +1,6 @@
-import { config } from '../../config/config.mjs';
+import { config } from '../../../config/config.mjs';
 import OpenAI from 'openai';
-import { storeGeneralConversation, getAssistantThread, storeAssistantThread } from '../../db/dynamo.mjs';
+import { storeGeneralConversation, getAssistantThread, storeAssistantThread } from '../../../db/dynamo.mjs';
 
 const openai = new OpenAI({
     apiKey: config.llmSettings.openAI.apiKey
