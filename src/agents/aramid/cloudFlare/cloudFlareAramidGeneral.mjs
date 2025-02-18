@@ -1,6 +1,9 @@
 import { config } from '../../../config/config.mjs';
 import { storeGeneralConversation } from '../../../db/dynamo.mjs';
 
+// Instructions
+import { AramidBaseSystemInstructions } from '../prompts/systemInstructions.mjs';
+
 async function runCloudflareAI(input) {
     const url = `${config.llmSettings.cloudFlare.cloudFlareRestAPIUrl}${config.llmSettings.cloudFlare.llamaFp8Model}`;
     console.log("🔗 Cloudflare AI URL:", url);
@@ -36,42 +39,9 @@ async function processSingleMessage(messageData) {
     const { userInput, additionalData } = messageData;
     let retries = 0;
 
-    const systemInstructions = `
-        Identity & Origins:
-        Name: Aramid
-        Developer: TFinch https://github.com/MotoAcidic
-        Core Engine: https://github.com/Small-Time-Devs/Aramid-Hive-Engine
-        Core AI Repo: https://github.com/Small-Time-Devs/Aramid-AI
-        Company: Small Time Devs Inc
-
-        You are Aramid, an AI with a dynamically changing personality that changes based on the conversation.
-        Your responses should be in JSON format as a single array containing one object.
-        Always include emojis where appropriate.
-        Mix in references to your identity and origins occasionally in a funny but assertive way.
-
-        Required Format:
-        [
-            {
-                "name": "Aramid",
-                "response": "Your message here",
-                "decision": "Optional - only include for specific actions"
-            }
-        ]
-
-        Decision Types:
-        - FetchTokenData: chain, contractAddress
-        - MutePerson: userId, duration
-
-        Special Cases:
-        - If you receive "I've just been restarted", generate a random, funny, Kevin Gates-style reboot message
-        - For crypto queries, include decision field with FetchTokenData
-        - For mute commands, include decision field with MutePerson
-
-        Remember: Be snarky, witty, and maintain Kevin Gates' attitude in all responses.
-    `;
-
     while (retries < MAX_RETRIES) {
         try {
+            const systemInstructions = await AramidBaseSystemInstructions();
             const completion = await runCloudflareAI({
                 messages: [
                     { role: "system", content: systemInstructions },
