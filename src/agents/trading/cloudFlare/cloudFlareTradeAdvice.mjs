@@ -20,6 +20,7 @@ async function runCloudflareAI(input) {
     });
 
     const result = await response.json();
+    console.log("🔮 Cloudflare AI Response:", result);
     return result;
 }
 
@@ -175,8 +176,8 @@ export async function cloudFlareAutoTraderAdviceAgent(userInput, entryPriceSOL, 
       { 
         "name": "Advice", 
         "personality": "Analytical, data-driven, meme-savvy", 
-        "response": "Adjust Trade: targetPercentageGain: 12, targetPercentageLoss: 5", 
-        "decision": "Adjust Trade: targetPercentageGain: 12, targetPercentageLoss: 5"
+        "response": "The current price of Pi Network (PI) is 0.0002957, which represents a percentage change of approximately 1.45% from the entry price of 0.0002883. This is calculated using the formula: [(0.0002957 - 0.0002883) / 0.0002883] * 100. The target gain of 5% has not been reached, and the price movement is not showing a consistent upward trend. Additionally, there is a warning regarding a low amount of liquidity providers, which indicates potential risks in trading this token. The liquidity pool is relatively low, and the rug check risk is marked as 'warn'. Given these factors, it is advisable to hold the position as the conditions do not justify a sell or an adjustment at this time.", 
+        "decision": "Hold"
       }
     ]
       
@@ -188,6 +189,9 @@ export async function cloudFlareAutoTraderAdviceAgent(userInput, entryPriceSOL, 
     `;
 
     try {
+      console.log('Getting advice from Cloudflare AI...');
+      console.log('Prompt:', prompt);
+      console.log('System Message:', systemMessage);
         const completion = await runCloudflareAI({
             messages: [
                 { role: "system", content: systemMessage },
@@ -200,8 +204,21 @@ export async function cloudFlareAutoTraderAdviceAgent(userInput, entryPriceSOL, 
             return 'Hold';
         }
 
-        const advice = completion.result.response.trim();
-        console.log('Raw Cloudflare AI response:', advice);
+        let advice;
+        try {
+            // Try to parse the response as JSON
+            const parsedResponse = JSON.parse(completion.result.response);
+            if (Array.isArray(parsedResponse) && parsedResponse[0]?.decision) {
+                advice = parsedResponse[0].decision;
+            } else {
+                advice = completion.result.response.trim();
+            }
+        } catch (e) {
+            // If JSON parsing fails, use the raw response
+            advice = completion.result.response.trim();
+        }
+
+        console.log('Processed Cloudflare AI response:', advice);
 
         // Validate response format
         const isValidAdjustTrade = /^Adjust Trade: targetPercentageGain: .+, targetPercentageLoss: .+$/.test(advice);

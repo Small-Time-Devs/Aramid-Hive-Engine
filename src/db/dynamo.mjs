@@ -232,10 +232,38 @@ export async function getWhitelistedThreads() {
     }
 }
 
+export async function markThreadAsDeleted(threadId) {
+    const params = {
+        TableName: "AramidAI-Engine-All-Threads",
+        Key: {
+            thread_id: threadId
+        },
+        UpdateExpression: "SET is_deleted = :deleted, deleted_at = :timestamp",
+        ExpressionAttributeValues: {
+            ":deleted": true,
+            ":timestamp": new Date().toISOString()
+        },
+        ReturnValues: "UPDATED_NEW"
+    };
+
+    try {
+        await docClient.send(new UpdateCommand(params));
+        console.log(`✅ Marked thread ${threadId} as deleted`);
+        return true;
+    } catch (error) {
+        console.error(`❌ Error marking thread as deleted:`, error);
+        return false;
+    }
+}
+
 export async function getAllThreadIds() {
     try {
         const params = {
             TableName: "AramidAI-Engine-All-Threads",
+            FilterExpression: "attribute_not_exists(is_deleted) OR is_deleted = :false",
+            ExpressionAttributeValues: {
+                ":false": false
+            },
             ProjectionExpression: "thread_id"
         };
 

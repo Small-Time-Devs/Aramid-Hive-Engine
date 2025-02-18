@@ -6,8 +6,8 @@ async function runCloudflareAI(input) {
 
     const aiRequest = {
         ...input,
-        max_tokens: config.llmSettings.cloudFlare.maxTokens,
-        temperature: config.llmSettings.cloudFlare.temperature
+        max_tokens: config.llmSettings.cloudFlare.autoTraderMaxTokens,
+        temperature: config.llmSettings.cloudFlare.autoTraderTemperature
     };
 
     console.log("📥 Cloudflare AI Input:", aiRequest);

@@ -23,8 +23,11 @@ export const config = {
             llamaAwqModel: '@cf/meta/llama-3-8b-instruct-awq', // has less context window
             llamaFp8Model: '@cf/meta/llama-3.1-8b-instruct-fp8', // has less context window
 
-            maxTokens: 4096, // Maximum tokens for response
-            temperature: 0.7, // Temperature for response randomness
+            autoTraderMaxTokens: 4096,
+            autoTraderTemperature: 0.7,
+
+            autoTraderAdviceMaxTokens: 2050,
+            autoTraderAdviceTemperature: 0.1,
         },
 
         openAI: {
