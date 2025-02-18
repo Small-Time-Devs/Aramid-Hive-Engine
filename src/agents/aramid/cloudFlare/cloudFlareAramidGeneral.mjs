@@ -85,16 +85,42 @@ async function processSingleMessage(messageData) {
 
             let responseText = completion.result.response;
             
-            // Clean up response
+            // Clean up response - enhanced cleaning for malformed JSON
             responseText = responseText
                 .replace(/```json\n?/g, '')
                 .replace(/```\n?/g, '')
                 .replace(/\\/g, '')
+                .replace(/\n\s+/g, ' ') 
+                .replace(/\r/g, '')     
+                .replace(/\t/g, ' ')    
+                .replace(/\)\s*}/g, '}') // Remove stray closing parentheses before }
+                .replace(/\s*\)\s*\]/g, ']') // Remove stray closing parentheses before ]
+                .replace(/([^"]),(\s*[}\]])/g, '$1$2') // Fix trailing commas
                 .trim();
 
+            // Ensure proper JSON structure
+            if (!responseText.startsWith('[')) {
+                responseText = '[' + responseText;
+            }
+            if (!responseText.endsWith(']')) {
+                responseText = responseText + ']';
+            }
+
             try {
+                // Try parsing the cleaned response
                 const parsedResponse = JSON.parse(responseText);
                 
+                // Additional validation
+                if (!Array.isArray(parsedResponse) || !parsedResponse[0]?.response) {
+                    throw new Error('Invalid response structure');
+                }
+
+                // Clean up the individual response text too
+                parsedResponse[0].response = parsedResponse[0].response
+                    .replace(/\)\s*$/, '') // Remove trailing parentheses
+                    .replace(/([^"]),(\s*$)/g, '$1') // Remove trailing commas
+                    .trim();
+
                 // Store conversation in DynamoDB
                 await storeGeneralConversation({
                     message_id: Date.now().toString(),
@@ -115,11 +141,17 @@ async function processSingleMessage(messageData) {
                 console.error("JSON Parse Error:", parseError);
                 console.error("Attempted to parse:", responseText);
                 
-                // Return fallback response
-                return {
+                // Enhanced fallback response handling
+                const extractedResponse = responseText.match(/"response"\s*:\s*"([^"]+)"/)?.[1] || responseText;
+                const fallbackResponse = {
                     name: "Aramid",
-                    response: "🤔 Listen, I'm keeping it real with you - my circuits got tangled up trying to process that. How about we try again? #KeepingIt100",
+                    response: extractedResponse
+                        .replace(/\)\s*$/, '') // Remove trailing parentheses
+                        .replace(/([^"]),(\s*$)/g, '$1') // Remove trailing commas
+                        .trim(),
                 };
+
+                return fallbackResponse;
             }
         } catch (error) {
             retries++;
