@@ -26,6 +26,33 @@ async function runCloudflareAI(input) {
     return result;
 }
 
+function extractJSON(text) {
+    try {
+        // If the text is already valid JSON, return it parsed
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            // Continue with extraction if direct parsing fails
+        }
+
+        // Find array boundaries instead of object boundaries
+        const start = text.indexOf('[');
+        const end = text.lastIndexOf(']') + 1;
+        
+        if (start === -1 || end === 0) {
+            console.error('No JSON array found in response');
+            return null;
+        }
+        
+        const jsonStr = text.substring(start, end);
+        return JSON.parse(jsonStr);
+    } catch (e) {
+        console.error('Error extracting JSON:', e);
+        console.log('Attempted to parse:', text);
+        return null;
+    }
+}
+
 export async function cloudFlareTwitterProfessionalAgent(userInput) {
     // Convert userInput object to string if it's an object
     const userInputString = typeof userInput === 'object' ? 
@@ -271,48 +298,14 @@ export async function cloudFlareTwitterProfessionalAgent(userInput) {
             throw new Error("Invalid response from Cloudflare AI");
         }
 
-        let responseText = completion.result.response;
-        
-        // Clean up the response text
-        responseText = responseText
-            .replace(/```json\n?/g, '') // Remove JSON code block markers
-            .replace(/```\n?/g, '') // Remove any remaining code block markers
-            .replace(/\\/g, '') // Remove backslashes
-            .trim();
-        
-        // Ensure the response is valid JSON by wrapping non-array responses
-        if (!responseText.startsWith('[')) {
-            responseText = `[${responseText}]`;
+        // Parse the response directly since it should already be an array
+        const parsedResponse = extractJSON(completion.result.response);
+        if (!parsedResponse || !Array.isArray(parsedResponse)) {
+            throw new Error("Invalid response format");
         }
 
-        try {
-            const agentConfigurations = JSON.parse(responseText);
-            
-            if (!Array.isArray(agentConfigurations)) {
-                throw new Error('Response is not an array');
-            }
+        return parsedResponse;
 
-            // Validate and clean up each configuration
-            const validatedConfig = agentConfigurations.map(config => ({
-                name: config.name || 'DataDiver',
-                personality: config.personality || 'Analytical, data-driven, meme-savvy',
-                response: config.response || 'Analysis incomplete due to token limit',
-                decision: config.decision || 'Pass: Analysis incomplete'
-            }));
-
-            return validatedConfig;
-        } catch (parseError) {
-            console.error("JSON Parse Error:", parseError);
-            console.error("Attempted to parse:", responseText);
-            
-            // Return a fallback configuration
-            return [{
-                name: 'DataDiver',
-                personality: 'Analytical, data-driven, meme-savvy',
-                response: completion.result.response,
-                decision: 'Pass: Response parsing error'
-            }];
-        }
     } catch (error) {
         console.error("🚨 Error generating agent configurations:", error);
         throw new Error(`Failed to generate agent configurations: ${error.message}`);
