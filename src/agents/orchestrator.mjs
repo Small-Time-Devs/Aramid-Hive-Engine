@@ -1,4 +1,4 @@
-import * as twitterProfessional from "./twitter/twitterProfessional.mjs";
+import * as twitterProfessional from "./twitter/openAI/twitterProfessional.mjs";
 import { config } from '../config/config.mjs';
 import OpenAI from 'openai';
 import { keywords } from './keyWords.mjs'; // Import the keyword mapping

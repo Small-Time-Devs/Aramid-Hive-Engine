@@ -28,13 +28,17 @@ export const config = {
 
             autoTraderAdviceMaxTokens: 2050,
             autoTraderAdviceTemperature: 0.1,
+
+            twitterProfessionalMaxTokens: 4096,
+            twitterProfessionalTemperature: 1,
         },
 
         openAI: {
             apiKey: process.env.OPENAI_API_KEY, // Set your OpenAI API key here
             model: 'gpt-4o-mini', // Set the OpenAI model to use
             assistants: {
-                useAutoTraderAssistant: true, // Not implemented yet
+                useAutoTraderAssistant: true,
+
                 useAutoTraderSameThread: false,
                 autoTrader: process.env.AutoTraderAssistant,
 

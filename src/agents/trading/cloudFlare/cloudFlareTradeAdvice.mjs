@@ -2,7 +2,6 @@ import { config } from '../../../config/config.mjs';
 
 async function runCloudflareAI(input) {
     const url = `${config.llmSettings.cloudFlare.cloudFlareRestAPIUrl}${config.llmSettings.cloudFlare.llamaFp8Model}`;
-    console.log("🔗 Cloudflare AI URL:", url);
 
     const aiRequest = {
         ...input,
@@ -189,9 +188,6 @@ export async function cloudFlareAutoTraderAdviceAgent(userInput, entryPriceSOL, 
     `;
 
     try {
-      console.log('Getting advice from Cloudflare AI...');
-      console.log('Prompt:', prompt);
-      console.log('System Message:', systemMessage);
         const completion = await runCloudflareAI({
             messages: [
                 { role: "system", content: systemMessage },
