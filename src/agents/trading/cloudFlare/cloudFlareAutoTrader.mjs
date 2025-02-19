@@ -4,7 +4,7 @@ import { AutoTraderPrompt } from '../../../prompts/prompts.mjs';
 
 async function runCloudflareAI(input) {
     const url = `${config.llmSettings.cloudFlare.cloudFlareRestAPIUrl}${config.llmSettings.cloudFlare.llamaFp8Model}`;
-    console.log("🔗 Cloudflare AI URL:", url);
+    //console.log("🔗 Cloudflare AI URL:", url);
 
     const aiRequest = {
         ...input,
@@ -12,7 +12,7 @@ async function runCloudflareAI(input) {
         temperature: config.llmSettings.cloudFlare.autoTraderTemperature
     };
 
-    console.log("📥 Cloudflare AI Input:", aiRequest);
+    //console.log("📥 Cloudflare AI Input:", aiRequest);
 
     const response = await fetch(url, {
         headers: { 

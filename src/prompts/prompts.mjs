@@ -128,23 +128,6 @@ export async function AutoTraderAdvicePrompt(userInput, entryPriceSOL, targetPer
     - Entry Price (SOL): ${entryPriceSOL}
     - Target Gain: ${targetPercentageGain}%
     - Target Loss: ${targetPercentageLoss}%
-
-    Instructions:
-    1. Calculate the percentage change from the Entry Price (SOL) to the current Native Price (PriceNative).
-    2. If the calculated price change is greater than or equal to the Target Gain, respond with "Sell Now".
-    3. Check all risk indicators:
-      - If token safety is false, or if freeze or mint authority is present, respond with "Sell Now".
-      - If any provided rug check risk factor is marked with a "danger" level, respond with "Sell Now".
-      - If any risk indicator shows "Large Amount of LP Unlocked" with a value above 95%, respond with "Sell Now".
-    4. Analyze price movement trends:
-      - If the price is falling steadily across all time intervals with no sign of stabilization, respond with "Sell Now".
-    5. If market conditions suggest adjusting trade parameters, respond with "Adjust Trade: targetPercentageGain: X, targetPercentageLoss: Y".
-    6. If no adjustment is necessary, respond with "Hold".
-
-    Your response must be exactly one of these outputs (no additional text):
-    - "Sell Now"
-    - "Hold"
-    - "Adjust Trade: targetPercentageGain: X, targetPercentageLoss: Y" (Replace X and Y with the suggested percentages.)
   `;
     return prompt;
 }
