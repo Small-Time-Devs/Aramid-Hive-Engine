@@ -4,7 +4,7 @@ import { TwitterProfessionalSystemInstructions } from '../../../prompts/systemIn
 
 async function runCloudflareAI(input) {
     const url = `${config.llmSettings.cloudFlare.cloudFlareRestAPIUrl}${config.llmSettings.cloudFlare.llamaFp8Model}`;
-    console.log("🔗 Cloudflare AI URL:", url);
+    //console.log("🔗 Cloudflare AI URL:", url);
 
     const aiRequest = {
         ...input,
@@ -12,7 +12,7 @@ async function runCloudflareAI(input) {
         temperature: config.llmSettings.cloudFlare.twitterProfessionalTemperature
     };
 
-    console.log("📥 Cloudflare AI Input:", aiRequest);
+    //console.log("📥 Cloudflare AI Input:", aiRequest);
 
     const response = await fetch(url, {
         headers: { 
@@ -24,7 +24,7 @@ async function runCloudflareAI(input) {
     });
 
     const result = await response.json();
-    console.log("🔮 Cloudflare AI Response:", result);
+    //console.log("🔮 Cloudflare AI Response:", result);
     return result;
 }
 
@@ -57,8 +57,8 @@ function extractJSON(text) {
 
 export async function cloudFlareTwitterProfessionalAgent(userInput) {
     try {
-        const prompt = TwitterProfessionalPrompt(userInput);
-        const systemInstructions = TwitterProfessionalSystemInstructions();
+        const prompt = await TwitterProfessionalPrompt(userInput);
+        const systemInstructions = await TwitterProfessionalSystemInstructions();
         const completion = await runCloudflareAI({
             messages: [
                 { 
