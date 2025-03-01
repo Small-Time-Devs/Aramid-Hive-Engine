@@ -1,4 +1,6 @@
 import dotenv from 'dotenv';
+import { fetchRugcheckSummary } from '../utils/apiUtils.mjs';
+import { Threads } from 'openai/resources/beta/threads/threads.mjs';
 
 dotenv.config();
 
@@ -6,10 +8,59 @@ export const config = {
 
     llmSettings: {
 
+        activePlatform: {
+            openAI: false,
+            cloudFlare: true,
+        },
+
+        cloudFlare: {
+            cloudFlareApiKey: process.env.CLOUDFLARE_API_TOKEN,
+            cloudFlareAccountID: process.env.CLOUDFLARE_ACCOUNT_ID,
+            cloudFlareRestAPIUrl: `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/ai/run/`,
+            
+            llamaModel: '@cf/meta/llama-3-8b-instruct',  // More detailed
+            llamaFastModel: '@cf/meta/llama-3.3-70b-instruct-fp8-fast', // has less context window
+            llamaAwqModel: '@cf/meta/llama-3-8b-instruct-awq', // has less context window
+            llamaFp8Model: '@cf/meta/llama-3.1-8b-instruct-fp8', // has less context window
+
+            autoTraderMaxTokens: 4096,
+            autoTraderTemperature: 0.7,
+
+            autoTraderAdviceMaxTokens: 2050,
+            autoTraderAdviceTemperature: 0.1,
+
+            twitterProfessionalMaxTokens: 4096,
+            twitterProfessionalTemperature: 1,
+
+            aramidGeneralMaxTokens: 4096,
+            aramidGeneralTemperature: 1,
+        },
+
         openAI: {
             apiKey: process.env.OPENAI_API_KEY, // Set your OpenAI API key here
-            model: 'gpt-4o', // Set the OpenAI model to use
-            store: true, // Set to true to store conversations in the 'conversations' folder
+            model: 'gpt-4o-mini', // Set the OpenAI model to use
+            assistants: {
+                useAutoTraderAssistant: true,
+
+                useAutoTraderSameThread: false,
+                autoTrader: process.env.AutoTraderAssistant,
+
+                useTraderAdviceSameThread: false,
+                autoTraderAdvice: process.env.AutoTraderAdviceAssistant,
+
+                useTwitterProfessionalSameThread: false,
+                twitterProfessional: process.env.TwitterProfessionalAssistant,
+
+                useAramidGeneralSameThread: false,
+                aramidGeneral: process.env.AramidAssistant,
+
+                useCortexGeneralSameThread: false,
+                cortexGeneral: process.env.CortexAssistant,
+            },
+
+            openAIThreads: {
+                deleteAllThreads: true, // Set to true to delete all threads
+            },
         },
 
         localLLM: {
@@ -23,80 +74,34 @@ export const config = {
     solanaConstants: {
         mainnet: {
             name: 'solana',
-            rpcUrl: 'https://api.mainnet-beta.solana.com',
+            rpcNode: process.env.HELIUS_RPC_NODE,
             network: 'mainnet-beta',
             tokenMintAddress: 'So11111111111111111111111111111111111111112'
         }
     },
 
+    dataGathering: {
+        gatherPastTradeData: true,
+    },
+
     // Add API sections and their respective APIs
     apis:{
         crypto: {
-            coinGecko: 'https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids=', // Update to accept a variable
+            coinGecko: 'https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids=',
             dexscreenerTokneProfilesUrl: 'https://api.dexscreener.com/token-profiles/latest/v1',
-            dexscreenerTopBoostedUrl: 'https://api.dexscreener.com/token-boosts/top/v1',
-            raydiumTokenNameUrl: 'https://api-v3.raydium.io/mint/ids?mints=',
-            raydiumTokenPriceUrl: 'https://api-v3.raydium.io/mint/price?mints=',
+            dexscreenerLatestBoostedUrl: 'https://api.dexscreener.com/token-boosts/latest/v1',
+            dexscreenerMostActiveBoostsUrl: 'https://api.dexscreener.com/token-boosts/top/v1',
+            rugcheckApi: 'https://api.rugcheck.xyz/v1/tokens/',
+            jupTokenLookup: 'https://api.jup.ag/tokens/v1/token/',
+            raydiumMintIds: 'https://api-v3.raydium.io/mint/ids?mints=',
+            raydiumMintPrice: 'https://api-v3.raydium.io/mint/price?mints=',
+            meteoraPairs: 'https://dlmm-api.meteora.ag/pair/all_with_pagination',
+            meteoraPairsLimit: 15000,
+            meteoraPairsOrderBy: 'desc',
+            meteoraPairsHideLowTvl: 30000,
         },
         weather: {
             openWeatherMap: 'https://api.openweathermap.org/data/2.5/weather?q=London&appid=your_api_key',
         },
-    },
-
-    twitter: {
-        keys: {
-            appKey: process.env.TWITTER_API_KEY,
-            appSecret: process.env.TWITTER_API_SECRET,
-            accessToken: process.env.TWITTER_ACCESS_TOKEN,
-            accessSecret: process.env.TWITTER_ACCESS_SECRET,
-            twitterUserID: process.env.TWITTER_USER_ID,
-        },
-
-        settings: {
-            xAutoPoster: false, // Set to true to enable auto-posting to Twitter/X
-            devMode: false, // Set to true to enable development mode (generate tweets but do not post)
-            xAutoResponder: false, // Set to true to enable auto-responding to Twitter posts
-            postsPerDay: 100, // Updated to reflect the user limit of 100 posts per day
-            postsPerMonth: 3000, // Updated to reflect the new monthly limit
-            timeToReadPostsOnPage: 2, // Set the time to read posts on the page
-        },
-
-        influencers: {
-            twitterHandles: [
-                'CryptoAudiKing', 
-                'MikeDeanLive', 
-                'xenpub',
-                'KyeGomezB',
-                'REALISWORLDS',
-                'DEGENLABS_CO',
-            ],
-        },
-
-        solanaProjectsToReveiw: {
-            percentageToTalkAbout: {
-                // Needs to be a 25% chance to talk about the below project
-                chance: 25,
-            },
-
-            contractAddresses: {
-                swarms: '74SBV4zDXxTRgv1pEMoECskKBkZHc2yGPnc7GYVepump',
-                mcs: 'ALHFgnXSenUv17GMdf3dL9gtFW2KKQTz9avpM2Wypump',
-                tai: '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R',
-                onda: 'CJRXkuaDcnXpPB7yEYw5uRp4F9j57DdzmmJyp37upump',
-                trump: '6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN',
-                vine: '6AJcP7wuLwmRYLBNbi825wgguaPsWzPBEHcHndpRpump',
-                m3m3: 'M3M3pSFptfpZYnWNUgAbyWzKKgPo5d1eWmX6tbiSF2K',
-                qude: '3MyaQBG7y3SHLQZa282Jh2xtB2TZKHGzNp1CuZ4Cpump',
-                pippin: 'Dfh5DzRgSvvCFDoYc2ciTkMrbDfRKybA4SoFbPmApump',
-                anon: '9McvH6w97oewLmPxqQEoHUAv3u5iYMyQ9AeZZhguYf1T',
-                create: '92crE7qiX5T7VtiXhCeagfo1E81UtyguiXM7qCi7pump',
-                prism: '79vpEaaXrHnHHEtU9kYYQtwLTZy1SXpxXHi7LZ9Ppump',
-                spores: 'H1koD28XAHg2vuGp7XggehBCR4zP6r6k6EQ3MR6j3kU2',
-                arc: '61V8vBaqAGMpgDQi4JcAwo1dmBGHsyhzodcPqnEVpump',
-                pengu: '2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv',
-                bonk: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',
-            },  
-        },
-
     },
 };
