@@ -1,4 +1,4 @@
-import * as twitterProfessional from "./twitter/twitterProfessional.mjs";
+import * as twitterProfessional from "./twitter/openAI/twitterProfessional.mjs";
 import { config } from '../config/config.mjs';
 import OpenAI from 'openai';
 import { keywords } from './keyWords.mjs'; // Import the keyword mapping
@@ -6,7 +6,6 @@ import { generateAgentConfigurations } from './dynamic/dynamic.mjs'; // Import t
 import { fetchCryptoData, fetchWeatherData } from '../utils/apiUtils.mjs'; // Import the API fetching functions
 import { analyzeCryptoData } from '../utils/analyzer.mjs'; // Import the analyzing functions
 import { formatCryptoData } from '../utils/formater.mjs'; // Import the formatting functions
-import { TwitterApi } from "twitter-api-v2";
 import { checkRateLimit } from "../utils/helpers.mjs";
 
 const openai = new OpenAI();
@@ -108,52 +107,4 @@ export async function startConversation(question) {
     }
 
     return { agents: agentResponses, summary };
-}
-
-export async function autoPostToTwitter() {
-  if (!config.twitter.settings.xAutoPoster) return;
-
-  const maxPostsPerMonth = config.twitter.settings.postsPerMonth;
-  const postsPerDay = config.twitter.settings.postsPerDay;
-  const maxPostsPerDay = Math.min(postsPerDay, Math.floor(maxPostsPerMonth / 30));
-  const maxTweetsPerDay = Math.floor(maxPostsPerDay / 3); // Each post is 3 tweets (tweet, comment, hashtags)
-  const interval = 24 * 60 * 60 * 1000 / maxTweetsPerDay; // Interval in milliseconds
-
-  const client = new TwitterApi({
-    appKey: `${config.twitter.keys.appKey}`,
-    appSecret: `${config.twitter.keys.appSecret}`,
-    accessToken: `${config.twitter.keys.accessToken}`,
-    accessSecret: `${config.twitter.keys.accessSecret}`,
-  });
-
-  for (let i = 0; i < maxTweetsPerDay; i++) {
-    setTimeout(async () => {
-      try {
-        const canPost = await checkRateLimit(client);
-        if (!canPost) {
-          console.log('Skipping post due to rate limit.');
-          return;
-        }
-
-        const tweet = await twitterProfessional.generateAutoPostTweet();
-        await twitterProfessional.postToTwitter(tweet, client);
-      } catch (error) {
-        console.error("Error auto-posting to Twitter:", error);
-      }
-    }, i * interval);
-  }
-}
-
-export async function scanAndRespondToTwitterPosts() {
-  if (!config.twitter.settings.xAutoResponder) return; // Ensure the function respects the xAutoResponder flag
-
-  const interval = config.twitter.settings.timeToReadPostsOnPage * 60 * 1000; // Interval in milliseconds
-
-  setInterval(async () => {
-    try {
-      await twitterProfessional.scanAndRespondToPosts();
-    } catch (error) {
-      console.error("Error scanning and responding to Twitter posts:", error);
-    }
-  }, interval);
 }

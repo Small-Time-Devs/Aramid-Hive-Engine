@@ -7,9 +7,20 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import timeout from 'connect-timeout'; // Import the timeout middleware
 import { fileURLToPath } from 'url';
-import { startConversation, autoPostToTwitter } from './src/agents/orchestrator.mjs';
-import { config } from './src/config/config.mjs'; // Import the config
-import { generateAgentConfigurationsforTwitter } from './src/agents/dynamic/dynamic.mjs'; // Import the dynamic agent orchestrator
+
+import { config } from './src/config/config.mjs';
+
+// General Public Agents Orchestrator
+import { startConversation } from './src/agents/orchestrator.mjs';
+
+// Specific Agents Orchestrators
+import { startAutoTradingChat, startAutoTradingAdvice } from './src/agents/trading/tradeOrchestrator.mjs';
+import { startTwitterChat } from './src/agents/twitter/twitterOrchestrator.mjs';
+import { startAramidOrchestrator } from './src/agents/aramid/aramidOrchestrator.mjs';
+import { startCortexOrchestrator } from './src/agents/cortex/cortexOrchestrator.mjs';
+
+// Add this near the start of your server initialization
+import { deleteAllThreads } from './src/utils/threadManager.mjs';
 
 dotenv.config();
 
@@ -168,15 +179,90 @@ app.post('/agent-chat', async (req, res) => {
 });
 
 app.post('/twitter-agent-chat', async (req, res) => {
-  const { query } = req.body;
+  const { chain, contractAddress } = req.body;
 
-  if (!query) {
-    return res.status(400).json({ error: "Query is required." });
+  if (!chain || !contractAddress) {
+    return res.status(400).json({ error: "Chain info or contract address missing." });
   }
 
   try {
-    const agentResponses = await generateAgentConfigurationsforTwitter(query);
+    const agentResponses = await startTwitterChat(chain, contractAddress);
     res.json({ agents: agentResponses });
+  } catch (error) {
+    console.error("Agent Chat Error:", error);
+    res.status(500).json({ agents: [], summary: "An error occurred while processing your request." });
+  }
+});
+
+app.post('/autoTrading-agent-chat', async (req, res) => {
+  const { chain, contractAddress } = req.body;
+
+  console.log("Chain:", chain);
+  console.log("Contract Address:", contractAddress);
+
+  if (!chain || !contractAddress) {
+    return res.status(400).json({ error: "Chain or Contract Address Missing on input!" });
+  }
+
+  try {
+    const agentResponses = await startAutoTradingChat(chain, contractAddress);
+    console.log("Agent Responses:", agentResponses);
+    res.json({ agents: agentResponses });
+  } catch (error) {
+    console.error("Agent Chat Error:", error);
+    res.status(500).json({ agents: [], summary: "An error occurred while processing your request." });
+  }
+});
+
+app.post('/autoTrading-agent-advice', async (req, res) => {
+  const { 
+    chain, 
+    contractAddress,
+    entryPriceSOL,
+    targetPercentageGain,
+    targetPercentageLoss
+   } = req.body;
+
+   try {
+    const agentResponse = await startAutoTradingAdvice(chain, contractAddress, entryPriceSOL, targetPercentageGain, targetPercentageLoss);
+    console.log("Agent Response:", agentResponse);
+    res.json({ agents: agentResponse });
+  } catch (error) {
+    console.error("Agent Chat Error:", error);
+    res.status(500).json({ agents: [], summary: "An error occurred while processing your request." });
+  }
+});
+
+app.post('/aramid-chat', async (req, res) => {
+  const { userInput } = req.body;
+
+  console.log("User Message:", userInput);
+
+  if (!userInput) {
+    return res.status(400).json({ error: "No user input!" });
+  }
+
+  try {
+    const agentResponse = await startAramidOrchestrator(userInput);
+    res.json({ agents: agentResponse });
+  } catch (error) {
+    console.error("Agent Chat Error:", error);
+    res.status(500).json({ agents: [], summary: "An error occurred while processing your request." });
+  }
+});
+
+app.post('/cortex-chat', async (req, res) => {
+  const { userInput } = req.body;
+
+  console.log("User Message:", userInput);
+
+  if (!userInput) {
+    return res.status(400).json({ error: "No user input!" });
+  }
+
+  try {
+    const agentResponse = await startCortexOrchestrator(userInput);
+    res.json({ agents: agentResponse });
   } catch (error) {
     console.error("Agent Chat Error:", error);
     res.status(500).json({ agents: [], summary: "An error occurred while processing your request." });
@@ -196,42 +282,14 @@ async function internetResearch(query) {
     }
 }
 
-app.get('/twitter/callback', async (req, res) => {
-  const { code } = req.query;
-
-  if (!code) {
-    return res.status(400).send('Missing authorization code');
-  }
-
-  const client = new TwitterApi({
-    clientId: process.env.TWITTER_CLIENT_ID,
-    clientSecret: process.env.TWITTER_CLIENT_SECRET,
-  });
-
-  try {
-    const { client: loggedClient, accessToken, refreshToken } = await client.loginWithOAuth2({
-      code,
-      redirectUri: config.twitter.callbackUrl,
-    });
-
-    // Store the access token and refresh token securely
-    console.log('Access Token:', accessToken);
-    console.log('Refresh Token:', refreshToken);
-
-    // Save tokens to environment variables or a secure storage
-    process.env.TWITTER_ACCESS_TOKEN = accessToken;
-    process.env.TWITTER_REFRESH_TOKEN = refreshToken;
-
-    res.send('Twitter callback handled successfully.');
-  } catch (error) {
-    console.error('Error handling Twitter callback:', error);
-    res.status(500).send('Error handling Twitter callback.');
-  }
-});
+// Add this before app.listen()
+if (config.llmSettings.openAI.openAIThreads.deleteAllThreads) {
+    try {
+        await deleteAllThreads();
+        console.log('Thread cleanup completed successfully');
+    } catch (error) {
+        console.error('Failed to cleanup threads:', error);
+    }
+}
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
-
-// Call autoPostToTwitter function if auto-posting is enabled
-if (config.twitter.settings.xAutoPoster) {
-    autoPostToTwitter();
-}
