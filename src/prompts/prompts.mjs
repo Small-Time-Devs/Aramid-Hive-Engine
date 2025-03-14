@@ -182,3 +182,61 @@ export async function TwitterProfessionalPrompt(userInput){
 
   return prompt;
 }
+
+export async function DiscordTokenAdvicePrompt(userInput) {
+  const prompt = `
+    Token Data Analysis Request
+
+    Token Information:
+    - Name: ${userInput.TokenName || userInput.RaydiumTokenPairDataTokenName}
+    - Symbol: ${userInput.TokenSymbol || userInput.RaydiumTokenPairDataTokenSymbol}
+    - Creation Date: ${userInput.TimeCreated}
+    - Decimals: ${userInput.TokenDecimals}
+
+    Technical Parameters:
+    - Token Parameters: ${userInput.isTokenSafe ? "Standard parameters" : "Non-standard parameters"}
+    - Freeze Authority: ${userInput.hasFreeze ? "Present" : "Not present"}
+    - Mint Authority: ${userInput.hasMint ? "Present" : "Not present"}
+    
+    On-Chain Metrics:
+    - Current Price (SOL): ${userInput.PriceNative || 'N/A'}
+    - Current Price (USD): ${userInput.PriceUSD || 'N/A'}
+    - Market Cap: ${userInput.MarketCap || 'N/A'}
+    - Fully Diluted Value: ${userInput.FDV || 'N/A'}
+
+    Liquidity Data:
+    - USD Liquidity: ${userInput.LiquidityUSD || 'N/A'}
+    - Base Token Liquidity: ${userInput.LiquidityBase || 'N/A'}
+    - Quote SOL Liquidity: ${userInput.LiquidityQuote || 'N/A'}
+
+    Trading Activity:
+    - 24h Transactions: ${userInput.Transactions24h?.buys || 0} buys, ${userInput.Transactions24h?.sells || 0} sells
+    - 6h Transactions: ${userInput.Transactions6h?.buys || 0} buys, ${userInput.Transactions6h?.sells || 0} sells
+    - 1h Transactions: ${userInput.Transactions1h?.buys || 0} buys, ${userInput.Transactions1h?.sells || 0} sells
+    - 5m Transactions: ${userInput.Transactions5m?.buys || 0} buys, ${userInput.Transactions5m?.sells || 0} sells
+
+    Price Movements:
+    - 24h Change: ${userInput.PriceChange24h || 'N/A'}
+    - 6h Change: ${userInput.PriceChange6h || 'N/A'}
+    - 1h Change: ${userInput.PriceChange1h || 'N/A'}
+    - 5m Change: ${userInput.PriceChange5m || 'N/A'}
+
+    Volume Information:
+    - 24h Volume: ${userInput.Volume24h || 'N/A'}
+    - 6h Volume: ${userInput.volume6h || 'N/A'}
+    - 1h Volume: ${userInput.volume1h || 'N/A'}
+    - 5m Volume: ${userInput.volume5m || 'N/A'}
+
+    Additional Project Information:
+    - Websites: ${userInput.Websites || 'N/A'}
+    - Social Media: ${userInput.Socials || 'N/A'}
+    
+    Using only the data above, please provide:
+    1. An objective analysis of the on-chain metrics and trading patterns
+    2. Technical assessment based solely on the provided data
+    3. Risk factors evident in the metrics (Low/Medium/High activity, liquidity ratios, buying/selling patterns)
+    4. Overall data-driven conclusion about what these metrics typically indicate
+    `;
+
+  return prompt;
+}

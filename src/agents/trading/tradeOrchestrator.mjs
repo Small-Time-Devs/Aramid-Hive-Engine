@@ -5,6 +5,7 @@ import { gatherAllTokenData } from '../../utils/dataCollector.mjs';
 // Cloud Flare imports
 import { cloudFlareAutoTraderAgent } from './cloudFlare/cloudFlareAutoTrader.mjs';
 import { cloudFlareAutoTraderAdviceAgent } from './cloudFlare/cloudFlareTradeAdvice.mjs';
+import { cloudFlareDiscordTokenAdviceAgent } from './cloudFlare/cloudFlareDiscordTokenAdvice.mjs';
 
 // OpenAI imports
 import { generateAgentConfigurationsforAutoTrader } from './openAI/autoTrader.mjs';
@@ -47,6 +48,26 @@ export async function startAutoTradingChat(chain, contractAddress) {
 
   } catch (error) {
     console.error("Agent Chat Error:", error);
+    return [];
+  }
+}
+
+export async function startDiscordTokenAdviceChat(chain, contractAddress) {
+  try {
+    // Gather current token data
+    const tokenData = await gatherAllTokenData(chain, contractAddress);
+
+    let agentResponses;
+    if (config.llmSettings.activePlatform.openAI) {
+      agentResponses = await getCurrentTradeAdvice(tokenData);
+    } else if (config.llmSettings.activePlatform.cloudFlare) {
+      agentResponses = await cloudFlareDiscordTokenAdviceAgent(tokenData);
+    }
+
+    return agentResponses || [];  // Ensure we always return an array
+
+  } catch (error) {
+    console.error("Discord Token Advice Error:", error);
     return [];
   }
 }

@@ -14,7 +14,7 @@ import { config } from './src/config/config.mjs';
 import { startConversation } from './src/agents/orchestrator.mjs';
 
 // Specific Agents Orchestrators
-import { startAutoTradingChat, startAutoTradingAdvice } from './src/agents/trading/tradeOrchestrator.mjs';
+import { startAutoTradingChat, startAutoTradingAdvice, startDiscordTokenAdviceChat } from './src/agents/trading/tradeOrchestrator.mjs';
 import { startTwitterChat } from './src/agents/twitter/twitterOrchestrator.mjs';
 import { startAramidOrchestrator } from './src/agents/aramid/aramidOrchestrator.mjs';
 import { startCortexOrchestrator } from './src/agents/cortex/cortexOrchestrator.mjs';
@@ -266,6 +266,34 @@ app.post('/cortex-chat', async (req, res) => {
   } catch (error) {
     console.error("Agent Chat Error:", error);
     res.status(500).json({ agents: [], summary: "An error occurred while processing your request." });
+  }
+});
+
+app.post('/discord-token-advice', async (req, res) => {
+  const { chain, contractAddress } = req.body;
+
+  console.log("Discord Token Advice Request - Chain:", chain);
+  console.log("Discord Token Advice Request - Contract Address:", contractAddress);
+
+  if (!chain || !contractAddress) {
+    return res.status(400).json({ error: "Chain or Contract Address Missing on input!" });
+  }
+
+  try {
+    const agentResponses = await startDiscordTokenAdviceChat(chain, contractAddress);
+    console.log("Discord Token Advice Responses:", agentResponses);
+    res.json({ agents: agentResponses });
+  } catch (error) {
+    console.error("Discord Token Advice Error:", error);
+    res.status(500).json({ 
+      agents: [{
+        name: 'Error Agent',
+        personality: 'System',
+        response: "An error occurred while analyzing this token.",
+        decision: "Error: Analysis failed"
+      }], 
+      summary: "An error occurred while processing your request." 
+    });
   }
 });
 
